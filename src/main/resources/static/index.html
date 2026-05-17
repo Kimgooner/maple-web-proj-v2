@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>메이플 전투력 시트 뷰어</title>
+    <style>
+        :root {
+            --bg: #f5efe6;
+            --panel: rgba(255, 252, 247, 0.95);
+            --line: #dbcab1;
+            --text: #2b241d;
+            --muted: #746250;
+            --accent: #b45d2b;
+            --accent-soft: #f6dfcd;
+            --shadow: 0 18px 36px rgba(95, 63, 37, 0.12);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: "Pretendard", "Noto Sans KR", sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(180, 93, 43, 0.18), transparent 25%),
+                linear-gradient(180deg, #faf4eb 0%, var(--bg) 100%);
+        }
+
+        main {
+            width: min(1480px, calc(100% - 32px));
+            margin: 0 auto;
+            padding: 28px 0 48px;
+        }
+
+        .hero,
+        .panel,
+        .sheet-card,
+        .summary-card {
+            background: var(--panel);
+            border: 1px solid rgba(116, 98, 80, 0.16);
+            border-radius: 24px;
+            box-shadow: var(--shadow);
+        }
+
+        .hero {
+            padding: 28px;
+        }
+
+        .eyebrow {
+            margin: 0 0 8px;
+            color: var(--accent);
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(30px, 5vw, 48px);
+            line-height: 1.08;
+            letter-spacing: -0.04em;
+        }
+
+        .hero p {
+            margin: 14px 0 0;
+            color: var(--muted);
+            line-height: 1.7;
+            max-width: 840px;
+        }
+
+        .search-form {
+            margin-top: 24px;
+            display: grid;
+            grid-template-columns: 1.7fr 1fr auto;
+            gap: 12px;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .field label {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--muted);
+        }
+
+        input, button { font: inherit; }
+
+        input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.86);
+            color: var(--text);
+        }
+
+        button {
+            border: 0;
+            border-radius: 16px;
+            padding: 0 24px;
+            background: linear-gradient(135deg, #c96a37, #9d4e26);
+            color: #fffaf5;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .status {
+            min-height: 24px;
+            margin-top: 14px;
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .summary {
+            margin-top: 22px;
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .summary-card {
+            padding: 18px;
+        }
+
+        .summary-label {
+            font-size: 13px;
+            color: var(--muted);
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .summary-value {
+            font-size: clamp(22px, 2.8vw, 32px);
+            font-weight: 800;
+            letter-spacing: -0.04em;
+        }
+
+        .section {
+            margin-top: 22px;
+        }
+
+        .panel {
+            padding: 20px;
+        }
+
+        .panel-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            align-items: flex-start;
+            margin-bottom: 18px;
+        }
+
+        .panel-head h2 {
+            margin: 0;
+            font-size: 24px;
+            letter-spacing: -0.03em;
+        }
+
+        .subtitle {
+            margin-top: 8px;
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .badge-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .badge {
+            padding: 7px 10px;
+            border-radius: 999px;
+            background: var(--accent-soft);
+            color: #753514;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .power-grid,
+        .preset-grid,
+        .sheet-list {
+            display: grid;
+            gap: 14px;
+        }
+
+        .power-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            margin-bottom: 18px;
+        }
+
+        .preset-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .sheet-card {
+            padding: 18px;
+        }
+
+        .sheet-card.total {
+            border-color: rgba(180, 93, 43, 0.36);
+            background: linear-gradient(135deg, rgba(255, 244, 231, 0.96), rgba(255, 250, 244, 0.96));
+        }
+
+        .sheet-card h3 {
+            margin: 0 0 12px;
+            font-size: 18px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px 14px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px dashed rgba(116, 98, 80, 0.16);
+            font-size: 14px;
+        }
+
+        .stat-name {
+            color: var(--muted);
+        }
+
+        .empty {
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        @media (max-width: 1040px) {
+            .search-form,
+            .summary,
+            .preset-grid,
+            .power-grid,
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            button {
+                min-height: 52px;
+            }
+        }
+    </style>
+</head>
+<body>
+<main>
+    <section class="hero">
+        <p class="eyebrow">Maple Combat Sheet Viewer</p>
+        <h1>공통 시트, 현재 프리셋, 전투용 프리셋을<br>한 번에 비교합니다</h1>
+        <p>캐릭터 이름과 날짜를 입력하면 공통 StatSheet, 프리셋별 StatSheet, 공통+프리셋 합계, 그리고 계산 전투력을 함께 보여줍니다.</p>
+
+        <form id="search-form" class="search-form">
+            <div class="field">
+                <label for="characterName">캐릭터 이름</label>
+                <input id="characterName" name="characterName" value="어센트심볼" required>
+            </div>
+            <div class="field">
+                <label for="date">조회 날짜</label>
+                <input id="date" name="date" type="date" required>
+            </div>
+            <button type="submit">조회</button>
+        </form>
+        <div id="status" class="status"></div>
+    </section>
+
+    <section id="summary" class="summary" hidden></section>
+    <section id="shared" class="section" hidden></section>
+    <section id="presets" class="section preset-grid" hidden></section>
+</main>
+
+<script>
+    const form = document.getElementById("search-form");
+    const dateInput = document.getElementById("date");
+    const statusEl = document.getElementById("status");
+    const summaryEl = document.getElementById("summary");
+    const sharedEl = document.getElementById("shared");
+    const presetsEl = document.getElementById("presets");
+
+    const labels = {
+        STR: "STR",
+        DEX: "DEX",
+        INT: "INT",
+        LUK: "LUK",
+        HP: "HP",
+        ALL_STAT: "올스탯",
+        STR_NO_PERCENT: "STR 미적용",
+        DEX_NO_PERCENT: "DEX 미적용",
+        INT_NO_PERCENT: "INT 미적용",
+        LUK_NO_PERCENT: "LUK 미적용",
+        HP_NO_PERCENT: "HP 미적용",
+        ALL_STAT_NO_PERCENT: "올스탯 미적용",
+        ATTACK_POWER: "공격력",
+        MAGIC_POWER: "마력",
+        STR_PERCENT: "STR%",
+        DEX_PERCENT: "DEX%",
+        INT_PERCENT: "INT%",
+        LUK_PERCENT: "LUK%",
+        HP_PERCENT: "HP%",
+        ALL_STAT_PERCENT: "올스탯%",
+        ATTACK_POWER_PERCENT: "공격력%",
+        MAGIC_POWER_PERCENT: "마력%",
+        DAMAGE: "데미지%",
+        BOSS_DAMAGE: "보스 데미지%",
+        CRITICAL_DAMAGE: "크리티컬 데미지%",
+        FINAL_DAMAGE: "최종 데미지%"
+    };
+
+    if (!dateInput.value) {
+        dateInput.value = new Date().toISOString().slice(0, 10);
+    }
+
+    form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        const params = new URLSearchParams({
+            characterName: form.characterName.value.trim(),
+            date: form.date.value
+        });
+
+        if (!params.get("characterName") || !params.get("date")) {
+            statusEl.textContent = "캐릭터 이름과 날짜를 모두 입력해 주세요.";
+            return;
+        }
+
+        statusEl.textContent = "조회 중입니다...";
+        summaryEl.hidden = true;
+        sharedEl.hidden = true;
+        presetsEl.hidden = true;
+
+        try {
+            const response = await fetch(`/api/combat/stat-sheets?${params.toString()}`);
+            if (!response.ok) {
+                throw new Error(await response.text() || "조회에 실패했습니다.");
+            }
+
+            const data = await response.json();
+            render(data);
+            statusEl.textContent = "조회가 완료되었습니다.";
+        } catch (error) {
+            statusEl.textContent = `오류: ${error.message}`;
+        }
+    });
+
+    function render(data) {
+        summaryEl.innerHTML = `
+            <article class="summary-card">
+                <div class="summary-label">캐릭터</div>
+                <div class="summary-value">${escapeHtml(data.characterName)}</div>
+            </article>
+            <article class="summary-card">
+                <div class="summary-label">직업</div>
+                <div class="summary-value">${escapeHtml(data.characterClass)}</div>
+            </article>
+            <article class="summary-card">
+                <div class="summary-label">조회 날짜</div>
+                <div class="summary-value">${escapeHtml(data.date)}</div>
+            </article>
+            <article class="summary-card">
+                <div class="summary-label">비교</div>
+                <div class="summary-value">공통 / 현재 / 전투</div>
+            </article>
+        `;
+
+        sharedEl.innerHTML = renderSharedPanel(data.shared);
+        presetsEl.innerHTML = [
+            renderPresetPanel("현재 프리셋", data.currentPreset),
+            renderPresetPanel("전투용 프리셋", data.combatPreset)
+        ].join("");
+
+        summaryEl.hidden = false;
+        sharedEl.hidden = false;
+        presetsEl.hidden = false;
+    }
+
+    function renderSharedPanel(shared) {
+        const cards = Object.entries(shared.sheets)
+            .map(([name, sheet]) => renderSheetCard(name, sheet, false))
+            .join("");
+
+        return `
+            <article class="panel">
+                <div class="panel-head">
+                    <div>
+                        <h2>공통 StatSheet</h2>
+                        <div class="subtitle">프리셋 선택과 무관하게 공통으로 반영되는 항목입니다.</div>
+                    </div>
+                </div>
+                <div class="sheet-list">
+                    ${cards}
+                    ${renderSheetCard("공통 합계", shared.total, true)}
+                </div>
+            </article>
+        `;
+    }
+
+    function renderPresetPanel(title, presetView) {
+        const preset = presetView.presets;
+        const cards = Object.entries(presetView.sheets)
+            .map(([name, sheet]) => renderSheetCard(name, sheet, false))
+            .join("");
+
+        return `
+            <article class="panel">
+                <div class="panel-head">
+                    <div>
+                        <h2>${escapeHtml(title)}</h2>
+                        <div class="badge-list">
+                            <span class="badge">장비 ${preset.itemPreset}</span>
+                            <span class="badge">어빌리티 ${preset.abilityPreset}</span>
+                            <span class="badge">하이퍼 ${preset.hyperStatPreset}</span>
+                            <span class="badge">유니온 ${preset.unionRaiderPreset}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="power-grid">
+                    ${renderSummaryCard("프리셋 합계", presetView.total)}
+                    ${renderSummaryCard("공통 + 프리셋 합계", presetView.combinedTotal)}
+                    <article class="summary-card">
+                        <div class="summary-label">계산 전투력</div>
+                        <div class="summary-value">${formatValue(presetView.estimatedCombatPower)}</div>
+                        ${presetView.apiCombatPower != null ? `<div class="subtitle">API 전투력 ${formatValue(presetView.apiCombatPower)}</div>` : ""}
+                    </article>
+                </div>
+                <div class="sheet-list">
+                    ${cards}
+                    ${renderSheetCard("프리셋 합계", presetView.total, true)}
+                    ${renderSheetCard("공통 + 프리셋 합계", presetView.combinedTotal, true)}
+                </div>
+            </article>
+        `;
+    }
+
+    function renderSummaryCard(title, sheet) {
+        const nonZeroCount = Object.keys(labels).filter((key) => Number(sheet[key]) !== 0).length;
+        return `
+            <article class="summary-card">
+                <div class="summary-label">${escapeHtml(title)}</div>
+                <div class="summary-value">${nonZeroCount.toLocaleString("ko-KR")}</div>
+                <div class="subtitle">0이 아닌 스탯 ${nonZeroCount}개</div>
+            </article>
+        `;
+    }
+
+    function renderSheetCard(name, sheet, total) {
+        const rows = Object.entries(labels)
+            .map(([key, label]) => [label, sheet[key]])
+            .filter(([, value]) => Number(value) !== 0)
+            .map(([label, value]) => `
+                <div class="stat-row">
+                    <span class="stat-name">${escapeHtml(label)}</span>
+                    <strong>${formatValue(value)}</strong>
+                </div>
+            `)
+            .join("");
+
+        return `
+            <section class="sheet-card ${total ? "total" : ""}">
+                <h3>${escapeHtml(name)}</h3>
+                ${rows ? `<div class="stats-grid">${rows}</div>` : `<div class="empty">표시할 스탯이 없습니다.</div>`}
+            </section>
+        `;
+    }
+
+    function formatValue(value) {
+        const number = Number(value);
+        if (Number.isInteger(number)) {
+            return number.toLocaleString("ko-KR");
+        }
+        return number.toLocaleString("ko-KR", { maximumFractionDigits: 2 });
+    }
+
+    function escapeHtml(value) {
+        return String(value)
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll("\"", "&quot;")
+            .replaceAll("'", "&#39;");
+    }
+</script>
+</body>
+</html>

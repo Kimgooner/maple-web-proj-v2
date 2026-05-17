@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: maplehistory
+
+  profiles:
+    active: local
+
+nexon:
+  api:
+    base-url: https://open.api.nexon.com
+    api-key: ${NEXON_API_KEY:}
+    request-timeout: 5s
+    max-concurrency: 8
