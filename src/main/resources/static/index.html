@@ -239,6 +239,35 @@
             font-size: 14px;
         }
 
+        .set-list {
+            margin: 0 0 18px;
+            padding: 14px 16px;
+            border: 1px solid rgba(116, 98, 80, 0.16);
+            border-radius: 18px;
+            background: rgba(255, 249, 242, 0.82);
+        }
+
+        .set-list-title {
+            margin: 0 0 8px;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--muted);
+        }
+
+        .set-list-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 6px 0;
+            border-bottom: 1px dashed rgba(116, 98, 80, 0.16);
+            font-size: 14px;
+        }
+
+        .set-list-row:last-child {
+            border-bottom: 0;
+            padding-bottom: 0;
+        }
+
         @media (max-width: 1040px) {
             .search-form,
             .summary,
@@ -294,6 +323,10 @@
         INT: "INT",
         LUK: "LUK",
         HP: "HP",
+        STR_PER_LEVEL9: "9레벨 당 STR",
+        DEX_PER_LEVEL9: "9레벨 당 DEX",
+        INT_PER_LEVEL9: "9레벨 당 INT",
+        LUK_PER_LEVEL9: "9레벨 당 LUK",
         ALL_STAT: "올스탯",
         STR_NO_PERCENT: "STR 미적용",
         DEX_NO_PERCENT: "DEX 미적용",
@@ -433,12 +466,32 @@
                         ${presetView.apiCombatPower != null ? `<div class="subtitle">API 전투력 ${formatValue(presetView.apiCombatPower)}</div>` : ""}
                     </article>
                 </div>
+                ${renderAppliedSets(presetView.appliedSets)}
                 <div class="sheet-list">
                     ${cards}
                     ${renderSheetCard("프리셋 합계", presetView.total, true)}
                     ${renderSheetCard("공통 + 프리셋 합계", presetView.combinedTotal, true)}
                 </div>
             </article>
+        `;
+    }
+
+    function renderAppliedSets(appliedSets) {
+        const entries = Object.entries(appliedSets ?? {});
+        if (!entries.length) {
+            return "";
+        }
+
+        return `
+            <section class="set-list">
+                <div class="set-list-title">현재 적용 중인 세트 효과</div>
+                ${entries.map(([name, count]) => `
+                    <div class="set-list-row">
+                        <span class="stat-name">${escapeHtml(name)}</span>
+                        <strong>${formatValue(count)}</strong>
+                    </div>
+                `).join("")}
+            </section>
         `;
     }
 
