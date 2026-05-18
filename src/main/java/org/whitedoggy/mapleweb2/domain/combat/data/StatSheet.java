@@ -6,6 +6,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class StatSheet {
+    private String sheetName = null;
     private int STR = 0;
     private int DEX = 0;
     private int INT = 0;
@@ -38,8 +39,12 @@ public class StatSheet {
     private double CRITICAL_DAMAGE = 0.0;
     private double FINAL_DAMAGE = 0.0;
 
+    public StatSheet(String name){
+        this.sheetName = name;
+    }
+
     public StatSheet plus(StatSheet other) {
-        StatSheet result = new StatSheet();
+        StatSheet result = new StatSheet(this.sheetName);
 
         result.STR = this.STR + other.STR;
         result.DEX = this.DEX + other.DEX;

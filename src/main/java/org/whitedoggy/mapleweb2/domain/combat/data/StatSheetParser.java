@@ -25,23 +25,23 @@ public class StatSheetParser {
             new PatternRule(Pattern.compile("^(올스탯|모든 능력치)\\s*" + NUMBER + OPTIONAL_PERCENT + END), this::applyAllStat),
             new PatternRule(Pattern.compile("^공격력\\s*" + NUMBER + OPTIONAL_PERCENT + END), this::applyAttack),
             new PatternRule(Pattern.compile("^마력\\s*" + NUMBER + OPTIONAL_PERCENT + END), this::applyMagic),
-            new PatternRule(Pattern.compile("^(보스 몬스터 공격 시 데미지|보스 몬스터 데미지)\\s*" + NUMBER + OPTIONAL_PERCENT + END), this::applyBossDamage),
+            new PatternRule(Pattern.compile("^(?:보스 몬스터 공격 시 데미지|보스 몬스터 데미지)\\s*" + NUMBER + OPTIONAL_PERCENT + END), this::applyBossDamage),
             new PatternRule(Pattern.compile("^크리티컬 데미지\\s*" + NUMBER + OPTIONAL_PERCENT + END), this::applyCriticalDamage),
             new PatternRule(Pattern.compile("^최종 데미지\\s*" + NUMBER + OPTIONAL_PERCENT + END), this::applyFinalDamage),
             new PatternRule(Pattern.compile("^데미지\\s*" + NUMBER + OPTIONAL_PERCENT + END), this::applyDamage),
             new PatternRule(Pattern.compile("^(?:영구적으로\\s*)?최종 데미지\\s*" + NUMBER + OPTIONAL_PERCENT + END), this::applyFinalDamage)
     );
 
-    public StatSheet parse(List<String> options) {
-        return parse(options, false);
+    public StatSheet parse(List<String> options, String sheetName) {
+        return parse(options, false, sheetName);
     }
 
-    public StatSheet parseNoPercentStat(List<String> options) {
-        return parse(options, true);
+    public StatSheet parseNoPercentStat(List<String> options, String sheetName) {
+        return parse(options, true, sheetName);
     }
 
-    public StatSheet parse(List<String> options, boolean flatStatAsNoPercent) {
-        StatSheet sheet = new StatSheet();
+    public StatSheet parse(List<String> options, boolean flatStatAsNoPercent, String sheetName) {
+        StatSheet sheet = new StatSheet(sheetName);
         apply(options, sheet, flatStatAsNoPercent);
         return sheet;
     }
@@ -56,11 +56,17 @@ public class StatSheetParser {
         }
 
         ParseContext context = new ParseContext(sheet, flatStatAsNoPercent);
+        System.out.println(sheet.getSheetName() + "-------------------------------------------");
         for (String option : options) {
+            System.out.print(option);
             String normalized = normalize(option);
             if (normalized.isBlank() || shouldSkip(normalized)) {
+                System.out.print(" -> skipped");
+                System.out.println();
                 continue;
             }
+            System.out.print(" -> " + normalized);
+            System.out.println();
             applyNormalized(context, normalized);
         }
     }
@@ -108,7 +114,12 @@ public class StatSheetParser {
                 "일반 몬스터 공격 시 데미지",
                 "아케인포스",
                 "어센틱포스",
-                "일정 시간"
+                "일정 시간",
+                "스킬 사용 시",
+                "크리티컬 확률",
+                "다수 공격 스킬",
+                "피격 시",
+                "확률로 데미지"
         ));
     }
 
