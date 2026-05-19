@@ -60,6 +60,7 @@ public class HexaParser {
                 }
             }
         }
+        if(level == 0) return description + " 0";
         if(optional_percent) return description + " " + MAIN_STAT.get(name)[level-1] + "%";
         else return description + " " + MAIN_STAT.get(name)[level-1];
     }
@@ -97,6 +98,7 @@ public class HexaParser {
                 }
             }
         }
+        if(level == 0) return description + " 0";
         if(optional_percent) return description + " " + SUB_STAT.get(name)[level-1] + "%";
         else return description + " " + SUB_STAT.get(name)[level-1];
     }

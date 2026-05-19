@@ -180,7 +180,7 @@ public class StatSheetComparisonService {
 
         Map<String, StatSheet> sheets = new LinkedHashMap<>();
         sheets.put("itemEquipment", buildItemSheet(presetItems, title, dragon, mechanic, characterClass));
-        sheets.put("setEffect", statSheetParser.parse(setEffectParser.getSetEffectByPreset(setEffect, presetItems), "세트 효과"));
+        sheets.put("setEffect", statSheetParser.parse(setEffectParser.getSetEffectByPreset(setEffect, presetItems, characterClass), "세트 효과"));
         sheets.put("ability", statSheetParser.parseNoPercentStat(abilityParser.getCurrentAbilityByPreset(ability, presetSelection.abilityPreset()), "어빌리티"));
         sheets.put("hyperStat", statSheetParser.parseNoPercentStat(hyperStatParser.getStatIncreaseEffects(hyperStat, presetSelection.hyperStatPreset()), "하이퍼 스탯"));
         sheets.put("unionRaider-occupied", statSheetParser.parse(raiderParser.getUnionOccupiedStatByPreset(unionRaider, presetSelection.unionRaiderPreset()), "유니온 점령 효과"));
@@ -192,7 +192,7 @@ public class StatSheetComparisonService {
 
         return new PresetStatSheetView(
                 presetSelection,
-                setEffectParser.getAppliedSetCounts(setEffect, presetItems),
+                setEffectParser.getAppliedSetCounts(setEffect, presetItems, characterClass),
                 sheets,
                 presetTotal,
                 combinedTotal,
@@ -215,10 +215,15 @@ public class StatSheetComparisonService {
             total.merge(statSheetParser.parse(itemParser.getItemStatEffects(item, characterClass), name));
         }
 
-        for (JsonNode item : items) {
-            String part = Jsons.text(item, "item_equipment_slot");
-            String name = Jsons.text(item, "item_name");
-            total.merge(statSheetParser.parse(itemParser.getItemStatEffects(item, characterClass), part + ", " + name));
+        if(characterClass.equals("제로")){
+            total.merge(itemParser.getItemStatEffectsFromList(items, characterClass));
+        }
+        else {
+            for (JsonNode item : items) {
+                String part = Jsons.text(item, "item_equipment_slot");
+                String name = Jsons.text(item, "item_name");
+                total.merge(statSheetParser.parse(itemParser.getItemStatEffects(item, characterClass), part + ", " + name));
+            }
         }
         return total;
     }

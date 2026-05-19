@@ -23,7 +23,7 @@ public class SetEffectParser {
 
     private final JsonNode setEffectTable = loadTable();
 
-    public List<String> getSetEffectByPreset(JsonNode node, JsonNode presetItems) {
+    public List<String> getSetEffectByPreset(JsonNode node, JsonNode presetItems, String characterClass) {
         List<String> effects = new ArrayList<>();
         JsonNode supportedSets = setEffectTable.path("supportedSets");
         CharacterEquipmentSheet equipped = buildEquipped(presetItems);
@@ -31,7 +31,7 @@ public class SetEffectParser {
         appendUnsupportedSetEffects(effects, node.path("set_effect"), supportedSets);
 
         for (JsonNode supportedSet : supportedSets) {
-            int pieceCount = countSetPieces(equipped, supportedSet.path("pieces"));
+            int pieceCount = countSetPieces(equipped, supportedSet, characterClass);
             pieceCount = applyLuckyItemBonus(equipped, supportedSet.path("pieces"), pieceCount);
             for (String effect : resolveOptions(supportedSet.path("options"), pieceCount)) {
                 EffectTextSplitter.addSplit(effects, effect);
@@ -40,7 +40,7 @@ public class SetEffectParser {
         return effects;
     }
 
-    public Map<String, Integer> getAppliedSetCounts(JsonNode node, JsonNode presetItems) {
+    public Map<String, Integer> getAppliedSetCounts(JsonNode node, JsonNode presetItems, String characterClass) {
         Map<String, Integer> appliedSets = new LinkedHashMap<>();
         JsonNode supportedSets = setEffectTable.path("supportedSets");
         CharacterEquipmentSheet equipped = buildEquipped(presetItems);
@@ -57,7 +57,7 @@ public class SetEffectParser {
         }
 
         for (JsonNode supportedSet : supportedSets) {
-            int pieceCount = countSetPieces(equipped, supportedSet.path("pieces"));
+            int pieceCount = countSetPieces(equipped, supportedSet, characterClass);
             pieceCount = applyLuckyItemBonus(equipped, supportedSet.path("pieces"), pieceCount);
             if (pieceCount > 0) {
                 appliedSets.put(Jsons.text(supportedSet, "name"), pieceCount);
@@ -105,14 +105,46 @@ public class SetEffectParser {
         return false;
     }
 
-    private int countSetPieces(CharacterEquipmentSheet equipped, JsonNode pieces) {
+    private int countSetPieces(CharacterEquipmentSheet equipped, JsonNode supportedSet, String characterClass) {
         int count = 0;
-        for (JsonNode piece : pieces) {
-            if (matchesAnyItemAlias(equipped.itemsForSlot(Jsons.text(piece, "slot")), piece.path("aliases"))) {
+        for (JsonNode piece : supportedSet.path("pieces")) {
+            if (matchesSetPiece(equipped, piece, supportedSet, characterClass)) {
                 count++;
             }
         }
         return count;
+    }
+
+    private boolean matchesSetPiece(CharacterEquipmentSheet equipped, JsonNode piece, JsonNode supportedSet, String characterClass) {
+        String slot = Jsons.text(piece, "slot");
+        if (matchesAnyItemAlias(equipped.itemsForSlot(slot), piece.path("aliases"))) {
+            return true;
+        }
+        return isZeroRootAbyssWeaponHeuristic(slot, piece.path("aliases"), supportedSet, equipped, characterClass);
+    }
+
+    private boolean isZeroRootAbyssWeaponHeuristic(
+            String slot,
+            JsonNode aliases,
+            JsonNode supportedSet,
+            CharacterEquipmentSheet equipped,
+            String characterClass
+    ) {
+        if (!"제로".equals(characterClass) || !"무기".equals(slot)) {
+            return false;
+        }
+        if (!matchesSetAliases(Jsons.text(supportedSet, "name"), supportedSet.path("aliases"))
+                || !matchesSetAliases("루타비스", supportedSet.path("aliases"))) {
+            return false;
+        }
+
+        boolean hasTop = matchesAnyItemAlias(equipped.itemsForSlot("상의"), textAliases("이글아이"));
+        boolean hasBottom = matchesAnyItemAlias(equipped.itemsForSlot("하의"), textAliases("트릭스터"));
+        return hasTop && hasBottom && matchesItemAliases("파프니르", aliases);
+    }
+
+    private JsonNode textAliases(String alias) {
+        return OBJECT_MAPPER.createArrayNode().add(alias);
     }
 
     private int applyLuckyItemBonus(CharacterEquipmentSheet equipped, JsonNode pieces, int pieceCount) {
