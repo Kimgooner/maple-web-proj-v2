@@ -106,10 +106,14 @@ public class HexaParser {
         List<JsonNode> stats = List.of(
                 hexa.path("character_hexa_stat_core"),
                 hexa.path("character_hexa_stat_core_2"),
-                hexa.path("character_hexa_stat_core_3")
+                hexa.path("character_hexa_stat_core_3"),
+                hexa.path("character_hexa_stat_core_4"),
+                hexa.path("character_hexa_stat_core_5"),
+                hexa.path("character_hexa_stat_core_6")
         );
 
         for (JsonNode core : stats) {
+            if(core.isEmpty()) continue;
             JsonNode stat = core.get(0);
             String main = Jsons.text(stat, "main_stat_name");
             String sub1 = Jsons.text(stat, "sub_stat_name_1");

@@ -179,7 +179,7 @@ public class StatSheetComparisonService {
         JsonNode mechanic = itemEquipmentParser.getMechanicItem(itemEquipment);
 
         Map<String, StatSheet> sheets = new LinkedHashMap<>();
-        sheets.put("itemEquipment", buildItemSheet(presetItems, title, dragon, mechanic));
+        sheets.put("itemEquipment", buildItemSheet(presetItems, title, dragon, mechanic, characterClass));
         sheets.put("setEffect", statSheetParser.parse(setEffectParser.getSetEffectByPreset(setEffect, presetItems), "세트 효과"));
         sheets.put("ability", statSheetParser.parseNoPercentStat(abilityParser.getCurrentAbilityByPreset(ability, presetSelection.abilityPreset()), "어빌리티"));
         sheets.put("hyperStat", statSheetParser.parseNoPercentStat(hyperStatParser.getStatIncreaseEffects(hyperStat, presetSelection.hyperStatPreset()), "하이퍼 스탯"));
@@ -201,24 +201,24 @@ public class StatSheetComparisonService {
         );
     }
 
-    private StatSheet buildItemSheet(JsonNode items, JsonNode title, JsonNode dragon, JsonNode mechanic) {
+    private StatSheet buildItemSheet(JsonNode items, JsonNode title, JsonNode dragon, JsonNode mechanic, String characterClass) {
         StatSheet total = new StatSheet("장비 목록");
         total.merge(statSheetParser.parse(itemParser.getTitleStatEffects(title), "칭호"));
 
         for (JsonNode item : dragon) {
             String name = Jsons.text(item, "item_name");
-            total.merge(statSheetParser.parse(itemParser.getItemStatEffects(item), name));
+            total.merge(statSheetParser.parse(itemParser.getItemStatEffects(item, characterClass), name));
         }
 
         for (JsonNode item : mechanic) {
             String name = Jsons.text(item, "item_name");
-            total.merge(statSheetParser.parse(itemParser.getItemStatEffects(item), name));
+            total.merge(statSheetParser.parse(itemParser.getItemStatEffects(item, characterClass), name));
         }
 
         for (JsonNode item : items) {
             String part = Jsons.text(item, "item_equipment_slot");
             String name = Jsons.text(item, "item_name");
-            total.merge(statSheetParser.parse(itemParser.getItemStatEffects(item), part + ", " + name));
+            total.merge(statSheetParser.parse(itemParser.getItemStatEffects(item, characterClass), part + ", " + name));
         }
         return total;
     }
@@ -310,31 +310,47 @@ public class StatSheetComparisonService {
     }
 
     private long estimateCombatPower(String characterClass, StatSheet sheet, List<String> mainStats, List<String> subStats, Integer characterLevel) {
+        double finalMainStat = 0.0;
+        double finalSubStat = 0.0;
         if (characterClass.equals("데몬어벤져")) {
             //TODO 데벤
         } else if (characterClass.equals("제논")) {
             //TODO 제논
         } else {
+            String main = mainStats.getFirst();
+            finalMainStat = calculateStat(main, sheet, characterLevel);
             if (subStats.size() == 2) {
-                //TODO 부스탯 2개
-            } else {
-                String main = mainStats.getFirst();
-                String sub = subStats.getFirst();
+                String sub1 = subStats.getFirst();
+                String sub2 = subStats.getLast();
+                System.out.println(calculateStat(sub1, sheet, characterLevel));
+                System.out.println(calculateStat(sub2, sheet, characterLevel));
+                finalSubStat = calculateStat(sub1, sheet, characterLevel) + calculateStat(sub2, sheet, characterLevel);
 
-                double stat = ((calculateStat(main, sheet, characterLevel) * 4) + calculateStat(sub, sheet, characterLevel)) / 100.0;
-                double power;
-                if (isMageClass(characterClass)) {
-                    power = Math.floor((sheet.getMAGIC_POWER() * (100.0 + sheet.getMAGIC_POWER_PERCENT())) / 100.0);
-                } else {
-                    power = Math.floor((sheet.getATTACK_POWER() * (100.0 + sheet.getATTACK_POWER_PERCENT())) / 100.0);
-                }
-                double damage = 100.0 + sheet.getDAMAGE() + sheet.getBOSS_DAMAGE();
-                double critDamage = 135.0 + sheet.getCRITICAL_DAMAGE();
-                double finalDamage = 100.0 + sheet.getFINAL_DAMAGE();
-                return (long) Math.floor((stat * power * damage * critDamage * finalDamage) / 1_000_000.0);
+            } else {
+                String sub = subStats.getFirst();
+                finalSubStat = calculateStat(sub, sheet, characterLevel);
             }
         }
-        return 0;
+        double finalStat = ((finalMainStat * 4) + finalSubStat) / 100.0;
+        double power;
+        if (isMageClass(characterClass)) {
+            power = Math.floor((sheet.getMAGIC_POWER() * (100.0 + sheet.getMAGIC_POWER_PERCENT())) / 100.0);
+        } else {
+            power = Math.floor((sheet.getATTACK_POWER() * (100.0 + sheet.getATTACK_POWER_PERCENT())) / 100.0);
+        }
+        double damage = 100.0 + sheet.getDAMAGE() + sheet.getBOSS_DAMAGE();
+        double critDamage = 135.0 + sheet.getCRITICAL_DAMAGE();
+        double finalDamage = 100.0 + sheet.getFINAL_DAMAGE();
+        System.out.println("전투력 계산 ==============");
+        System.out.println("최종 주스탯: " + finalMainStat);
+        System.out.println("최종 부스탯: " + finalSubStat);
+        System.out.println("스탯: " + finalStat);
+        System.out.println("공격력/마력: " + power);
+        System.out.println("데미지: " + damage);
+        System.out.println("크리티컬 데미지: " + critDamage);
+        System.out.println("최종 데미지: " + finalDamage);
+        System.out.println("========================");
+        return (long) Math.floor((finalStat * power * damage * critDamage * finalDamage) / 1_000_000.0);
     }
 
 

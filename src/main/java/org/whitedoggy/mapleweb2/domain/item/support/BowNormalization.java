@@ -10,20 +10,22 @@ import java.util.Map;
 public class BowNormalization {
     public List<String> buildNormalizedBow(String weaponType, String weaponName, Integer starForce, Integer addOption) {
         List<String> effects = new ArrayList<>();
+        System.out.println(weaponType);
+        System.out.println(weaponName);
+        System.out.println(starForce);
+        System.out.println(addOption);
         String set = "제네시스";
         int scroll = 0;
         if(weaponName.contains("도전자")) {
             set = "도전자";
-            scroll = 81;
         }
 
-        if(weaponName.contains("앱솔랩스")) {
+        if(weaponName.contains("앱솔랩스") || weaponName.contains("8형")) {
             set = "앱솔랩스";
             scroll = 81;
         }
-        if(weaponName.contains("아케인셰이드")) {
+        if(weaponName.contains("아케인셰이드") || weaponName.contains("9형")) {
             set = "아케인셰이드";
-            scroll = 81;
         }
         if(weaponName.contains("제네시스")) {
             set = "제네시스";
