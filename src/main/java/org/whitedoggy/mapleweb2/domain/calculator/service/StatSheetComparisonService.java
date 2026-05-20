@@ -2,10 +2,12 @@ package org.whitedoggy.mapleweb2.domain.calculator.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.whitedoggy.mapleweb2.analysis.data.PresetSelection;
 import org.whitedoggy.mapleweb2.analysis.dto.CharacterSnapshot;
 import org.whitedoggy.mapleweb2.domain.ability.AbilityParser;
 import org.whitedoggy.mapleweb2.domain.cash.CashItemParser;
 import org.whitedoggy.mapleweb2.domain.set.parser.SetEffectParser;
+import org.whitedoggy.mapleweb2.domain.skill.SkillParseResult;
 import org.whitedoggy.mapleweb2.domain.skill.SkillParser;
 import org.whitedoggy.mapleweb2.domain.symbol.SymbolParser;
 import org.whitedoggy.mapleweb2.domain.union.artifact.ArtifactParser;
@@ -151,7 +153,8 @@ public class StatSheetComparisonService {
         sheets.put("symbol", statSheetParser.parseNoPercentStat(symbolParser.getSymbolStatEffects(snapshot.document(NexonEndpoint.SYMBOL_EQUIPMENT)), "심볼"));
         sheets.put("pet", statSheetParser.parse(petParser.getPetEquipmentEffects(snapshot.document(NexonEndpoint.PET_EQUIPMENT)), "펫 장비"));
         sheets.put("cashItem", statSheetParser.parse(cashItemParser.getCashStatEffect(snapshot.document(NexonEndpoint.CASH_ITEM_EQUIPMENT)), "캐시 장비"));
-        sheets.put("skill0", statSheetParser.parse(skillParser.getCombatRelevantSkillEffects(snapshot.document(NexonEndpoint.SKILL_0)), "0차 스킬"));
+        SkillParseResult skillParseResult = skillParser.getCombatRelevantSkillEffects(snapshot.document(NexonEndpoint.SKILL_0));
+        sheets.put("skill0", statSheetParser.parse(skillParseResult.effects(), "0차 스킬"));
         sheets.put("hexaStat", statSheetParser.parseNoPercentStat(hexaParser.getCurrentHexa(snapshot.document(NexonEndpoint.HEXA_MATRIX_STAT), mainStats), "헥사 스텟"));
         sheets.put("unionArtifact", statSheetParser.parse(artifactParser.getArtifactEffects(snapshot.document(NexonEndpoint.UNION_ARTIFACT)), "유니온 아티팩트"));
         sheets.put("unionChampion", statSheetParser.parse(championParser.getChampionStats(snapshot.document(NexonEndpoint.UNION_CHAMPION)), "유니온 챔피언"));

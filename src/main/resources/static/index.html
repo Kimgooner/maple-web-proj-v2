@@ -77,6 +77,30 @@
             gap: 12px;
         }
 
+        .page-links {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 18px;
+        }
+
+        .page-links a {
+            text-decoration: none;
+            color: var(--text);
+            padding: 10px 14px;
+            border-radius: 999px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.84);
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .page-links a.current {
+            background: var(--accent-soft);
+            border-color: rgba(180, 93, 43, 0.24);
+            color: #8a431d;
+        }
+
         .field {
             display: flex;
             flex-direction: column;
@@ -289,6 +313,11 @@
         <p class="eyebrow">Maple Combat Sheet Viewer</p>
         <h1>공통 시트, 현재 프리셋, 전투용 프리셋을<br>한 번에 비교합니다</h1>
         <p>캐릭터 이름과 날짜를 입력하면 공통 StatSheet, 프리셋별 StatSheet, 공통+프리셋 합계, 그리고 계산 전투력을 함께 보여줍니다.</p>
+
+        <div class="page-links">
+            <a href="/index.html" class="current">기존 페이지</a>
+            <a href="/index2.html">DataSheetBuilder 페이지</a>
+        </div>
 
         <form id="search-form" class="search-form">
             <div class="field">

@@ -33,6 +33,14 @@ public class StatSheetParser {
             new PatternRule(Pattern.compile("^(?:영구적으로\\s*)?최종 데미지\\s*" + NUMBER + OPTIONAL_PERCENT + END), this::applyFinalDamage)
     );
 
+    public StatSheet parse(List<String> options){
+        return parse(options, false,null);
+    }
+
+    public StatSheet parseNoPercentStat(List<String> options){
+        return parse(options, true,null);
+    }
+
     public StatSheet parse(List<String> options, String sheetName) {
         return parse(options, false, sheetName);
     }
@@ -185,7 +193,7 @@ public class StatSheetParser {
     }
 
     private void applyBossDamage(ParseContext context, Matcher matcher) {
-        context.sheet().setBOSS_DAMAGE(context.sheet().getBOSS_DAMAGE() + intValue(matcher, 1));
+        context.sheet().setBOSS_DAMAGE(context.sheet().getBOSS_DAMAGE() + doubleValue(matcher, 1));
     }
 
     private void applyCriticalDamage(ParseContext context, Matcher matcher) {
@@ -197,7 +205,7 @@ public class StatSheetParser {
     }
 
     private void applyDamage(ParseContext context, Matcher matcher) {
-        context.sheet().setDAMAGE(context.sheet().getDAMAGE() + intValue(matcher, 1));
+        context.sheet().setDAMAGE(context.sheet().getDAMAGE() + doubleValue(matcher, 1));
     }
 
     private void applyStatPerLevel9(ParseContext context, Matcher matcher) {

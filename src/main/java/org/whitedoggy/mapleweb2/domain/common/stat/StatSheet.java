@@ -39,8 +39,8 @@ public class StatSheet {
     private int ATTACK_POWER_PERCENT = 0;
     private int MAGIC_POWER_PERCENT = 0;
 
-    private int DAMAGE = 0;
-    private int BOSS_DAMAGE = 0;
+    private double DAMAGE = 0.0;
+    private double BOSS_DAMAGE = 0.0;
     private double CRITICAL_DAMAGE = 0.0;
     private double FINAL_DAMAGE = 0.0;
 

@@ -5,7 +5,7 @@ import org.springframework.stereotype.Service;
 import org.whitedoggy.mapleweb2.analysis.dto.CharacterSnapshot;
 import org.whitedoggy.mapleweb2.domain.calculator.data.CombatTrendPoint;
 import org.whitedoggy.mapleweb2.domain.calculator.data.CombatTrendResponse;
-import org.whitedoggy.mapleweb2.domain.calculator.data.PresetSelection;
+import org.whitedoggy.mapleweb2.analysis.data.PresetSelection;
 import org.whitedoggy.mapleweb2.domain.ability.AbilityParser;
 import org.whitedoggy.mapleweb2.domain.basic.BasicParser;
 import org.whitedoggy.mapleweb2.domain.hyper.HyperStatParser;

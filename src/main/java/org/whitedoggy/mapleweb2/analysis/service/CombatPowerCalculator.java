@@ -66,7 +66,7 @@ public class CombatPowerCalculator {
         return 0;
     }
 
-    private long estimateCombatPower(DataSheet dataSheet) {
+    public long estimateCombatPower(DataSheet dataSheet) {
         String characterClass = dataSheet.getCharacterClass();
         Integer characterLevel = dataSheet.getCharacterLevel();
         StatSheet sheet = dataSheet.getSumSheet();

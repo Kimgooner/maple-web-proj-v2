@@ -32,9 +32,9 @@ public class DataSheet {
     StatSheet ability;
     StatSheet hyperStat;
 
-    Map<String, StatSheet> petEquip;
-    Map<String, StatSheet> cashEquip;
-    Map<String, StatSheet> itemEquip;
+    Map<String, ItemSheet> petEquip;
+    Map<String, ItemSheet> cashEquip;
+    Map<String, ItemSheet> itemEquip;
     StatSheet setEffect;
 
     StatSheet unionArtifact;
@@ -44,4 +44,72 @@ public class DataSheet {
 
     //종합 시트
     StatSheet sumSheet;
+    long currentCombatPower;
+    boolean lucidTransformSuspected;
+
+    public void copy(DataSheet other) {
+        this.ocid = other.ocid;
+        this.date = other.date;
+
+        this.characterName = other.characterName;
+        this.characterClass = other.characterClass;
+        this.characterLevel = other.characterLevel;
+        this.characterGuild = other.characterGuild;
+        this.characterWorld = other.characterWorld;
+        this.characterImage = other.characterImage;
+
+        this.abilityPoint = other.abilityPoint;
+        this.symbol = other.symbol;
+        this.skill = other.skill;
+        this.hexaStat = other.hexaStat;
+        this.ability = other.ability;
+        this.hyperStat = other.hyperStat;
+
+        this.petEquip = other.petEquip;
+        this.cashEquip = other.cashEquip;
+        this.itemEquip = other.itemEquip;
+        this.sumSheet = other.sumSheet;
+        this.setEffect = other.setEffect;
+
+        this.unionArtifact = other.unionArtifact;
+        this.unionChampion = other.unionChampion;
+        this.unionOccupied = other.unionOccupied;
+        this.unionRaider = other.unionRaider;
+
+        this.currentCombatPower = other.currentCombatPower;
+        this.lucidTransformSuspected = other.lucidTransformSuspected;
+    }
+
+    public void buildSum(){
+        sumSheet.merge(this.abilityPoint);
+        sumSheet.merge(this.symbol);
+        sumSheet.merge(this.skill);
+        sumSheet.merge(this.hexaStat);
+        sumSheet.merge(this.ability);
+        sumSheet.merge(this.hyperStat);
+        sumSheet.merge(this.setEffect);
+        sumSheet.merge(this.unionArtifact);
+        sumSheet.merge(this.unionChampion);
+        sumSheet.merge(this.unionOccupied);
+        sumSheet.merge(this.unionRaider);
+
+        for (Map.Entry<String, ItemSheet> m : petEquip.entrySet()){
+            String slot = m.getKey();
+            String name = m.getValue().itemName;
+            StatSheet sheet = m.getValue().statSheet;
+            sumSheet.merge(sheet);
+        }
+        for (Map.Entry<String, ItemSheet> m : cashEquip.entrySet()){
+            String slot = m.getKey();
+            String name = m.getValue().itemName;
+            StatSheet sheet = m.getValue().statSheet;
+            sumSheet.merge(sheet);
+        }
+        for (Map.Entry<String, ItemSheet> m : itemEquip.entrySet()){
+            String slot = m.getKey();
+            String name = m.getValue().itemName;
+            StatSheet sheet = m.getValue().statSheet;
+            sumSheet.merge(sheet);
+        }
+    }
 }

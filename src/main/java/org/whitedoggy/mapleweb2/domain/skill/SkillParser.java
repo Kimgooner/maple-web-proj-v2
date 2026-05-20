@@ -20,13 +20,19 @@ public class SkillParser {
             "메이플 스위츠"
     );
 
-    public List<String> getCombatRelevantSkillEffects(JsonNode skill0) {
+    public SkillParseResult getCombatRelevantSkillEffects(JsonNode skill0) {
         List<String> effects = new ArrayList<>();
         double bestBlessing = 0;
+        boolean lucidTransformSuspected = false;
 
         for (JsonNode skill : skill0.path("character_skill")) {
             String name = skill.path("skill_name").asText("");
             String effect = skill.path("skill_effect").asText("");
+            int level = skill.path("skill_level").asInt(-1);
+
+            if (isLucidTransformSuspiciousSkill(name, level)) {
+                lucidTransformSuspected = true;
+            }
 
             if (isBlessingSkill(name)) {
                 bestBlessing = Math.max(bestBlessing, extractLastNumber(effect));
@@ -45,7 +51,14 @@ public class SkillParser {
             effects.add("마력 " + value);
         }
 
-        return effects;
+        return new SkillParseResult(effects, lucidTransformSuspected);
+    }
+
+    private boolean isLucidTransformSuspiciousSkill(String name, int level) {
+        if (level != 0) {
+            return false;
+        }
+        return "파괴의 얄다바오트".equals(name) || "초월 : 결전의 의지".equals(name);
     }
 
     private boolean isBlessingSkill(String name) {

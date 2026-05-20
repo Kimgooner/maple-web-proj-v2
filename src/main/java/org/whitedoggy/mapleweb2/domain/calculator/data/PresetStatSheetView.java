@@ -1,5 +1,6 @@
 package org.whitedoggy.mapleweb2.domain.calculator.data;
 
+import org.whitedoggy.mapleweb2.analysis.data.PresetSelection;
 import org.whitedoggy.mapleweb2.domain.common.stat.StatSheet;
 
 import java.util.Map;

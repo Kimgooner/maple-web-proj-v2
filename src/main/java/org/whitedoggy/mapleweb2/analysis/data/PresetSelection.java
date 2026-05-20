@@ -1,4 +1,4 @@
-package org.whitedoggy.mapleweb2.domain.calculator.data;
+package org.whitedoggy.mapleweb2.analysis.data;
 
 public record PresetSelection(
         int itemPreset,

@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maple Analysis Viewer</title>
+    <style>
+        :root {
+            --bg: #f2efe8;
+            --panel: rgba(255, 255, 255, 0.92);
+            --line: #d4c7b4;
+            --text: #201a14;
+            --muted: #6e6052;
+            --accent: #0f766e;
+            --accent-soft: #d8f3ef;
+            --shadow: 0 18px 38px rgba(54, 45, 36, 0.12);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: "Pretendard", "Noto Sans KR", sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top right, rgba(15, 118, 110, 0.16), transparent 28%),
+                linear-gradient(180deg, #faf8f3 0%, var(--bg) 100%);
+        }
+
+        main {
+            width: min(1180px, calc(100% - 32px));
+            margin: 0 auto;
+            padding: 28px 0 48px;
+        }
+
+        .hero,
+        .panel,
+        .card {
+            background: var(--panel);
+            border: 1px solid rgba(110, 96, 82, 0.16);
+            border-radius: 24px;
+            box-shadow: var(--shadow);
+        }
+
+        .hero,
+        .panel {
+            padding: 28px;
+        }
+
+        .eyebrow {
+            margin: 0 0 8px;
+            color: var(--accent);
+            font-size: 13px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        h1, h2, p {
+            margin: 0;
+        }
+
+        h1 {
+            font-size: clamp(30px, 5vw, 46px);
+            line-height: 1.08;
+            letter-spacing: -0.04em;
+        }
+
+        .hero-copy {
+            margin-top: 14px;
+            color: var(--muted);
+            line-height: 1.7;
+        }
+
+        .page-links {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 18px;
+        }
+
+        .page-links a {
+            text-decoration: none;
+            color: var(--text);
+            padding: 10px 14px;
+            border-radius: 999px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.84);
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .page-links a.current {
+            background: var(--accent-soft);
+            border-color: rgba(15, 118, 110, 0.24);
+            color: #0b5b55;
+        }
+
+        .search-form {
+            margin-top: 24px;
+            display: grid;
+            grid-template-columns: 1.6fr 1fr auto;
+            gap: 12px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 16px;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .field label {
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        input, button {
+            font: inherit;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px 16px;
+            border-radius: 16px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.88);
+            color: var(--text);
+        }
+
+        button {
+            border: 0;
+            border-radius: 16px;
+            padding: 0 24px;
+            background: linear-gradient(135deg, #159287, #0f766e);
+            color: #f8fffe;
+            font-weight: 800;
+            cursor: pointer;
+            min-height: 52px;
+        }
+
+        .status {
+            min-height: 24px;
+            margin-top: 14px;
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .section {
+            margin-top: 22px;
+        }
+
+        .summary-grid,
+        .result-grid {
+            display: grid;
+            gap: 14px;
+        }
+
+        .summary-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .result-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .card {
+            padding: 20px;
+        }
+
+        .label {
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .value {
+            font-size: clamp(24px, 3vw, 34px);
+            font-weight: 800;
+            letter-spacing: -0.04em;
+        }
+
+        .meta {
+            margin-top: 12px;
+            display: grid;
+            gap: 8px;
+        }
+
+        .meta-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px dashed rgba(110, 96, 82, 0.16);
+            font-size: 14px;
+        }
+
+        .meta-row:last-child {
+            border-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .warning-box {
+            margin-top: 22px;
+            padding: 16px 18px;
+            border-radius: 18px;
+            background: #fff4d8;
+            border: 1px solid #efcf7a;
+            color: #7a4f00;
+        }
+
+        .warning-title {
+            font-size: 13px;
+            font-weight: 900;
+            letter-spacing: 0.02em;
+        }
+
+        .warning-copy {
+            margin-top: 8px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .flag {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 30px;
+            height: 30px;
+            border-radius: 999px;
+            background: #fff4d8;
+            border: 1px solid #efcf7a;
+            color: #8a5a00;
+            font-size: 16px;
+            font-weight: 900;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+        }
+
+        .delta-positive {
+            color: #0f766e;
+            font-weight: 800;
+        }
+
+        .delta-negative {
+            color: #b45309;
+            font-weight: 800;
+        }
+
+        .diff-copy {
+            margin-top: 10px;
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        th, td {
+            padding: 12px 14px;
+            border-bottom: 1px solid rgba(110, 96, 82, 0.14);
+            text-align: left;
+            white-space: nowrap;
+        }
+
+        th {
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 800;
+            background: rgba(242, 247, 246, 0.9);
+        }
+
+        @media (max-width: 920px) {
+            .search-form,
+            .summary-grid,
+            .result-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+<main>
+    <section class="hero">
+        <p class="eyebrow">Maple Analysis</p>
+        <h1>DataSheetBuilder 기반 전투력 비교</h1>
+        <p class="hero-copy">단건 조회는 선택한 날짜의 current/combat preset 전투력을 비교하고, 한달/1년 조회는 지원 가능한 시점만 모아 날짜 오름차순 표로 보여줍니다.</p>
+        <div class="page-links">
+            <a href="/index.html">기존 페이지</a>
+            <a href="/index2.html" class="current">DataSheetBuilder 페이지</a>
+        </div>
+
+        <form id="search-form" class="search-form">
+            <div class="field">
+                <label for="characterName">캐릭터 이름</label>
+                <input id="characterName" name="characterName" required>
+            </div>
+            <div class="field">
+                <label for="date">조회 날짜</label>
+                <input id="date" name="date" type="date" required>
+            </div>
+            <button type="submit">단건 조회</button>
+        </form>
+        <div class="actions">
+            <button type="button" id="monthly-button">한달 조회</button>
+            <button type="button" id="yearly-button">1년 조회</button>
+        </div>
+        <div id="status" class="status"></div>
+    </section>
+
+    <section id="summary" class="section summary-grid" hidden></section>
+    <section id="warning" class="section" hidden></section>
+    <section id="results" class="section result-grid" hidden></section>
+    <section id="history" class="section" hidden></section>
+    <section id="history-diff" class="section" hidden></section>
+</main>
+
+<script>
+    const form = document.getElementById("search-form");
+    const dateInput = document.getElementById("date");
+    const monthlyButton = document.getElementById("monthly-button");
+    const yearlyButton = document.getElementById("yearly-button");
+    const statusEl = document.getElementById("status");
+    const summaryEl = document.getElementById("summary");
+    const warningEl = document.getElementById("warning");
+    const resultsEl = document.getElementById("results");
+    const historyEl = document.getElementById("history");
+    const historyDiffEl = document.getElementById("history-diff");
+
+    if (!dateInput.value) {
+        dateInput.value = new Date().toISOString().slice(0, 10);
+    }
+
+    form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        const params = new URLSearchParams({
+            characterName: form.characterName.value.trim(),
+            date: form.date.value
+        });
+
+        if (!params.get("characterName") || !params.get("date")) {
+            statusEl.textContent = "캐릭터 이름과 날짜를 모두 입력해 주세요.";
+            return;
+        }
+
+        statusEl.textContent = "단건 조회 중입니다...";
+        summaryEl.hidden = true;
+        warningEl.hidden = true;
+        resultsEl.hidden = true;
+        historyEl.hidden = true;
+        historyDiffEl.hidden = true;
+
+        try {
+            const response = await fetch(`/api/analysis/combat-power?${params.toString()}`);
+            if (!response.ok) {
+                throw new Error(await response.text() || "조회에 실패했습니다.");
+            }
+
+            const data = await response.json();
+            render(data);
+            statusEl.textContent = "조회가 완료되었습니다.";
+        } catch (error) {
+            statusEl.textContent = `오류: ${error.message}`;
+        }
+    });
+
+    monthlyButton.addEventListener("click", () => loadHistory("monthly"));
+    yearlyButton.addEventListener("click", () => loadHistory("yearly"));
+
+    function render(data) {
+        summaryEl.innerHTML = `
+            <article class="card">
+                <div class="label">캐릭터</div>
+                <div class="value">${escapeHtml(data.characterName)}</div>
+            </article>
+            <article class="card">
+                <div class="label">직업</div>
+                <div class="value">${escapeHtml(data.characterClass)}</div>
+            </article>
+            <article class="card">
+                <div class="label">조회 날짜</div>
+                <div class="value">${escapeHtml(data.date)}</div>
+            </article>
+        `;
+
+        resultsEl.innerHTML = `
+            ${renderCurrentCard(data.currentPresetDataSheet)}
+            ${renderCombatCard(data.combatPresetDataSheet)}
+        `;
+        warningEl.innerHTML = renderWarning(data);
+
+        summaryEl.hidden = false;
+        warningEl.hidden = !hasLucidWarning(data);
+        resultsEl.hidden = false;
+        historyEl.hidden = true;
+        historyDiffEl.hidden = true;
+    }
+
+    function hasLucidWarning(data) {
+        return Boolean(
+            data.currentPresetDataSheet?.lucidTransformSuspected
+            || data.combatPresetDataSheet?.lucidTransformSuspected
+        );
+    }
+
+    function renderWarning(data) {
+        if (!hasLucidWarning(data)) {
+            return "";
+        }
+        return `
+            <article class="warning-box">
+                <div class="warning-title">⚠ 루시드 변신 예외 의심</div>
+                <div class="warning-copy">
+                    0차 스킬 일부가 비정상 조회되었을 가능성이 있습니다.
+                    제네시스/데스티니 무기 전용 스킬이 레벨 0으로 감지되면 표시됩니다.
+                </div>
+            </article>
+        `;
+    }
+
+    async function loadHistory(type) {
+        const characterName = form.characterName.value.trim();
+        if (!characterName) {
+            statusEl.textContent = "캐릭터 이름을 먼저 입력해 주세요.";
+            return;
+        }
+
+        summaryEl.hidden = true;
+        warningEl.hidden = true;
+        resultsEl.hidden = true;
+        historyEl.hidden = true;
+        historyDiffEl.hidden = true;
+        statusEl.textContent = `${type === "monthly" ? "한달" : "1년"} 조회 중입니다...`;
+
+        try {
+            const response = await fetch(`/api/analysis/combat-power/${type}?characterName=${encodeURIComponent(characterName)}`);
+            if (!response.ok) {
+                throw new Error(await response.text() || "조회에 실패했습니다.");
+            }
+
+            const rows = await response.json();
+            renderHistory(type, rows);
+            renderHistoryDiff(type, rows);
+            statusEl.textContent = "조회가 완료되었습니다.";
+        } catch (error) {
+            statusEl.textContent = `오류: ${error.message}`;
+        }
+    }
+
+    function renderHistory(type, rows) {
+        const title = type === "monthly" ? "한달 조회" : "1년 조회";
+        historyEl.innerHTML = `
+            <article class="panel">
+                <h2>${title}</h2>
+                <p class="hero-copy">지원 가능한 시점만 포함했고, 날짜 오름차순으로 정렬했습니다.</p>
+                <div class="table-wrap" style="margin-top: 18px;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>날짜</th>
+                                <th>직업</th>
+                                <th>Current 계산 전투력</th>
+                                <th>저장된 Current 전투력</th>
+                                <th>차이</th>
+                                <th>오차율</th>
+                                <th>Flag</th>
+                                <th>Combat 계산 전투력</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rows.length ? rows.map(renderHistoryRow).join("") : `
+                                <tr>
+                                    <td colspan="8">지원 가능한 조회 결과가 없습니다.</td>
+                                </tr>
+                            `}
+                        </tbody>
+                    </table>
+                </div>
+            </article>
+        `;
+        historyEl.hidden = false;
+    }
+
+    function renderHistoryDiff(type, rows) {
+        const title = type === "monthly" ? "한달 변화 요약" : "1년 변화 요약";
+        const diffs = buildCombatDiffs(rows);
+
+        historyDiffEl.innerHTML = `
+            <article class="panel">
+                <h2>${title}</h2>
+                <p class="diff-copy">첫 시점은 기준값으로 두고, 이후 시점은 바로 이전 데이터와 비교한 combat preset 전투력 변화량을 보여줍니다.</p>
+                <div class="table-wrap" style="margin-top: 18px;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>날짜</th>
+                                <th>이전 날짜</th>
+                                <th>이전 Combat 전투력</th>
+                                <th>현재 Combat 전투력</th>
+                                <th>직전 대비 변화</th>
+                                <th>최초 대비 누적 변화</th>
+                                <th>Flag</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${diffs.length ? diffs.map(renderHistoryDiffRow).join("") : `
+                                <tr>
+                                    <td colspan="7">비교할 수 있는 연속 조회 결과가 없습니다.</td>
+                                </tr>
+                            `}
+                        </tbody>
+                    </table>
+                </div>
+            </article>
+        `;
+        historyDiffEl.hidden = false;
+    }
+
+    function renderHistoryRow(row) {
+        return `
+            <tr>
+                <td>${escapeHtml(row.date)}</td>
+                <td>${escapeHtml(row.characterClass)}</td>
+                <td>${formatValue(row.currentPresetDataSheet.estimatedCombatPower)}</td>
+                <td>${formatValue(row.currentPresetDataSheet.currentCombatPower)}</td>
+                <td>${formatSignedValue(row.currentPresetDataSheet.difference)}</td>
+                <td>${formatPercent(row.currentPresetDataSheet.errorRatePercent)}</td>
+                <td>${row.currentPresetDataSheet.lucidTransformSuspected ? '<span class="flag" title="루시드 변신 예외 의심">⚠</span>' : "-"}</td>
+                <td>${formatValue(row.combatPresetDataSheet.estimatedCombatPower)}</td>
+            </tr>
+        `;
+    }
+
+    function buildCombatDiffs(rows) {
+        if (!Array.isArray(rows) || rows.length < 2) {
+            return [];
+        }
+
+        const diffs = [];
+        const firstCombatPower = Number(rows[0].combatPresetDataSheet?.estimatedCombatPower ?? 0);
+
+        for (let index = 1; index < rows.length; index += 1) {
+            const previousRow = rows[index - 1];
+            const currentRow = rows[index];
+            const previousCombatPower = Number(previousRow.combatPresetDataSheet?.estimatedCombatPower ?? 0);
+            const currentCombatPower = Number(currentRow.combatPresetDataSheet?.estimatedCombatPower ?? 0);
+
+            diffs.push({
+                date: currentRow.date,
+                previousDate: previousRow.date,
+                previousCombatPower,
+                currentCombatPower,
+                deltaCombatPower: currentCombatPower - previousCombatPower,
+                cumulativeDeltaCombatPower: currentCombatPower - firstCombatPower,
+                lucidTransformSuspected: Boolean(currentRow.combatPresetDataSheet?.lucidTransformSuspected)
+            });
+        }
+
+        return diffs;
+    }
+
+    function renderHistoryDiffRow(diff) {
+        return `
+            <tr>
+                <td>${escapeHtml(diff.date)}</td>
+                <td>${escapeHtml(diff.previousDate)}</td>
+                <td>${formatValue(diff.previousCombatPower)}</td>
+                <td>${formatValue(diff.currentCombatPower)}</td>
+                <td class="${diff.deltaCombatPower >= 0 ? "delta-positive" : "delta-negative"}">${formatSignedValue(diff.deltaCombatPower)}</td>
+                <td class="${diff.cumulativeDeltaCombatPower >= 0 ? "delta-positive" : "delta-negative"}">${formatSignedValue(diff.cumulativeDeltaCombatPower)}</td>
+                <td>${diff.lucidTransformSuspected ? '<span class="flag" title="루시드 변신 예외 의심">⚠</span>' : "-"}</td>
+            </tr>
+        `;
+    }
+
+    function renderCurrentCard(data) {
+        return `
+            <article class="panel">
+                <h2>Current Preset DataSheet</h2>
+                <p class="hero-copy">저장된 현재 전투력과 계산 전투력을 비교합니다.</p>
+                <div class="card" style="margin-top: 18px;">
+                    <div class="label">계산 전투력</div>
+                    <div class="value">${formatValue(data.estimatedCombatPower)}</div>
+                    <div class="meta">
+                        <div class="meta-row">
+                            <span>저장된 현재 전투력</span>
+                            <strong>${formatValue(data.currentCombatPower)}</strong>
+                        </div>
+                        <div class="meta-row">
+                            <span>차이</span>
+                            <strong>${formatSignedValue(data.difference)}</strong>
+                        </div>
+                        <div class="meta-row">
+                            <span>오차율</span>
+                            <strong>${formatPercent(data.errorRatePercent)}</strong>
+                        </div>
+                        <div class="meta-row">
+                            <span>Flag</span>
+                            <strong>${data.lucidTransformSuspected ? "⚠ 루시드 의심" : "-"}</strong>
+                        </div>
+                    </div>
+                </div>
+            </article>
+        `;
+    }
+
+    function renderCombatCard(data) {
+        return `
+            <article class="panel">
+                <h2>Combat Preset DataSheet</h2>
+                <p class="hero-copy">휴리스틱으로 선택된 combat preset의 계산 전투력입니다.</p>
+                <div class="card" style="margin-top: 18px;">
+                    <div class="label">계산 전투력</div>
+                    <div class="value">${formatValue(data.estimatedCombatPower)}</div>
+                    <div class="meta" style="margin-top: 14px;">
+                        <div class="meta-row">
+                            <span>Flag</span>
+                            <strong>${data.lucidTransformSuspected ? "⚠ 루시드 의심" : "-"}</strong>
+                        </div>
+                    </div>
+                </div>
+            </article>
+        `;
+    }
+
+    function formatValue(value) {
+        return Number(value ?? 0).toLocaleString("ko-KR");
+    }
+
+    function formatSignedValue(value) {
+        const number = Number(value ?? 0);
+        const sign = number > 0 ? "+" : "";
+        return `${sign}${number.toLocaleString("ko-KR")}`;
+    }
+
+    function formatPercent(value) {
+        if (value == null) {
+            return "-";
+        }
+        return `${Number(value).toLocaleString("ko-KR", { maximumFractionDigits: 2 })}%`;
+    }
+
+    function escapeHtml(value) {
+        return String(value)
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll("\"", "&quot;")
+            .replaceAll("'", "&#39;");
+    }
+</script>
+</body>
+</html>
