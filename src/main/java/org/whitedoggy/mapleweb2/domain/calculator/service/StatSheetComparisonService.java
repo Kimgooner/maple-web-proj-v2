@@ -2,6 +2,7 @@ package org.whitedoggy.mapleweb2.domain.calculator.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.whitedoggy.mapleweb2.analysis.dto.CharacterSnapshot;
 import org.whitedoggy.mapleweb2.domain.ability.AbilityParser;
 import org.whitedoggy.mapleweb2.domain.cash.CashItemParser;
 import org.whitedoggy.mapleweb2.domain.set.parser.SetEffectParser;
@@ -201,6 +202,16 @@ public class StatSheetComparisonService {
         );
     }
 
+    private Map<String, Integer> AdditionalItem = Map.of(
+            "보우마스터", 9,
+            "신궁", 9,
+            "윈드브레이커", 9,
+            "와일드헌터", 9,
+            "나이트로드", 29,
+            "나이트워커", 29,
+            "캡틴", 22
+    );
+
     private StatSheet buildItemSheet(JsonNode items, JsonNode title, JsonNode dragon, JsonNode mechanic, String characterClass) {
         StatSheet total = new StatSheet("장비 목록");
         total.merge(statSheetParser.parse(itemParser.getTitleStatEffects(title), "칭호"));
@@ -213,6 +224,12 @@ public class StatSheetComparisonService {
         for (JsonNode item : mechanic) {
             String name = Jsons.text(item, "item_name");
             total.merge(statSheetParser.parse(itemParser.getItemStatEffects(item, characterClass), name));
+        }
+
+        if(AdditionalItem.containsKey(characterClass)){
+            StatSheet Additional = new StatSheet("소비 아이템");
+            Additional.setATTACK_POWER(AdditionalItem.get(characterClass));
+            total.merge(Additional);
         }
 
         if(characterClass.equals("제로")){

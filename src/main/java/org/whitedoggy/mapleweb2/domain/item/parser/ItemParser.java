@@ -6,6 +6,7 @@ import org.whitedoggy.mapleweb2.domain.common.stat.StatSheet;
 import org.whitedoggy.mapleweb2.domain.common.stat.StatSheetParser;
 import org.whitedoggy.mapleweb2.domain.common.support.EffectTextSplitter;
 import org.whitedoggy.mapleweb2.domain.item.support.BowNormalization;
+import org.whitedoggy.mapleweb2.domain.item.support.WeaponAddOptionTable;
 import org.whitedoggy.mapleweb2.global.Jsons;
 import tools.jackson.databind.JsonNode;
 
@@ -44,25 +45,40 @@ public class ItemParser {
 
     private Integer getNormalizedAttackForZero(JsonNode item){
         String name = Jsons.text(item, "item_name");
+        String family = null;
         if(name.contains("제네시스")){
-
+            family = "제네시스";
         }
         if(name.contains("데스티니")){
-
+            family = "데스티니";
         }
         if(name.contains("9형")){
-
+            family = "아케인셰이드";
         }
         if(name.contains("8형")){
-
+            family = "앱솔랩스";
         }
         double bowAttack = BOW_BASE_ATTACK.get(name);
+
         double itemBaseAttack = Integer.parseInt(Jsons.text(item.path("item_base_option"), "attack_power"));
+        double itemAddAttack = Integer.parseInt(Jsons.text(item.path("item_add_option"), "attack_power"));
         double itemStarAttack = Integer.parseInt(Jsons.text(item.path("item_starforce_option"), "attack_power"));
+
+        Integer addStage = WeaponAddOptionTable.findStage(family, "태도", (int) itemAddAttack);
+        double bowAddAttack = WeaponAddOptionTable.bowAddOption(family, addStage);
+
+        System.out.println(itemBaseAttack);
+        System.out.println(itemAddAttack);
+        System.out.println(itemStarAttack);
+        System.out.println(bowAttack);
+        System.out.println(bowAddAttack);
+
+        double residue = 0.0; // 이후 보정 값을 찾는 과정이 필요함.
+
         return (int) Math.floor(
-                ((bowAttack / (double) itemBaseAttack) - 1.0)
+                (((bowAttack / itemBaseAttack) - 1.0)
                         * (itemBaseAttack + itemStarAttack)
-        );
+        ) + residue);
     }
 
     public StatSheet getItemStatEffectsFromList(JsonNode items, String characterClass){

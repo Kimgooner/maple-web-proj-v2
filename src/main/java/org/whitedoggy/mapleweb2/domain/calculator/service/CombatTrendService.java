@@ -2,7 +2,7 @@ package org.whitedoggy.mapleweb2.domain.calculator.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.whitedoggy.mapleweb2.domain.calculator.data.CharacterSnapshot;
+import org.whitedoggy.mapleweb2.analysis.dto.CharacterSnapshot;
 import org.whitedoggy.mapleweb2.domain.calculator.data.CombatTrendPoint;
 import org.whitedoggy.mapleweb2.domain.calculator.data.CombatTrendResponse;
 import org.whitedoggy.mapleweb2.domain.calculator.data.PresetSelection;
