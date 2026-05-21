@@ -65,17 +65,17 @@ public class StatSheetParser {
         }
 
         ParseContext context = new ParseContext(sheet, flatStatAsNoPercent);
-        System.out.println(sheet.getSheetName() + " -------------------------------------------");
+        //System.out.println(sheet.getSheetName() + " -------------------------------------------");
         for (String option : options) {
-            System.out.print(option);
+            //System.out.print(option);
             String normalized = normalize(option);
             if (normalized.isBlank() || shouldSkip(normalized)) {
-                System.out.print(" -> skipped");
-                System.out.println();
+                //System.out.print(" -> skipped");
+                //System.out.println();
                 continue;
             }
-            System.out.print(" -> " + normalized);
-            System.out.println();
+            //System.out.print(" -> " + normalized);
+            //System.out.println();
             applyNormalized(context, normalized);
         }
     }

@@ -4,8 +4,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.whitedoggy.mapleweb2.analysis.data.DataSheet;
 import org.whitedoggy.mapleweb2.analysis.dto.AnalysisCombatPowerResponse;
+import org.whitedoggy.mapleweb2.analysis.dto.ChangeSlotSummary;
+import org.whitedoggy.mapleweb2.analysis.dto.ChangeSourceSummary;
 import org.whitedoggy.mapleweb2.analysis.dto.CombatPowerSummary;
+import org.whitedoggy.mapleweb2.analysis.dto.CombatPowerChangeSummary;
 import org.whitedoggy.mapleweb2.analysis.dto.DataSheetResponse;
+import org.whitedoggy.mapleweb2.analysis.dto.StatDeltaSummary;
 import org.whitedoggy.mapleweb2.domain.common.stat.StatSheet;
 import org.whitedoggy.mapleweb2.external.nexon.client.NexonApiClient;
 import reactor.core.publisher.Flux;
@@ -25,6 +29,7 @@ public class AnalysisService {
     private final NexonApiClient nexonApiClient;
     private final DataSheetBuilder dataSheetBuilder;
     private final CombatPowerCalculator combatPowerCalculator;
+    private final DataSheetDiffService dataSheetDiffService;
 
     public Mono<AnalysisCombatPowerResponse> getCombatPower(String characterName, LocalDate date) {
         return dataSheetBuilder.getStatSheets(characterName, date)
@@ -58,9 +63,9 @@ public class AnalysisService {
                         )
                         .map(dataSheetBuilder::buildFromSnapshot)
                         .filter(this::isSupported)
-                        .map(this::toResponse)
-                        .sort(Comparator.comparing(AnalysisCombatPowerResponse::date))
+                        .sort(Comparator.comparing(response -> response.CurrentPresetDataSheet().getDate()))
                         .collectList()
+                        .map(this::toHistoricalResponses)
                 );
     }
 
@@ -77,12 +82,43 @@ public class AnalysisService {
         DataSheet current = prepareDataSheet(response.CurrentPresetDataSheet());
         DataSheet combat = prepareDataSheet(response.CombatPresetdataSheet());
 
+        return toResponse(current, combat, null);
+    }
+
+    private List<AnalysisCombatPowerResponse> toHistoricalResponses(List<DataSheetResponse> responses) {
+        List<PreparedResponse> preparedResponses = responses.stream()
+                .map(this::prepareResponse)
+                .sorted(Comparator.comparing(preparedResponse -> preparedResponse.current().getDate()))
+                .toList();
+
+        List<AnalysisCombatPowerResponse> result = new ArrayList<>();
+        for (int index = 0; index < preparedResponses.size(); index++) {
+            PreparedResponse current = preparedResponses.get(index);
+            CombatPowerChangeSummary changeSummary = null;
+            if (index > 0) {
+                PreparedResponse previous = preparedResponses.get(index - 1);
+                changeSummary = toChangeSummary(dataSheetDiffService.diff(previous.combat(), current.combat()));
+            }
+
+            result.add(toResponse(current.current(), current.combat(), changeSummary));
+        }
+        return result;
+    }
+
+    private PreparedResponse prepareResponse(DataSheetResponse response) {
+        return new PreparedResponse(
+                prepareDataSheet(response.CurrentPresetDataSheet()),
+                prepareDataSheet(response.CombatPresetdataSheet())
+        );
+    }
+
+    private AnalysisCombatPowerResponse toResponse(DataSheet current, DataSheet combat, CombatPowerChangeSummary changeSummary) {
         return new AnalysisCombatPowerResponse(
                 current.getCharacterName(),
                 current.getCharacterClass(),
                 current.getDate(),
                 buildCurrentSummary(current),
-                buildCombatSummary(combat)
+                buildCombatSummary(combat, changeSummary)
         );
     }
 
@@ -105,17 +141,55 @@ public class AnalysisService {
                 currentCombatPower,
                 difference,
                 errorRatePercent,
-                dataSheet.isLucidTransformSuspected()
+                dataSheet.isLucidTransformSuspected(),
+                null
         );
     }
 
-    private CombatPowerSummary buildCombatSummary(DataSheet dataSheet) {
+    private CombatPowerSummary buildCombatSummary(DataSheet dataSheet, CombatPowerChangeSummary changeSummary) {
         return new CombatPowerSummary(
                 combatPowerCalculator.estimateCombatPower(dataSheet),
                 null,
                 null,
                 null,
-                dataSheet.isLucidTransformSuspected()
+                dataSheet.isLucidTransformSuspected(),
+                changeSummary
         );
+    }
+
+    private CombatPowerChangeSummary toChangeSummary(DataSheetDiffService.CombatPresetDiff diff) {
+        return new CombatPowerChangeSummary(
+                diff.coreChanges().stream().map(this::toSourceSummary).toList(),
+                diff.petChanges().stream().map(this::toSlotSummary).toList(),
+                diff.cashChanges().stream().map(this::toSlotSummary).toList(),
+                diff.itemChanges().stream().map(this::toSlotSummary).toList()
+        );
+    }
+
+    private ChangeSourceSummary toSourceSummary(DataSheetDiffService.ChangeSummary changeSummary) {
+        return new ChangeSourceSummary(
+                changeSummary.source(),
+                changeSummary.deltas().stream().map(this::toStatDeltaSummary).toList()
+        );
+    }
+
+    private ChangeSlotSummary toSlotSummary(DataSheetDiffService.SlotChangeSummary changeSummary) {
+        return new ChangeSlotSummary(
+                changeSummary.slot(),
+                changeSummary.changeType(),
+                changeSummary.previousItemName(),
+                changeSummary.currentItemName(),
+                changeSummary.deltas().stream().map(this::toStatDeltaSummary).toList()
+        );
+    }
+
+    private StatDeltaSummary toStatDeltaSummary(DataSheetDiffService.StatDelta statDelta) {
+        return new StatDeltaSummary(statDelta.statName(), statDelta.delta());
+    }
+
+    private record PreparedResponse(
+            DataSheet current,
+            DataSheet combat
+    ) {
     }
 }

@@ -5,6 +5,9 @@ import org.springframework.stereotype.Component;
 import org.whitedoggy.mapleweb2.domain.common.stat.StatSheet;
 import org.whitedoggy.mapleweb2.domain.common.stat.StatSheetParser;
 import org.whitedoggy.mapleweb2.domain.common.support.EffectTextSplitter;
+import org.whitedoggy.mapleweb2.domain.item.data.ItemRecord;
+import org.whitedoggy.mapleweb2.domain.item.data.ItemSheet;
+import org.whitedoggy.mapleweb2.domain.item.data.ItemSnapShot;
 import org.whitedoggy.mapleweb2.domain.item.support.BowNormalization;
 import org.whitedoggy.mapleweb2.domain.item.support.WeaponAddOptionTable;
 import org.whitedoggy.mapleweb2.global.Jsons;
@@ -19,6 +22,166 @@ import java.util.Map;
 public class ItemParser {
     private final BowNormalization bowNormalization;
     private final StatSheetParser statSheetParser;
+
+    private ItemRecord getTitleItemSnapShot(JsonNode item){
+        String itemName = Jsons.text(item, "title_name");
+        String itemIcon = Jsons.text(item, "title_icon");
+        String expired = Jsons.text(item, "date_option_expire");
+        String description = Jsons.text(item, "title_description");
+        String itemSlot = "칭호";
+
+        ItemSheet itemSheet = new ItemSheet(itemName);
+        StatSheet statSheet = new StatSheet(itemName);
+
+        List<String> effects = new ArrayList<>();
+        if(!expired.equals("expired")){
+            EffectTextSplitter.addSplit(effects, description);
+        }
+        else{
+            itemSheet.setExpired("옵션 기간 만료");
+        }
+
+        itemSheet.setItemIcon(itemIcon);
+        itemSheet.setItemDescription(description);
+        statSheet.merge(statSheetParser.parse(effects));
+
+        return new ItemRecord(itemSlot, new ItemSnapShot(itemSheet, statSheet));
+    }
+
+    private ItemRecord getWeaponItemSnapShot(JsonNode item, String characterClass){
+        String itemName = Jsons.text(item, "item_name");
+        String itemIcon = Jsons.text(item, "item_icon");
+        String itemSlot = Jsons.text(item, "item_equipment_slot");
+        Integer starForce = Integer.parseInt(Jsons.text(item, "starforce"));
+
+        JsonNode totalOptionNode = item.path("item_total_option");
+
+        String p_grade = Jsons.text(item, "potential_option_grade");
+        String ap_grade = Jsons.text(item, "addtional_potential_option_grade");
+
+        ItemSheet itemSheet = new ItemSheet(itemName);
+        StatSheet statSheet = new StatSheet(itemName);
+
+        List<String> effects = new ArrayList<>();
+        List<String> totalOptions = new ArrayList<>();
+        List<String> potentialOptions = new ArrayList<>();
+        List<String> additionalPotentialOptions = new ArrayList<>();
+
+        addStructuredOptionEffectsForWeaponV2(effects, totalOptions, totalOptionNode);
+
+        for(String option : getPotentialOptions(item)){
+            EffectTextSplitter.addSplit(effects, option);
+            potentialOptions.add(option);
+        }
+
+        for(String option : getAdditionalPotentialOptions(item)){
+            EffectTextSplitter.addSplit(effects, option);
+            additionalPotentialOptions.add(option);
+        }
+
+        itemSheet.setItemIcon(itemIcon);
+        itemSheet.setStarForce(starForce);
+        itemSheet.setItemTotalOption(totalOptions);
+
+        itemSheet.setPotentialGrade(p_grade);
+        itemSheet.setItemPotentialOption(potentialOptions);
+
+        itemSheet.setAdditionalPotentialGrade(ap_grade);
+        itemSheet.setItemAdditionalPotentialOption(additionalPotentialOptions);
+
+        statSheet.merge(statSheetParser.parse(effects));
+        return new ItemRecord(itemSlot, new ItemSnapShot(itemSheet, statSheet));
+    }
+
+    private ItemRecord getNormalItemSnapShot(JsonNode item){
+        String itemName = Jsons.text(item, "item_name");
+        String itemIcon = Jsons.text(item, "item_icon");
+        String itemSlot = Jsons.text(item, "item_equipment_slot");
+        Integer starForce = Integer.parseInt(Jsons.text(item, "starforce"));
+
+        JsonNode totalOptionNode = item.path("item_total_option");
+        JsonNode exceptionalOptionNode = item.path("item_exceptional_option");
+
+        String p_grade = Jsons.text(item, "potential_option_grade");
+        String ap_grade = Jsons.text(item, "addtional_potential_option_grade");
+
+        ItemSheet itemSheet = new ItemSheet(itemName);
+        StatSheet statSheet = new StatSheet(itemName);
+
+        List<String> effects = new ArrayList<>();
+        List<String> totalOptions = new ArrayList<>();
+        addStructuredOptionEffectsV2(effects, totalOptions, totalOptionNode);
+
+        List<String> exceptionalOptions = new ArrayList<>();
+        addStructuredOptionEffectsV2(effects, exceptionalOptions, exceptionalOptionNode);
+
+        List<String> potentialOptions = new ArrayList<>();
+        for(String option : getPotentialOptions(item)){
+            EffectTextSplitter.addSplit(effects, option);
+            potentialOptions.add(option);
+        }
+
+        List<String> additionalPotentialOptions = new ArrayList<>();
+        for(String option : getAdditionalPotentialOptions(item)){
+            EffectTextSplitter.addSplit(effects, option);
+            additionalPotentialOptions.add(option);
+        }
+
+        itemSheet.setItemIcon(itemIcon);
+        itemSheet.setStarForce(starForce);
+        itemSheet.setItemTotalOption(totalOptions);
+        itemSheet.setItemExceptionalOption(exceptionalOptions);
+
+        itemSheet.setPotentialGrade(p_grade);
+        itemSheet.setItemPotentialOption(potentialOptions);
+
+        itemSheet.setAdditionalPotentialGrade(ap_grade);
+        itemSheet.setItemAdditionalPotentialOption(additionalPotentialOptions);
+
+        statSheet.merge(statSheetParser.parse(effects));
+        return new ItemRecord(itemSlot, new ItemSnapShot(itemSheet, statSheet));
+    }
+
+    private void addStructuredOptionEffectsV2(List<String> l1, List<String> l2, JsonNode option) {
+        appendDual(l1, l2, "STR", option.path("str").asInt(0));
+        appendDual(l1, l2, "DEX", option.path("dex").asInt(0));
+        appendDual(l1, l2, "INT", option.path("int").asInt(0));
+        appendDual(l1, l2, "LUK", option.path("luk").asInt(0));
+        appendDual(l1, l2, "HP", option.path("max_hp").asInt(0));
+        appendDualPercent(l1, l2, "올스탯", option.path("all_stat").asInt(0));
+        appendDual(l1, l2, "공격력", option.path("attack_power").asInt(0));
+        appendDual(l1, l2, "마력", option.path("magic_power").asInt(0));
+        appendDualPercent(l1, l2, "데미지", option.path("damage").asInt(0));
+        appendDualPercent(l1, l2, "보스 몬스터 공격 시 데미지", option.path("boss_damage").asInt(0));
+        appendDualPercent(l1, l2, "HP", option.path("max_hp_rate").asInt(0));
+        append(l2, "MP", option.path("max_mp").asInt());
+        append(l2, "방어력", option.path("armor").asInt());
+        append(l2, "이동속도", option.path("speed").asInt());
+        append(l2, "점프력", option.path("jump").asInt());
+        appendPercent(l2, "몬스터 방어율 무시", option.path("ignore_monster_armor").asInt());
+        appendPercent(l2, "MP", option.path("max_mp_rate").asInt());
+    }
+
+    private void addStructuredOptionEffectsForWeaponV2(List<String> l1, List<String> l2, JsonNode option) {
+        appendDual(l1, l2, "STR", option.path("str").asInt(0));
+        appendDual(l1, l2, "DEX", option.path("dex").asInt(0));
+        appendDual(l1, l2, "INT", option.path("int").asInt(0));
+        appendDual(l1, l2, "LUK", option.path("luk").asInt(0));
+        appendDual(l1, l2, "HP", option.path("max_hp").asInt(0));
+        appendDualPercent(l1, l2, "올스탯", option.path("all_stat").asInt(0));
+        append(l2, "공격력", option.path("attack_power").asInt(0));
+        append(l2, "마력", option.path("magic_power").asInt(0));
+        appendDualPercent(l1, l2, "데미지", option.path("damage").asInt(0));
+        appendDualPercent(l1, l2, "보스 몬스터 공격 시 데미지", option.path("boss_damage").asInt(0));
+        appendDualPercent(l1, l2, "HP", option.path("max_hp_rate").asInt(0));
+        append(l2, "MP", option.path("max_mp").asInt());
+        append(l2, "방어력", option.path("armor").asInt());
+        append(l2, "이동속도", option.path("speed").asInt());
+        append(l2, "점프력", option.path("jump").asInt());
+        appendPercent(l2, "몬스터 방어율 무시", option.path("ignore_monster_armor").asInt());
+        appendPercent(l2, "MP", option.path("max_mp_rate").asInt());
+    }
+
 
     private List<String> magicTypes = List.of(
             "완드",
@@ -275,5 +438,15 @@ public class ItemParser {
         if (value > 0) {
             effects.add(statName + " " + value + "%");
         }
+    }
+
+    private void appendDual(List<String> l1, List<String> l2, String statName, int value){
+        append(l1, statName, value);
+        append(l2, statName, value);
+    }
+
+    private void appendDualPercent(List<String> l1, List<String> l2, String statName, int value){
+        appendPercent(l1, statName, value);
+        appendPercent(l2, statName, value);
     }
 }

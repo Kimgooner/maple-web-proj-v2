@@ -264,6 +264,30 @@
             line-height: 1.6;
         }
 
+        .change-cell {
+            min-width: 360px;
+            white-space: normal;
+            line-height: 1.6;
+        }
+
+        .change-list {
+            display: grid;
+            gap: 8px;
+        }
+
+        .change-group + .change-group {
+            padding-top: 8px;
+            border-top: 1px dashed rgba(110, 96, 82, 0.14);
+        }
+
+        .change-group-title {
+            font-weight: 800;
+        }
+
+        .change-group-copy {
+            color: var(--muted);
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
@@ -298,7 +322,7 @@
     <section class="hero">
         <p class="eyebrow">Maple Analysis</p>
         <h1>DataSheetBuilder 기반 전투력 비교</h1>
-        <p class="hero-copy">단건 조회는 선택한 날짜의 current/combat preset 전투력을 비교하고, 한달/1년 조회는 지원 가능한 시점만 모아 날짜 오름차순 표로 보여줍니다.</p>
+        <p class="hero-copy">선택한 날짜의 current/combat preset 전투력을 비교하고, 한달/1년 조회에서는 변화가 있었던 시점만 모아 날짜 오름차순으로 보여줍니다.</p>
         <div class="page-links">
             <a href="/index.html">기존 페이지</a>
             <a href="/index2.html" class="current">DataSheetBuilder 페이지</a>
@@ -313,7 +337,7 @@
                 <label for="date">조회 날짜</label>
                 <input id="date" name="date" type="date" required>
             </div>
-            <button type="submit">단건 조회</button>
+            <button type="submit">당일 조회</button>
         </form>
         <div class="actions">
             <button type="button" id="monthly-button">한달 조회</button>
@@ -354,11 +378,11 @@
         });
 
         if (!params.get("characterName") || !params.get("date")) {
-            statusEl.textContent = "캐릭터 이름과 날짜를 모두 입력해 주세요.";
+            statusEl.textContent = "캐릭터 이름과 조회 날짜를 모두 입력해 주세요.";
             return;
         }
 
-        statusEl.textContent = "단건 조회 중입니다...";
+        statusEl.textContent = "당일 조회 중입니다...";
         summaryEl.hidden = true;
         warningEl.hidden = true;
         resultsEl.hidden = true;
@@ -424,10 +448,10 @@
         }
         return `
             <article class="warning-box">
-                <div class="warning-title">⚠ 루시드 변신 예외 의심</div>
+                <div class="warning-title">루시드 변신 예외 의심</div>
                 <div class="warning-copy">
-                    0차 스킬 일부가 비정상 조회되었을 가능성이 있습니다.
-                    제네시스/데스티니 무기 전용 스킬이 레벨 0으로 감지되면 표시됩니다.
+                    0차 스킬 레벨이 비정상 조회되었을 가능성이 있습니다.
+                    제논/데몬스레이어/제로 무기 전용 스킬이 전부 0으로 감지되면 표시됩니다.
                 </div>
             </article>
         `;
@@ -467,7 +491,7 @@
         historyEl.innerHTML = `
             <article class="panel">
                 <h2>${title}</h2>
-                <p class="hero-copy">지원 가능한 시점만 포함했고, 날짜 오름차순으로 정렬했습니다.</p>
+                <p class="hero-copy">변화가 있었던 시점만 포함하고, 날짜 오름차순으로 정렬했습니다.</p>
                 <div class="table-wrap" style="margin-top: 18px;">
                     <table>
                         <thead>
@@ -475,7 +499,7 @@
                                 <th>날짜</th>
                                 <th>직업</th>
                                 <th>Current 계산 전투력</th>
-                                <th>저장된 Current 전투력</th>
+                                <th>실제 Current 전투력</th>
                                 <th>차이</th>
                                 <th>오차율</th>
                                 <th>Flag</th>
@@ -485,7 +509,7 @@
                         <tbody>
                             ${rows.length ? rows.map(renderHistoryRow).join("") : `
                                 <tr>
-                                    <td colspan="8">지원 가능한 조회 결과가 없습니다.</td>
+                                    <td colspan="8">변화가 있었던 조회 결과가 없습니다.</td>
                                 </tr>
                             `}
                         </tbody>
@@ -503,7 +527,7 @@
         historyDiffEl.innerHTML = `
             <article class="panel">
                 <h2>${title}</h2>
-                <p class="diff-copy">첫 시점은 기준값으로 두고, 이후 시점은 바로 이전 데이터와 비교한 combat preset 전투력 변화량을 보여줍니다.</p>
+                <p class="diff-copy">첫 시점은 기준값으로 두고, 이후 시점은 바로 이전 데이터와 비교한 combat preset 전투력 변화량과 변경 요소를 함께 보여줍니다.</p>
                 <div class="table-wrap" style="margin-top: 18px;">
                     <table>
                         <thead>
@@ -514,13 +538,14 @@
                                 <th>현재 Combat 전투력</th>
                                 <th>직전 대비 변화</th>
                                 <th>최초 대비 누적 변화</th>
+                                <th>변경 요소</th>
                                 <th>Flag</th>
                             </tr>
                         </thead>
                         <tbody>
                             ${diffs.length ? diffs.map(renderHistoryDiffRow).join("") : `
                                 <tr>
-                                    <td colspan="7">비교할 수 있는 연속 조회 결과가 없습니다.</td>
+                                    <td colspan="8">비교 가능한 연속 조회 결과가 없습니다.</td>
                                 </tr>
                             `}
                         </tbody>
@@ -540,7 +565,7 @@
                 <td>${formatValue(row.currentPresetDataSheet.currentCombatPower)}</td>
                 <td>${formatSignedValue(row.currentPresetDataSheet.difference)}</td>
                 <td>${formatPercent(row.currentPresetDataSheet.errorRatePercent)}</td>
-                <td>${row.currentPresetDataSheet.lucidTransformSuspected ? '<span class="flag" title="루시드 변신 예외 의심">⚠</span>' : "-"}</td>
+                <td>${row.currentPresetDataSheet.lucidTransformSuspected ? '<span class="flag" title="루시드 변신 예외 의심">!</span>' : "-"}</td>
                 <td>${formatValue(row.combatPresetDataSheet.estimatedCombatPower)}</td>
             </tr>
         `;
@@ -567,6 +592,7 @@
                 currentCombatPower,
                 deltaCombatPower: currentCombatPower - previousCombatPower,
                 cumulativeDeltaCombatPower: currentCombatPower - firstCombatPower,
+                changeSummary: currentRow.combatPresetDataSheet?.changeSummary ?? null,
                 lucidTransformSuspected: Boolean(currentRow.combatPresetDataSheet?.lucidTransformSuspected)
             });
         }
@@ -583,22 +609,97 @@
                 <td>${formatValue(diff.currentCombatPower)}</td>
                 <td class="${diff.deltaCombatPower >= 0 ? "delta-positive" : "delta-negative"}">${formatSignedValue(diff.deltaCombatPower)}</td>
                 <td class="${diff.cumulativeDeltaCombatPower >= 0 ? "delta-positive" : "delta-negative"}">${formatSignedValue(diff.cumulativeDeltaCombatPower)}</td>
-                <td>${diff.lucidTransformSuspected ? '<span class="flag" title="루시드 변신 예외 의심">⚠</span>' : "-"}</td>
+                <td class="change-cell">${renderChangeSummary(diff.changeSummary)}</td>
+                <td>${diff.lucidTransformSuspected ? '<span class="flag" title="루시드 변신 예외 의심">!</span>' : "-"}</td>
             </tr>
         `;
+    }
+
+    function renderChangeSummary(changeSummary) {
+        if (!changeSummary) {
+            return '<span class="change-group-copy">-</span>';
+        }
+
+        const groups = [
+            ...renderCoreChanges(changeSummary.coreChanges),
+            ...renderSlotChanges("Pet", changeSummary.petChanges),
+            ...renderSlotChanges("Cash", changeSummary.cashChanges),
+            ...renderSlotChanges("Item", changeSummary.itemChanges)
+        ];
+
+        if (!groups.length) {
+            return '<span class="change-group-copy">-</span>';
+        }
+
+        return `<div class="change-list">${groups.join("")}</div>`;
+    }
+
+    function renderCoreChanges(changes) {
+        if (!Array.isArray(changes)) {
+            return [];
+        }
+
+        return changes.map((change) => `
+            <div class="change-group">
+                <div class="change-group-title">${escapeHtml(change.source)}</div>
+                <div class="change-group-copy">${formatDeltaList(change.deltas)}</div>
+            </div>
+        `);
+    }
+
+    function renderSlotChanges(groupLabel, changes) {
+        if (!Array.isArray(changes)) {
+            return [];
+        }
+
+        return changes.map((change) => {
+            const itemTransition = formatItemTransition(change.previousItemName, change.currentItemName);
+            const deltaText = formatDeltaList(change.deltas);
+            const detail = [itemTransition, deltaText].filter(Boolean).join(" / ");
+
+            return `
+                <div class="change-group">
+                    <div class="change-group-title">${escapeHtml(groupLabel)} · ${escapeHtml(change.slot)} · ${escapeHtml(change.changeType)}</div>
+                    <div class="change-group-copy">${detail || "-"}</div>
+                </div>
+            `;
+        });
+    }
+
+    function formatItemTransition(previousItemName, currentItemName) {
+        if (previousItemName && currentItemName) {
+            return `${escapeHtml(previousItemName)} -> ${escapeHtml(currentItemName)}`;
+        }
+        if (currentItemName) {
+            return escapeHtml(currentItemName);
+        }
+        if (previousItemName) {
+            return escapeHtml(previousItemName);
+        }
+        return "";
+    }
+
+    function formatDeltaList(deltas) {
+        if (!Array.isArray(deltas) || !deltas.length) {
+            return "";
+        }
+
+        return deltas
+            .map((delta) => `${escapeHtml(delta.statName)} ${formatSignedDecimalValue(delta.delta)}`)
+            .join(", ");
     }
 
     function renderCurrentCard(data) {
         return `
             <article class="panel">
                 <h2>Current Preset DataSheet</h2>
-                <p class="hero-copy">저장된 현재 전투력과 계산 전투력을 비교합니다.</p>
+                <p class="hero-copy">실제 현재 전투력과 계산 전투력을 비교합니다.</p>
                 <div class="card" style="margin-top: 18px;">
                     <div class="label">계산 전투력</div>
                     <div class="value">${formatValue(data.estimatedCombatPower)}</div>
                     <div class="meta">
                         <div class="meta-row">
-                            <span>저장된 현재 전투력</span>
+                            <span>실제 현재 전투력</span>
                             <strong>${formatValue(data.currentCombatPower)}</strong>
                         </div>
                         <div class="meta-row">
@@ -611,7 +712,7 @@
                         </div>
                         <div class="meta-row">
                             <span>Flag</span>
-                            <strong>${data.lucidTransformSuspected ? "⚠ 루시드 의심" : "-"}</strong>
+                            <strong>${data.lucidTransformSuspected ? "루시드 변신 예외 의심" : "-"}</strong>
                         </div>
                     </div>
                 </div>
@@ -623,14 +724,14 @@
         return `
             <article class="panel">
                 <h2>Combat Preset DataSheet</h2>
-                <p class="hero-copy">휴리스틱으로 선택된 combat preset의 계산 전투력입니다.</p>
+                <p class="hero-copy">히스토리 기준으로 선택한 combat preset의 계산 전투력입니다.</p>
                 <div class="card" style="margin-top: 18px;">
                     <div class="label">계산 전투력</div>
                     <div class="value">${formatValue(data.estimatedCombatPower)}</div>
                     <div class="meta" style="margin-top: 14px;">
                         <div class="meta-row">
                             <span>Flag</span>
-                            <strong>${data.lucidTransformSuspected ? "⚠ 루시드 의심" : "-"}</strong>
+                            <strong>${data.lucidTransformSuspected ? "루시드 변신 예외 의심" : "-"}</strong>
                         </div>
                     </div>
                 </div>
@@ -646,6 +747,15 @@
         const number = Number(value ?? 0);
         const sign = number > 0 ? "+" : "";
         return `${sign}${number.toLocaleString("ko-KR")}`;
+    }
+
+    function formatSignedDecimalValue(value) {
+        const number = Number(value ?? 0);
+        const sign = number > 0 ? "+" : "";
+        const formatted = Number.isInteger(number)
+            ? number.toLocaleString("ko-KR")
+            : number.toLocaleString("ko-KR", { maximumFractionDigits: 2 });
+        return `${sign}${formatted}`;
     }
 
     function formatPercent(value) {

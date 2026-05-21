@@ -5,6 +5,7 @@ public record CombatPowerSummary(
         Long currentCombatPower,
         Long difference,
         Double errorRatePercent,
-        boolean lucidTransformSuspected
+        boolean lucidTransformSuspected,
+        CombatPowerChangeSummary changeSummary
 ) {
 }

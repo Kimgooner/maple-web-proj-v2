@@ -3,6 +3,7 @@ package org.whitedoggy.mapleweb2.analysis.data;
 import lombok.Getter;
 import lombok.Setter;
 import org.whitedoggy.mapleweb2.domain.common.stat.StatSheet;
+import org.whitedoggy.mapleweb2.domain.item.data.ItemSheet;
 
 import java.time.LocalDate;
 import java.util.Map;
@@ -95,20 +96,20 @@ public class DataSheet {
 
         for (Map.Entry<String, ItemSheet> m : petEquip.entrySet()){
             String slot = m.getKey();
-            String name = m.getValue().itemName;
-            StatSheet sheet = m.getValue().statSheet;
+            String name = m.getValue().getItemName();
+            StatSheet sheet = m.getValue().getStatSheet();
             sumSheet.merge(sheet);
         }
         for (Map.Entry<String, ItemSheet> m : cashEquip.entrySet()){
             String slot = m.getKey();
-            String name = m.getValue().itemName;
-            StatSheet sheet = m.getValue().statSheet;
+            String name = m.getValue().getItemName();
+            StatSheet sheet = m.getValue().getStatSheet();
             sumSheet.merge(sheet);
         }
         for (Map.Entry<String, ItemSheet> m : itemEquip.entrySet()){
             String slot = m.getKey();
-            String name = m.getValue().itemName;
-            StatSheet sheet = m.getValue().statSheet;
+            String name = m.getValue().getItemName();
+            StatSheet sheet = m.getValue().getStatSheet();
             sumSheet.merge(sheet);
         }
     }
