@@ -21,6 +21,10 @@ public final class Jsons {
         return node.path(field).asText("");
     }
 
+    public static boolean isNull(JsonNode node, String field) {
+        return node.path(field).isNull();
+    }
+
     public static Optional<String> optionalText(JsonNode node, String field) {
         if (empty(node) || !node.hasNonNull(field)) {
             return Optional.empty();

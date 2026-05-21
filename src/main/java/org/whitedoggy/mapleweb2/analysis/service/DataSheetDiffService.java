@@ -2,8 +2,9 @@ package org.whitedoggy.mapleweb2.analysis.service;
 
 import org.springframework.stereotype.Service;
 import org.whitedoggy.mapleweb2.analysis.data.DataSheet;
-import org.whitedoggy.mapleweb2.domain.item.data.ItemSheet;
 import org.whitedoggy.mapleweb2.domain.common.stat.StatSheet;
+import org.whitedoggy.mapleweb2.domain.item.data.ItemSheet;
+import org.whitedoggy.mapleweb2.domain.item.data.ItemSnapShot;
 
 import java.lang.reflect.Field;
 import java.time.LocalDate;
@@ -15,33 +16,35 @@ import java.util.Map;
 
 @Service
 public class DataSheetDiffService {
+    private static final String ITEM_INFO_DELIMITER = "|||";
+
     private static final List<StatField> STAT_FIELDS = List.of(
             new StatField("STR", "STR"),
             new StatField("DEX", "DEX"),
             new StatField("INT", "INT"),
             new StatField("LUK", "LUK"),
-            new StatField("HP", "HP"),
+            new StatField("HP", "최대 HP"),
             new StatField("ALL_STAT", "올스탯"),
-            new StatField("STR_NO_PERCENT", "STR 고정"),
-            new StatField("DEX_NO_PERCENT", "DEX 고정"),
-            new StatField("INT_NO_PERCENT", "INT 고정"),
-            new StatField("LUK_NO_PERCENT", "LUK 고정"),
-            new StatField("HP_NO_PERCENT", "HP 고정"),
-            new StatField("ALL_STAT_NO_PERCENT", "올스탯 고정"),
+            new StatField("STR_NO_PERCENT", "% 미적용 STR"),
+            new StatField("DEX_NO_PERCENT", "% 미적용 DEX"),
+            new StatField("INT_NO_PERCENT", "% 미적용 INT"),
+            new StatField("LUK_NO_PERCENT", "% 미적용 LUK"),
+            new StatField("HP_NO_PERCENT", "% 미적용 HP"),
+            new StatField("ALL_STAT_NO_PERCENT", "% 미적용 올스탯"),
             new StatField("ATTACK_POWER", "공격력"),
             new StatField("MAGIC_POWER", "마력"),
-            new StatField("STR_PERCENT", "STR%"),
-            new StatField("DEX_PERCENT", "DEX%"),
-            new StatField("INT_PERCENT", "INT%"),
-            new StatField("LUK_PERCENT", "LUK%"),
-            new StatField("HP_PERCENT", "HP%"),
-            new StatField("ALL_STAT_PERCENT", "올스탯%"),
-            new StatField("ATTACK_POWER_PERCENT", "공격력%"),
-            new StatField("MAGIC_POWER_PERCENT", "마력%"),
-            new StatField("DAMAGE", "데미지%"),
-            new StatField("BOSS_DAMAGE", "보스 데미지%"),
-            new StatField("CRITICAL_DAMAGE", "크리티컬 데미지%"),
-            new StatField("FINAL_DAMAGE", "최종 데미지%")
+            new StatField("STR_PERCENT", "STR %"),
+            new StatField("DEX_PERCENT", "DEX %"),
+            new StatField("INT_PERCENT", "INT %"),
+            new StatField("LUK_PERCENT", "LUK %"),
+            new StatField("HP_PERCENT", "HP %"),
+            new StatField("ALL_STAT_PERCENT", "올스탯 %"),
+            new StatField("ATTACK_POWER_PERCENT", "공격력 %"),
+            new StatField("MAGIC_POWER_PERCENT", "마력 %"),
+            new StatField("DAMAGE", "데미지 %"),
+            new StatField("BOSS_DAMAGE", "보스 몬스터 데미지 %"),
+            new StatField("CRITICAL_DAMAGE", "크리티컬 데미지 %"),
+            new StatField("FINAL_DAMAGE", "최종 데미지 %")
     );
 
     public List<CombatPresetDiff> diffCombatPresetSeries(List<DataSheet> dataSheets) {
@@ -77,15 +80,15 @@ public class DataSheetDiffService {
 
     private List<ChangeSummary> summarizeCoreSheets(DataSheet previous, DataSheet current, int limit) {
         List<ChangeSummary> summaries = new ArrayList<>();
-        addSheetSummary(summaries, "어빌리티 포인트", previous.getAbilityPoint(), current.getAbilityPoint());
+        addSheetSummary(summaries, "어빌리티 포인트(AP)", previous.getAbilityPoint(), current.getAbilityPoint());
         addSheetSummary(summaries, "심볼", previous.getSymbol(), current.getSymbol());
         addSheetSummary(summaries, "스킬", previous.getSkill(), current.getSkill());
-        addSheetSummary(summaries, "헥사 스탯", previous.getHexaStat(), current.getHexaStat());
+        addSheetSummary(summaries, "헥사 스텟", previous.getHexaStat(), current.getHexaStat());
         addSheetSummary(summaries, "어빌리티", previous.getAbility(), current.getAbility());
         addSheetSummary(summaries, "하이퍼 스탯", previous.getHyperStat(), current.getHyperStat());
-        addSheetSummary(summaries, "세트 효과", previous.getSetEffect(), current.getSetEffect());
+        addSheetSummary(summaries, "세트 효괴", previous.getSetEffect(), current.getSetEffect());
         addSheetSummary(summaries, "유니온 점령 효과", previous.getUnionOccupied(), current.getUnionOccupied());
-        addSheetSummary(summaries, "유니온 공격대원 효과", previous.getUnionRaider(), current.getUnionRaider());
+        addSheetSummary(summaries, "유니온 공격대원", previous.getUnionRaider(), current.getUnionRaider());
         addSheetSummary(summaries, "유니온 아티팩트", previous.getUnionArtifact(), current.getUnionArtifact());
         addSheetSummary(summaries, "유니온 챔피언", previous.getUnionChampion(), current.getUnionChampion());
 
@@ -113,44 +116,59 @@ public class DataSheetDiffService {
         ));
     }
 
-    private List<SlotChangeSummary> summarizeItemChanges(Map<String, ItemSheet> before, Map<String, ItemSheet> after, int limit) {
+    private List<SlotChangeSummary> summarizeItemChanges(Map<String, ItemSnapShot> before, Map<String, ItemSnapShot> after, int limit) {
         if (before == null || after == null) {
             return List.of();
         }
 
-        Map<String, ItemSheet> all = new LinkedHashMap<>();
+        Map<String, ItemSnapShot> all = new LinkedHashMap<>();
         all.putAll(before);
         after.forEach(all::putIfAbsent);
 
         List<SlotChangeSummary> changes = new ArrayList<>();
         for (String slot : all.keySet()) {
-            ItemSheet beforeItem = before.get(slot);
-            ItemSheet afterItem = after.get(slot);
+            ItemSnapShot beforeItem = before.get(slot);
+            ItemSnapShot afterItem = after.get(slot);
+            StatSheet beforeSheet = beforeItem == null ? new StatSheet(slot + " 이전") : beforeItem.getStatSheet();
+            StatSheet afterSheet = afterItem == null ? new StatSheet(slot + " 이후") : afterItem.getStatSheet();
+            List<StatDelta> deltas = summarizeStatDelta(afterSheet.minus(beforeSheet), 15);
 
-            if (beforeItem == null && afterItem != null) {
-                changes.add(new SlotChangeSummary(slot, "새 장착", null, afterItem.getItemName(), List.of(), 1000));
+            if (deltas.isEmpty()) {
                 continue;
             }
-            if (beforeItem != null && afterItem == null) {
-                changes.add(new SlotChangeSummary(slot, "장착 해제", beforeItem.getItemName(), null, List.of(), 1000));
-                continue;
-            }
+
             if (beforeItem == null) {
+                changes.add(new SlotChangeSummary(
+                        slot,
+                        "장착",
+                        encodeItemInfo(null),
+                        encodeItemInfo(afterItem),
+                        deltas,
+                        weight(deltas)
+                ));
                 continue;
             }
 
-            String beforeName = beforeItem.getItemName();
-            String afterName = afterItem.getItemName();
-            if (!safeEquals(beforeName, afterName)) {
-                List<StatDelta> deltas = summarizeStatDelta(afterItem.getStatSheet().minus(beforeItem.getStatSheet()), 3);
-                changes.add(new SlotChangeSummary(slot, "아이템 교체", beforeName, afterName, deltas, 1000 + weight(deltas)));
+            if (afterItem == null) {
+                changes.add(new SlotChangeSummary(
+                        slot,
+                        "장착 해제",
+                        encodeItemInfo(beforeItem),
+                        encodeItemInfo(null),
+                        deltas,
+                        weight(deltas)
+                ));
                 continue;
             }
 
-            List<StatDelta> deltas = summarizeStatDelta(afterItem.getStatSheet().minus(beforeItem.getStatSheet()), 2);
-            if (!deltas.isEmpty()) {
-                changes.add(new SlotChangeSummary(slot, "수치 변화", beforeName, afterName, deltas, weight(deltas)));
-            }
+            changes.add(new SlotChangeSummary(
+                    slot,
+                    "수치 변화",
+                    encodeItemInfo(beforeItem),
+                    encodeItemInfo(afterItem),
+                    deltas,
+                    weight(deltas)
+            ));
         }
 
         return changes.stream()
@@ -197,11 +215,15 @@ public class DataSheetDiffService {
         }
     }
 
-    private boolean safeEquals(String left, String right) {
-        if (left == null) {
-            return right == null;
+    private String encodeItemInfo(ItemSnapShot itemSnapShot) {
+        if (itemSnapShot == null || itemSnapShot.getItemSheet() == null) {
+            return ITEM_INFO_DELIMITER;
         }
-        return left.equals(right);
+
+        ItemSheet itemSheet = itemSnapShot.getItemSheet();
+        String name = itemSheet.getItemName() == null ? "" : itemSheet.getItemName();
+        String icon = itemSheet.getItemIcon() == null ? "" : itemSheet.getItemIcon();
+        return name + ITEM_INFO_DELIMITER + icon;
     }
 
     public record CombatPresetDiff(

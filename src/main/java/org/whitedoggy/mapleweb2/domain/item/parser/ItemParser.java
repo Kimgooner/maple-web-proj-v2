@@ -23,7 +23,17 @@ public class ItemParser {
     private final BowNormalization bowNormalization;
     private final StatSheetParser statSheetParser;
 
-    private ItemRecord getTitleItemSnapShot(JsonNode item){
+    public ItemRecord getItemSnapShot(JsonNode item, String characterClass, String type) {
+        String itemSlot = Jsons.text(item, "item_equipment_slot");
+        if(type.equals("장비")) {
+            if (itemSlot.equals("무기")) return getWeaponItemSnapShot(item, characterClass);
+            else if (itemSlot.equals("보조무기")) return getSubWeaponItemSnapShot(item, characterClass);
+            else return getNormalItemSnapShot(item);
+        }
+        else return getNormalItemSnapShot(item);
+    }
+
+    public ItemRecord getTitleItemSnapShot(JsonNode item){
         String itemName = Jsons.text(item, "title_name");
         String itemIcon = Jsons.text(item, "title_icon");
         String expired = Jsons.text(item, "date_option_expire");
@@ -48,7 +58,7 @@ public class ItemParser {
         return new ItemRecord(itemSlot, new ItemSnapShot(itemSheet, statSheet));
     }
 
-    private ItemRecord getWeaponItemSnapShot(JsonNode item, String characterClass){
+    private ItemRecord getSubWeaponItemSnapShot(JsonNode item, String characterClass){
         String itemName = Jsons.text(item, "item_name");
         String itemIcon = Jsons.text(item, "item_icon");
         String itemSlot = Jsons.text(item, "item_equipment_slot");
@@ -67,7 +77,85 @@ public class ItemParser {
         List<String> potentialOptions = new ArrayList<>();
         List<String> additionalPotentialOptions = new ArrayList<>();
 
+        //제로의 경우
+        //아스트라 보조무기 O -> 기존 방식 그대로
+        //아스트라 보조무기 X -> 보조무기의 잠재 옵션만 반영.
+        boolean isZero = false;
+        boolean isAstra = false;
+        if(characterClass.equals("제로")){
+            isZero = true;
+            if(itemName.contains("아스트라")){
+                isAstra = true;
+            }
+        }
+
+        if(!isZero || isAstra){
+            addStructuredOptionEffectsV2(effects, totalOptions, totalOptionNode);
+        }
+
+        for(String option : getPotentialOptions(item)){
+            EffectTextSplitter.addSplit(effects, option);
+            potentialOptions.add(option);
+        }
+
+        for(String option : getAdditionalPotentialOptions(item)){
+            EffectTextSplitter.addSplit(effects, option);
+            additionalPotentialOptions.add(option);
+        }
+
+        itemSheet.setItemIcon(itemIcon);
+        itemSheet.setStarForce(starForce);
+        itemSheet.setItemTotalOption(totalOptions);
+
+        itemSheet.setPotentialGrade(p_grade);
+        itemSheet.setItemPotentialOption(potentialOptions);
+
+        itemSheet.setAdditionalPotentialGrade(ap_grade);
+        itemSheet.setItemAdditionalPotentialOption(additionalPotentialOptions);
+
+        statSheet.merge(statSheetParser.parse(effects));
+        return new ItemRecord(itemSlot, new ItemSnapShot(itemSheet, statSheet));
+    }
+
+    private ItemRecord getWeaponItemSnapShot(JsonNode item, String characterClass){
+        String itemName = Jsons.text(item, "item_name");
+        String itemIcon = Jsons.text(item, "item_icon");
+        String itemSlot = Jsons.text(item, "item_equipment_slot");
+        String itemPart = Jsons.text(item, "item_equipment_part");
+        Integer starForce = Integer.parseInt(Jsons.text(item, "starforce"));
+
+        JsonNode totalOptionNode = item.path("item_total_option");
+
+        String p_grade = Jsons.text(item, "potential_option_grade");
+        String ap_grade = Jsons.text(item, "additional_potential_option_grade");
+
+        ItemSheet itemSheet = new ItemSheet(itemName);
+        StatSheet statSheet = new StatSheet(itemName);
+
+        List<String> effects = new ArrayList<>();
+        List<String> totalOptions = new ArrayList<>();
+        List<String> potentialOptions = new ArrayList<>();
+        List<String> additionalPotentialOptions = new ArrayList<>();
+
         addStructuredOptionEffectsForWeaponV2(effects, totalOptions, totalOptionNode);
+
+        //무기 정규화
+        if(characterClass.equals("제로")){
+            //TODO -> 제로는 아직 추가 로직 구현 필요.
+        }
+        else {
+            int addOption;
+            if (magicTypes.contains(itemPart)) {
+                addOption = Integer.parseInt(Jsons.text(item.path("item_add_option"), "magic_power"));
+            } else {
+                addOption = Integer.parseInt(Jsons.text(item.path("item_add_option"), "attack_power"));
+            }
+            String name = Jsons.text(item, "item_name");
+            effects.addAll(bowNormalization.buildNormalizedBow(itemPart, name, starForce, addOption));
+        }
+
+        //무기 소울 옵션
+        EffectTextSplitter.addSplit(effects, Jsons.text(item, "soul_option"));
 
         for(String option : getPotentialOptions(item)){
             EffectTextSplitter.addSplit(effects, option);
@@ -101,6 +189,7 @@ public class ItemParser {
 
         JsonNode totalOptionNode = item.path("item_total_option");
         JsonNode exceptionalOptionNode = item.path("item_exceptional_option");
+        String itemDescription = Jsons.text(item, "item_description");
 
         String p_grade = Jsons.text(item, "potential_option_grade");
         String ap_grade = Jsons.text(item, "addtional_potential_option_grade");
@@ -127,10 +216,14 @@ public class ItemParser {
             additionalPotentialOptions.add(option);
         }
 
+        //다크 크리티컬 링 등 반영.
+        EffectTextSplitter.addSplit(effects, itemDescription);
+
         itemSheet.setItemIcon(itemIcon);
         itemSheet.setStarForce(starForce);
         itemSheet.setItemTotalOption(totalOptions);
         itemSheet.setItemExceptionalOption(exceptionalOptions);
+        itemSheet.setItemDescription(itemDescription);
 
         itemSheet.setPotentialGrade(p_grade);
         itemSheet.setItemPotentialOption(potentialOptions);

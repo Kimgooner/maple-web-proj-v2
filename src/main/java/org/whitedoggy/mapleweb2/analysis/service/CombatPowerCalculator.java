@@ -84,8 +84,8 @@ public class CombatPowerCalculator {
             if (subStats.size() == 2) {
                 String sub1 = subStats.getFirst();
                 String sub2 = subStats.getLast();
-                System.out.println(calculateStat(sub1, sheet, characterLevel));
-                System.out.println(calculateStat(sub2, sheet, characterLevel));
+                //System.out.println(calculateStat(sub1, sheet, characterLevel));
+                //System.out.println(calculateStat(sub2, sheet, characterLevel));
                 finalSubStat = calculateStat(sub1, sheet, characterLevel) + calculateStat(sub2, sheet, characterLevel);
 
             } else {
@@ -103,6 +103,7 @@ public class CombatPowerCalculator {
         double damage = 100.0 + sheet.getDAMAGE() + sheet.getBOSS_DAMAGE();
         double critDamage = 135.0 + sheet.getCRITICAL_DAMAGE();
         double finalDamage = 100.0 + sheet.getFINAL_DAMAGE();
+        /*
         System.out.println("전투력 계산 ==============");
         System.out.println("최종 주스탯: " + finalMainStat);
         System.out.println("최종 부스탯: " + finalSubStat);
@@ -112,6 +113,7 @@ public class CombatPowerCalculator {
         System.out.println("크리티컬 데미지: " + critDamage);
         System.out.println("최종 데미지: " + finalDamage);
         System.out.println("========================");
+        */
         return (long) Math.floor((finalStat * power * damage * critDamage * finalDamage) / 1_000_000.0);
     }
 }

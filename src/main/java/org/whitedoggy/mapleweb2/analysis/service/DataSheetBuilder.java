@@ -17,6 +17,7 @@ import org.whitedoggy.mapleweb2.domain.common.stat.StatSheet;
 import org.whitedoggy.mapleweb2.domain.common.stat.StatSheetParser;
 import org.whitedoggy.mapleweb2.domain.hexa.HexaParser;
 import org.whitedoggy.mapleweb2.domain.hyper.HyperStatParser;
+import org.whitedoggy.mapleweb2.domain.item.data.ItemSnapShot;
 import org.whitedoggy.mapleweb2.domain.item.parser.ItemEquipmentParser;
 import org.whitedoggy.mapleweb2.domain.item.parser.ItemParser;
 import org.whitedoggy.mapleweb2.domain.pet.PetParser;
@@ -34,10 +35,7 @@ import reactor.core.publisher.Mono;
 import tools.jackson.databind.JsonNode;
 
 import java.time.LocalDate;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -222,54 +220,49 @@ public class DataSheetBuilder {
         return statSheetParser.parseNoPercentStat(hexaParser.getCurrentHexa(node, main), "헥사 스텟");
     }
 
-    private Map<String, ItemSheet> setPetEquip(JsonNode node) {
-        Map<String, ItemSheet> petEquip = new HashMap<>();
-        petEquip.put("펫 장비 1", new ItemSheet("펫 장비 1", statSheetParser.parse(petParser.getPetEquip(node, 1), "펫 장비 1")));
-        petEquip.put("펫 장비 2", new ItemSheet("펫 장비 2", statSheetParser.parse(petParser.getPetEquip(node, 2), "펫 장비 2")));
-        petEquip.put("펫 장비 3", new ItemSheet("펫 장비 3", statSheetParser.parse(petParser.getPetEquip(node, 3), "펫 장비 3")));
+    private Map<String, ItemSnapShot> setPetEquip(JsonNode node) {
+        Map<String, ItemSnapShot> petEquip = new HashMap<>();
+        List<ItemRecord> itemRecords = petParser.getItemSnapShot(node);
+        for (ItemRecord itemRecord : itemRecords) {
+            petEquip.put("펫 장비 - " + itemRecord.slot(), itemRecord.itemSnapShot());
+        }
         return petEquip;
     }
 
-    private Map<String, ItemSheet> setCashEquip(JsonNode node) {
-        List<ItemRecord> itemRecords = cashItemParser.getCashEquip(node);
-        Map<String, ItemSheet> itemSheets = new HashMap<>();
-        for (ItemRecord itemRecord : itemRecords) {
-            itemSheets.put(itemRecord.slot(), new ItemSheet(itemRecord.name(), statSheetParser.parse(itemRecord.effects(), itemRecord.slot())));
+    private Map<String, ItemSnapShot> setCashEquip(JsonNode node) {
+        Map<String, ItemSnapShot> itemEquip = new HashMap<>();
+        JsonNode cashItems = node.path("cash_item_equipment_base");
+        for (JsonNode item : cashItems) {
+            ItemRecord itemRecord = cashItemParser.getItemSnapShot(item);
+            itemEquip.put("캐시 장비 - " + itemRecord.slot(), itemRecord.itemSnapShot());
         }
-        return itemSheets;
-    }
-
-    private Map<String, ItemSheet> setItemEquip(JsonNode items, JsonNode title, JsonNode dragon, JsonNode mechanic, String characterClass) {
-        Map<String, ItemSheet> itemEquip = new LinkedHashMap<>();
-        putItemSheet(itemEquip, "칭호", Jsons.text(title, "item_name"), itemParser.getTitleStatEffects(title), "칭호, " + Jsons.text(title, "item_name"));
-
-        for (JsonNode item : dragon) {
-            String slot = Jsons.text(item, "item_equipment_slot");
-            String name = Jsons.text(item, "item_name");
-            putItemSheet(itemEquip, slot, name, itemParser.getItemStatEffects(item, characterClass), slot + ", " + name);
-        }
-
-        for (JsonNode item : mechanic) {
-            String slot = Jsons.text(item, "item_equipment_slot");
-            String name = Jsons.text(item, "item_name");
-            putItemSheet(itemEquip, slot, name, itemParser.getItemStatEffects(item, characterClass), slot + ", " + name);
-        }
-
-        for (JsonNode item : items) {
-            String slot = Jsons.text(item, "item_equipment_slot");
-            String name = Jsons.text(item, "item_name");
-            putItemSheet(itemEquip, slot, name, itemParser.getItemStatEffects(item, characterClass), slot + ", " + name);
-        }
-
         return itemEquip;
     }
 
-    private void putItemSheet(Map<String, ItemSheet> itemEquip, String slot, String name, List<String> effects, String sheetName) {
-        String key = slot;
-        if (itemEquip.containsKey(key)) {
-            key = slot + ", " + name;
+    private Map<String, ItemSnapShot> setItemEquip(JsonNode items, JsonNode title, JsonNode dragon, JsonNode mechanic, String characterClass) {
+        Map<String, ItemSnapShot> itemEquip = new HashMap<>();
+        ItemRecord titleRecord = itemParser.getTitleItemSnapShot(title);
+        itemEquip.put("장비 - " + titleRecord.slot(), titleRecord.itemSnapShot());
+
+        for (JsonNode item : dragon) {
+            ItemRecord itemRecord = itemParser.getItemSnapShot(item, characterClass, "드래곤");
+            String slot = itemRecord.slot();
+            itemEquip.put("드래곤 장비 - " + slot, itemRecord.itemSnapShot());
         }
-        itemEquip.put(key, new ItemSheet(name, statSheetParser.parse(effects, sheetName)));
+
+        for (JsonNode item : mechanic) {
+            ItemRecord itemRecord = itemParser.getItemSnapShot(item, characterClass, "메카닉");
+            String slot = itemRecord.slot();
+            itemEquip.put("메카닉 장비 - " + slot, itemRecord.itemSnapShot());
+        }
+
+        for (JsonNode item : items) {
+            ItemRecord itemRecord = itemParser.getItemSnapShot(item, characterClass, "장비");
+            String slot = itemRecord.slot();
+            itemEquip.put("장비 - " + slot, itemRecord.itemSnapShot());
+        }
+
+        return itemEquip;
     }
 
     private StatSheet setSetEffect(JsonNode node, JsonNode presetItems, String characterClass) {

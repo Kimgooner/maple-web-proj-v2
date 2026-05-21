@@ -1,7 +1,13 @@
 package org.whitedoggy.mapleweb2.domain.pet;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.whitedoggy.mapleweb2.domain.common.stat.StatSheet;
+import org.whitedoggy.mapleweb2.domain.common.stat.StatSheetParser;
 import org.whitedoggy.mapleweb2.domain.common.support.EffectTextSplitter;
+import org.whitedoggy.mapleweb2.domain.item.data.ItemRecord;
+import org.whitedoggy.mapleweb2.domain.item.data.ItemSheet;
+import org.whitedoggy.mapleweb2.domain.item.data.ItemSnapShot;
 import org.whitedoggy.mapleweb2.global.Jsons;
 import tools.jackson.databind.JsonNode;
 
@@ -9,7 +15,38 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Component
+@RequiredArgsConstructor
 public class PetParser {
+    private final StatSheetParser statSheetParser;
+
+    public List<ItemRecord> getItemSnapShot(JsonNode node) {
+        List<ItemRecord> itemRecords = new ArrayList<>();
+        for(int i = 1; i <= 3; i++) {
+            JsonNode equipment = node.path("pet_" + i + "_equipment");
+            String expired = Jsons.text(equipment, "item_date_expire");
+            JsonNode options = equipment.path("item_option");
+
+            if(expired.equals("-1")) continue;
+            String itemName = Jsons.text(options, "item_name");
+            String itemIcon = Jsons.text(options, "item_icon");
+
+            ItemSheet itemSheet = new ItemSheet(itemName);
+            StatSheet statSheet = new StatSheet(itemName);
+
+            List<String> effects = new ArrayList<>();
+            for (JsonNode option : options) {
+                String type = Jsons.text(option, "option_type");
+                String value = Jsons.text(option, "option_value");
+                EffectTextSplitter.addSplit(effects, type + " " + value);
+            }
+            statSheet.merge(statSheetParser.parse(effects));
+            itemRecords.add(new ItemRecord("펫 장비 " + i, new ItemSnapShot(itemSheet, statSheet)));
+        }
+        return itemRecords;
+    }
+
+
+
     public List<String> getPetEquipmentEffects(JsonNode petEquipment) {
         List<String> effects = new ArrayList<>();
         for (int i = 1; i <= 3; i++) {

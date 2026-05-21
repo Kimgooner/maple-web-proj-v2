@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.whitedoggy.mapleweb2.domain.common.stat.StatSheet;
 import org.whitedoggy.mapleweb2.domain.item.data.ItemSheet;
+import org.whitedoggy.mapleweb2.domain.item.data.ItemSnapShot;
 
 import java.time.LocalDate;
 import java.util.Map;
@@ -33,9 +34,9 @@ public class DataSheet {
     StatSheet ability;
     StatSheet hyperStat;
 
-    Map<String, ItemSheet> petEquip;
-    Map<String, ItemSheet> cashEquip;
-    Map<String, ItemSheet> itemEquip;
+    Map<String, ItemSnapShot> petEquip;
+    Map<String, ItemSnapShot> cashEquip;
+    Map<String, ItemSnapShot> itemEquip;
     StatSheet setEffect;
 
     StatSheet unionArtifact;
@@ -94,21 +95,15 @@ public class DataSheet {
         sumSheet.merge(this.unionOccupied);
         sumSheet.merge(this.unionRaider);
 
-        for (Map.Entry<String, ItemSheet> m : petEquip.entrySet()){
-            String slot = m.getKey();
-            String name = m.getValue().getItemName();
+        for (Map.Entry<String, ItemSnapShot> m : petEquip.entrySet()){
             StatSheet sheet = m.getValue().getStatSheet();
             sumSheet.merge(sheet);
         }
-        for (Map.Entry<String, ItemSheet> m : cashEquip.entrySet()){
-            String slot = m.getKey();
-            String name = m.getValue().getItemName();
+        for (Map.Entry<String, ItemSnapShot> m : cashEquip.entrySet()){
             StatSheet sheet = m.getValue().getStatSheet();
             sumSheet.merge(sheet);
         }
-        for (Map.Entry<String, ItemSheet> m : itemEquip.entrySet()){
-            String slot = m.getKey();
-            String name = m.getValue().getItemName();
+        for (Map.Entry<String, ItemSnapShot> m : itemEquip.entrySet()){
             StatSheet sheet = m.getValue().getStatSheet();
             sumSheet.merge(sheet);
         }

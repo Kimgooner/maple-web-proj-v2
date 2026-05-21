@@ -121,8 +121,6 @@ public class HexaParser {
             String sub1 = Jsons.text(stat, "sub_stat_name_1");
             String sub2 = Jsons.text(stat, "sub_stat_name_2");
 
-            System.out.println(main + ", " + sub1 + ", " + sub2);
-
             Integer main_lv = Jsons.optionalInt(stat, "main_stat_level").orElse(0);
             Integer sub_1_lv = Jsons.optionalInt(stat, "sub_stat_level_1").orElse(0);
             Integer sub_2_lv = Jsons.optionalInt(stat, "sub_stat_level_2").orElse(0);

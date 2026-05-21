@@ -288,6 +288,51 @@
             color: var(--muted);
         }
 
+        .item-transition {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+            gap: 10px;
+            align-items: center;
+        }
+
+        .item-card {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+        }
+
+        .item-card.empty {
+            opacity: 0.45;
+        }
+
+        .item-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            border: 1px solid rgba(110, 96, 82, 0.16);
+            background: rgba(255, 255, 255, 0.92);
+            object-fit: cover;
+            flex: 0 0 auto;
+        }
+
+        .item-icon.placeholder {
+            display: inline-block;
+            background: rgba(110, 96, 82, 0.08);
+        }
+
+        .item-name {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .item-arrow {
+            color: var(--muted);
+            font-weight: 800;
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
@@ -351,6 +396,15 @@
     <section id="results" class="section result-grid" hidden></section>
     <section id="history" class="section" hidden></section>
     <section id="history-diff" class="section" hidden></section>
+    <section class="section">
+        <div class="panel">
+            <div class="page-links">
+                <a href="/index.html">Stat Sheet Viewer</a>
+                <a href="/index2.html" class="current">DataSheetBuilder Viewer</a>
+                <a href="/index3.html">Growth Dashboard</a>
+            </div>
+        </div>
+    </section>
 </main>
 
 <script>
@@ -653,7 +707,9 @@
         }
 
         return changes.map((change) => {
-            const itemTransition = formatItemTransition(change.previousItemName, change.currentItemName);
+            const previousItem = parseItemInfo(change.previousItemName);
+            const currentItem = parseItemInfo(change.currentItemName);
+            const itemTransition = renderItemTransition(previousItem, currentItem);
             const deltaText = formatDeltaList(change.deltas);
             const detail = [itemTransition, deltaText].filter(Boolean).join(" / ");
 
@@ -666,17 +722,50 @@
         });
     }
 
-    function formatItemTransition(previousItemName, currentItemName) {
-        if (previousItemName && currentItemName) {
-            return `${escapeHtml(previousItemName)} -> ${escapeHtml(currentItemName)}`;
+    function parseItemInfo(rawValue) {
+        const value = String(rawValue ?? "");
+        const [name = "", icon = ""] = value.split("|||");
+        return {
+            name,
+            icon: normalizeItemIconUrl(icon)
+        };
+    }
+
+    function normalizeItemIconUrl(icon) {
+        if (!icon) {
+            return "";
         }
-        if (currentItemName) {
-            return escapeHtml(currentItemName);
+        if (icon.startsWith("https://open.api.nexon.com/static/maplestory/item/icon/") && !icon.includes(".", icon.lastIndexOf("/"))) {
+            return `${icon}.png`;
         }
-        if (previousItemName) {
-            return escapeHtml(previousItemName);
-        }
-        return "";
+        return icon;
+    }
+
+    function renderItemTransition(previousItem, currentItem) {
+        return `
+            <div class="item-transition">
+                ${renderItemCard(previousItem)}
+                <span class="item-arrow">-></span>
+                ${renderItemCard(currentItem)}
+            </div>
+        `;
+    }
+
+    function renderItemCard(item) {
+        const name = item?.name ?? "";
+        const icon = item?.icon ?? "";
+        const isEmpty = !name && !icon;
+        const iconMarkup = icon
+            ? `<img class="item-icon" src="${escapeHtml(icon)}" alt="${escapeHtml(name || "item")}">`
+            : '<span class="item-icon placeholder"></span>';
+        const nameMarkup = name ? escapeHtml(name) : "&nbsp;";
+
+        return `
+            <div class="item-card${isEmpty ? " empty" : ""}">
+                ${iconMarkup}
+                <span class="item-name">${nameMarkup}</span>
+            </div>
+        `;
     }
 
     function formatDeltaList(deltas) {
