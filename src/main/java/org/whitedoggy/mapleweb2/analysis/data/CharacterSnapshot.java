@@ -1,4 +1,4 @@
-package org.whitedoggy.mapleweb2.analysis.dto;
+package org.whitedoggy.mapleweb2.analysis.data;
 
 import org.whitedoggy.mapleweb2.external.nexon.config.NexonEndpoint;
 import tools.jackson.databind.JsonNode;

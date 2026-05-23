@@ -3,7 +3,7 @@ package org.whitedoggy.mapleweb2.domain.calculator.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.whitedoggy.mapleweb2.analysis.data.PresetSelection;
-import org.whitedoggy.mapleweb2.analysis.dto.CharacterSnapshot;
+import org.whitedoggy.mapleweb2.analysis.data.CharacterSnapshot;
 import org.whitedoggy.mapleweb2.domain.ability.AbilityParser;
 import org.whitedoggy.mapleweb2.domain.cash.CashItemParser;
 import org.whitedoggy.mapleweb2.domain.set.parser.SetEffectParser;

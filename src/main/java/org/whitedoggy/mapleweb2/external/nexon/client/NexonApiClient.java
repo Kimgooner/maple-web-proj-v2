@@ -3,7 +3,7 @@ package org.whitedoggy.mapleweb2.external.nexon.client;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.whitedoggy.mapleweb2.analysis.dto.CharacterSnapshot;
+import org.whitedoggy.mapleweb2.analysis.data.CharacterSnapshot;
 import org.whitedoggy.mapleweb2.external.nexon.config.NexonEndpoint;
 import org.whitedoggy.mapleweb2.external.nexon.dto.OcidResponse;
 import org.whitedoggy.mapleweb2.external.nexon.exception.NexonApiException;
