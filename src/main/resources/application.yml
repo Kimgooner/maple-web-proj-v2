@@ -11,3 +11,4 @@ nexon:
     api-key: ${NEXON_API_KEY:}
     request-timeout: 5s
     max-concurrency: 8
+    requests-per-second: 300

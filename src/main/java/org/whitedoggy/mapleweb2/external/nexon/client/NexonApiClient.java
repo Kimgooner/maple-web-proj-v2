@@ -18,44 +18,48 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class NexonApiClient {
     private final WebClient nexonWebClient;
+    private final NexonRateLimiter nexonRateLimiter;
 
     public Mono<OcidResponse> getOcid(String characterName) {
-        return nexonWebClient.get()
-                .uri(uriBuilder -> uriBuilder
-                        .path("/maplestory/v1/id")
-                        .queryParam("character_name", characterName)
-                        .build())
-                .retrieve()
-                .bodyToMono(OcidResponse.class);
+        return nexonRateLimiter.acquire()
+                .then(nexonWebClient.get()
+                        .uri(uriBuilder -> uriBuilder
+                                .path("/maplestory/v1/id")
+                                .queryParam("character_name", characterName)
+                                .build())
+                        .retrieve()
+                        .bodyToMono(OcidResponse.class));
     }
 
-    private Mono<JsonNode> get(NexonEndpoint endpoint, String ocid, LocalDate date, boolean includeDateParam) {
-        return nexonWebClient.get()
-                .uri(uriBuilder -> {
-                    uriBuilder.path(endpoint.path())
-                            .queryParam("ocid", ocid);
-                    if (includeDateParam) {
-                        uriBuilder.queryParam("date", date);
-                    }
-                    return uriBuilder.build();
-                })
-                .retrieve()
-                .bodyToMono(JsonNode.class);
+    public Mono<JsonNode> get(NexonEndpoint endpoint, String ocid, LocalDate date, boolean includeDateParam) {
+        return nexonRateLimiter.acquire()
+                .then(nexonWebClient.get()
+                        .uri(uriBuilder -> {
+                            uriBuilder.path(endpoint.path())
+                                    .queryParam("ocid", ocid);
+                            if (includeDateParam) {
+                                uriBuilder.queryParam("date", date);
+                            }
+                            return uriBuilder.build();
+                        })
+                        .retrieve()
+                        .bodyToMono(JsonNode.class));
     }
 
-    private Mono<JsonNode> getSkill0(String ocid, LocalDate date, boolean includeDateParam) {
-        return nexonWebClient.get()
-                .uri(uriBuilder -> {
-                    uriBuilder.path(NexonEndpoint.SKILL_0.path())
-                            .queryParam("ocid", ocid)
-                            .queryParam("character_skill_grade", "0");
-                    if (includeDateParam) {
-                        uriBuilder.queryParam("date", date);
-                    }
-                    return uriBuilder.build();
-                })
-                .retrieve()
-                .bodyToMono(JsonNode.class);
+    public Mono<JsonNode> getSkill0(String ocid, LocalDate date, boolean includeDateParam) {
+        return nexonRateLimiter.acquire()
+                .then(nexonWebClient.get()
+                        .uri(uriBuilder -> {
+                            uriBuilder.path(NexonEndpoint.SKILL_0.path())
+                                    .queryParam("ocid", ocid)
+                                    .queryParam("character_skill_grade", "0");
+                            if (includeDateParam) {
+                                uriBuilder.queryParam("date", date);
+                            }
+                            return uriBuilder.build();
+                        })
+                        .retrieve()
+                        .bodyToMono(JsonNode.class));
     }
 
     private static String requiredText(JsonNode node, String field) {

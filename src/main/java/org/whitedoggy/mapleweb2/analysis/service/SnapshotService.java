@@ -2,19 +2,23 @@ package org.whitedoggy.mapleweb2.analysis.service;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClientRequestException;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.whitedoggy.mapleweb2.analysis.data.CharacterSnapshot;
 import org.whitedoggy.mapleweb2.external.nexon.client.NexonApiClient;
 import org.whitedoggy.mapleweb2.external.nexon.config.NexonEndpoint;
+import org.whitedoggy.mapleweb2.global.cache.MapleCache;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.util.retry.Retry;
 import tools.jackson.databind.JsonNode;
 
 import java.time.Duration;
 import java.time.LocalDate;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class SnapshotService {
@@ -31,31 +35,25 @@ public class SnapshotService {
     );
 
     private final NexonApiClient nexonApiClient;
+    private final MapleCache cache;
     private final int maxConcurrency;
-    private final Map<String, CacheEntry<String>> ocidCache = new ConcurrentHashMap<>();
-    private final Map<SnapshotCacheKey, CacheEntry<CharacterSnapshot>> snapshotCache = new ConcurrentHashMap<>();
 
     public SnapshotService(
             NexonApiClient nexonApiClient,
+            MapleCache cache,
             @Value("${nexon.api.max-concurrency:8}") int maxConcurrency
     ) {
         this.nexonApiClient = nexonApiClient;
+        this.cache = cache;
         this.maxConcurrency = Math.max(1, maxConcurrency);
     }
 
     public Mono<String> getOcid(String characterName) {
-        String cacheKey = normalizeCharacterName(characterName);
-        CacheEntry<String> cached = ocidCache.get(cacheKey);
-        if (cached != null && !cached.isExpired(OCID_CACHE_TTL)) {
-            return Mono.just(cached.value());
-        }
-
-        return nexonApiClient.getOcid(characterName)
-                .switchIfEmpty(Mono.error(new IllegalArgumentException("캐릭터 OCID를 조회할 수 없습니다: " + characterName)))
-                .map(response -> {
-                    ocidCache.put(cacheKey, new CacheEntry<>(response.ocid()));
-                    return response.ocid();
-                });
+        String cacheKey = ocidCacheKey(characterName);
+        return cache.getOrLoad(cacheKey, String.class, OCID_CACHE_TTL,
+                () -> nexonApiClient.getOcid(characterName)
+                        .switchIfEmpty(Mono.error(new IllegalArgumentException("캐릭터 OCID를 조회할 수 없습니다: " + characterName)))
+                        .map(response -> response.ocid()));
     }
 
     public Mono<CharacterSnapshot> getSnapshot(String characterName, LocalDate date) {
@@ -92,54 +90,152 @@ public class SnapshotService {
     }
 
     private Mono<CharacterSnapshot> getSnapshotByOcid(String ocid, LocalDate date) {
-        return getCachedSnapshot(new SnapshotCacheKey(ocid, date, false),
-                () -> nexonApiClient.fetchSnapshot(ocid, date));
+        return getCachedSnapshot(ocid, date);
     }
 
     private Mono<CharacterSnapshot> getCurrentSnapshotByOcid(String ocid, LocalDate date) {
-        return getCachedSnapshot(new SnapshotCacheKey(ocid, date, true),
-                () -> nexonApiClient.fetchCurrentSnapshot(ocid, date));
+        return fetchSnapshot(ocid, date, false);
     }
 
-    private Mono<CharacterSnapshot> getCachedSnapshot(SnapshotCacheKey cacheKey, SnapshotFetcher fetcher) {
-        CacheEntry<CharacterSnapshot> cached = snapshotCache.get(cacheKey);
-        if (cached != null && !cached.isExpired(SNAPSHOT_CACHE_TTL)) {
-            return Mono.just(cached.value());
-        }
+    private Mono<CharacterSnapshot> getCachedSnapshot(String ocid, LocalDate date) {
+        String cacheKey = snapshotCacheKey(ocid, date);
+        return cache.getOrLoad(cacheKey, CharacterSnapshot.class, SNAPSHOT_CACHE_TTL,
+                () -> fetchSnapshot(ocid, date, true));
+    }
 
-        return fetcher.fetch()
-                .map(snapshot -> {
-                    snapshotCache.put(cacheKey, new CacheEntry<>(snapshot));
-                    return snapshot;
+    private Mono<CharacterSnapshot> fetchSnapshot(String ocid, LocalDate date, boolean includeDateParam) {
+        return Mono.zip(
+                        fetchBasic(ocid, date, includeDateParam),
+                        fetchStat(ocid, date, includeDateParam),
+                        fetchItemEquipment(ocid, date, includeDateParam),
+                        fetchCashItemEquipment(ocid, date, includeDateParam),
+                        fetchSetEffect(ocid, date, includeDateParam),
+                        fetchSymbolEquipment(ocid, date, includeDateParam),
+                        fetchPetEquipment(ocid, date, includeDateParam)
+                )
+                .zipWith(Mono.zip(
+                        fetchHyperStat(ocid, date, includeDateParam),
+                        fetchAbility(ocid, date, includeDateParam),
+                        fetchSkill0(ocid, date, includeDateParam),
+                        fetchHexaMatrixStat(ocid, date, includeDateParam),
+                        fetchUnionRaider(ocid, date, includeDateParam),
+                        fetchUnionChampion(ocid, date, includeDateParam),
+                        fetchArtifact(ocid, date, includeDateParam)
+                ))
+                .map(tuple -> {
+                    Map<NexonEndpoint, JsonNode> documents = new EnumMap<>(NexonEndpoint.class);
+                    documents.put(NexonEndpoint.BASIC, tuple.getT1().getT1());
+                    documents.put(NexonEndpoint.STAT, tuple.getT1().getT2());
+                    documents.put(NexonEndpoint.ITEM_EQUIPMENT, tuple.getT1().getT3());
+                    documents.put(NexonEndpoint.CASH_ITEM_EQUIPMENT, tuple.getT1().getT4());
+                    documents.put(NexonEndpoint.SET_EFFECT, tuple.getT1().getT5());
+                    documents.put(NexonEndpoint.SYMBOL_EQUIPMENT, tuple.getT1().getT6());
+                    documents.put(NexonEndpoint.PET_EQUIPMENT, tuple.getT1().getT7());
+                    documents.put(NexonEndpoint.HYPER_STAT, tuple.getT2().getT1());
+                    documents.put(NexonEndpoint.ABILITY, tuple.getT2().getT2());
+                    documents.put(NexonEndpoint.SKILL_0, tuple.getT2().getT3());
+                    documents.put(NexonEndpoint.HEXA_MATRIX_STAT, tuple.getT2().getT4());
+                    documents.put(NexonEndpoint.UNION_RAIDER, tuple.getT2().getT5());
+                    documents.put(NexonEndpoint.UNION_CHAMPION, tuple.getT2().getT6());
+                    documents.put(NexonEndpoint.UNION_ARTIFACT, tuple.getT2().getT7());
+                    return new CharacterSnapshot(ocid, date, documents);
                 });
+    }
+
+    private Mono<JsonNode> fetchBasic(String ocid, LocalDate date, boolean includeDateParam) {
+        return fetchEndpoint(NexonEndpoint.BASIC, ocid, date, includeDateParam);
+    }
+
+    private Mono<JsonNode> fetchStat(String ocid, LocalDate date, boolean includeDateParam) {
+        return fetchEndpoint(NexonEndpoint.STAT, ocid, date, includeDateParam);
+    }
+
+    private Mono<JsonNode> fetchItemEquipment(String ocid, LocalDate date, boolean includeDateParam) {
+        return fetchEndpoint(NexonEndpoint.ITEM_EQUIPMENT, ocid, date, includeDateParam);
+    }
+
+    private Mono<JsonNode> fetchCashItemEquipment(String ocid, LocalDate date, boolean includeDateParam) {
+        return fetchEndpoint(NexonEndpoint.CASH_ITEM_EQUIPMENT, ocid, date, includeDateParam);
+    }
+
+    private Mono<JsonNode> fetchSetEffect(String ocid, LocalDate date, boolean includeDateParam) {
+        return fetchEndpoint(NexonEndpoint.SET_EFFECT, ocid, date, includeDateParam);
+    }
+
+    private Mono<JsonNode> fetchSymbolEquipment(String ocid, LocalDate date, boolean includeDateParam) {
+        return fetchEndpoint(NexonEndpoint.SYMBOL_EQUIPMENT, ocid, date, includeDateParam);
+    }
+
+    private Mono<JsonNode> fetchPetEquipment(String ocid, LocalDate date, boolean includeDateParam) {
+        return fetchEndpoint(NexonEndpoint.PET_EQUIPMENT, ocid, date, includeDateParam);
+    }
+
+    private Mono<JsonNode> fetchHyperStat(String ocid, LocalDate date, boolean includeDateParam) {
+        return fetchEndpoint(NexonEndpoint.HYPER_STAT, ocid, date, includeDateParam);
+    }
+
+    private Mono<JsonNode> fetchAbility(String ocid, LocalDate date, boolean includeDateParam) {
+        return fetchEndpoint(NexonEndpoint.ABILITY, ocid, date, includeDateParam);
+    }
+
+    private Mono<JsonNode> fetchSkill0(String ocid, LocalDate date, boolean includeDateParam) {
+        return nexonApiClient.getSkill0(ocid, date, includeDateParam)
+                .retryWhen(retrySpec())
+                .onErrorReturn(nullNode());
+    }
+
+    private Mono<JsonNode> fetchHexaMatrixStat(String ocid, LocalDate date, boolean includeDateParam) {
+        return fetchEndpoint(NexonEndpoint.HEXA_MATRIX_STAT, ocid, date, includeDateParam);
+    }
+
+    private Mono<JsonNode> fetchUnionRaider(String ocid, LocalDate date, boolean includeDateParam) {
+        return fetchEndpoint(NexonEndpoint.UNION_RAIDER, ocid, date, includeDateParam);
+    }
+
+    private Mono<JsonNode> fetchUnionChampion(String ocid, LocalDate date, boolean includeDateParam) {
+        return fetchEndpoint(NexonEndpoint.UNION_CHAMPION, ocid, date, includeDateParam);
+    }
+
+    private Mono<JsonNode> fetchArtifact(String ocid, LocalDate date, boolean includeDateParam) {
+        return fetchEndpoint(NexonEndpoint.UNION_ARTIFACT, ocid, date, includeDateParam);
+    }
+
+    private Mono<JsonNode> fetchEndpoint(NexonEndpoint endpoint, String ocid, LocalDate date, boolean includeDateParam) {
+        return nexonApiClient.get(endpoint, ocid, date, includeDateParam)
+                .retryWhen(retrySpec())
+                .onErrorReturn(nullNode());
+    }
+
+    private Retry retrySpec() {
+        return Retry.backoff(2, Duration.ofMillis(300))
+                .filter(this::isRetryable);
+    }
+
+    private boolean isRetryable(Throwable throwable) {
+        if (throwable instanceof WebClientRequestException) {
+            return true;
+        }
+        if (throwable instanceof WebClientResponseException responseException) {
+            return responseException.getStatusCode().is5xxServerError()
+                    || responseException.getStatusCode().value() == 429;
+        }
+        return false;
+    }
+
+    private JsonNode nullNode() {
+        return tools.jackson.databind.node.NullNode.getInstance();
+    }
+
+    private String ocidCacheKey(String characterName) {
+        return "maple:ocid:" + normalizeCharacterName(characterName);
+    }
+
+    private String snapshotCacheKey(String ocid, LocalDate date) {
+        return "maple:snapshot:" + ocid + ":" + date;
     }
 
     private String normalizeCharacterName(String characterName) {
         return characterName == null ? "" : characterName.trim().toLowerCase(Locale.ROOT);
     }
 
-    private record SnapshotCacheKey(
-            String ocid,
-            LocalDate date,
-            boolean current
-    ) {
-    }
-
-    private record CacheEntry<T>(
-            T value,
-            long cachedAtMillis
-    ) {
-        private CacheEntry(T value) {
-            this(value, System.currentTimeMillis());
-        }
-
-        private boolean isExpired(Duration ttl) {
-            return System.currentTimeMillis() - cachedAtMillis > ttl.toMillis();
-        }
-    }
-
-    @FunctionalInterface
-    private interface SnapshotFetcher {
-        Mono<CharacterSnapshot> fetch();
-    }
 }
