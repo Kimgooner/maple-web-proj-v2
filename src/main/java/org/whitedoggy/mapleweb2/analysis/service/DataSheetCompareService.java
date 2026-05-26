@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Map;
 
 @Service
-public class DataSheetDiffService {
+public class DataSheetCompareService {
     private static final String ITEM_INFO_DELIMITER = "|||";
 
     private static final List<StatField> STAT_FIELDS = List.of(

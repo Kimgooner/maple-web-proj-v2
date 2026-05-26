@@ -12,20 +12,6 @@ import java.util.Map;
 @Getter
 @Setter
 public class DataSheet {
-    //기본 정보
-    String ocid;
-    LocalDate date;
-
-    //캐릭터 정보
-    String characterName;
-    String characterClass;
-    Integer characterLevel;
-    String characterGuild;
-    String characterWorld;
-
-    //캐릭터 이미지
-    String characterImage;
-
     //스탯 시트
     StatSheet abilityPoint;
     StatSheet symbol;
@@ -46,20 +32,11 @@ public class DataSheet {
 
     //종합 시트
     StatSheet sumSheet;
-    long currentCombatPower;
+    Long combatPower;
+
     boolean lucidTransformSuspected;
 
     public void copy(DataSheet other) {
-        this.ocid = other.ocid;
-        this.date = other.date;
-
-        this.characterName = other.characterName;
-        this.characterClass = other.characterClass;
-        this.characterLevel = other.characterLevel;
-        this.characterGuild = other.characterGuild;
-        this.characterWorld = other.characterWorld;
-        this.characterImage = other.characterImage;
-
         this.abilityPoint = other.abilityPoint;
         this.symbol = other.symbol;
         this.skill = other.skill;
@@ -78,7 +55,6 @@ public class DataSheet {
         this.unionOccupied = other.unionOccupied;
         this.unionRaider = other.unionRaider;
 
-        this.currentCombatPower = other.currentCombatPower;
         this.lucidTransformSuspected = other.lucidTransformSuspected;
     }
 

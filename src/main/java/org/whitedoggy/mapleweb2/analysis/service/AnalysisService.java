@@ -2,6 +2,7 @@ package org.whitedoggy.mapleweb2.analysis.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.whitedoggy.mapleweb2.analysis.data.AnalysisDates;
 import org.whitedoggy.mapleweb2.analysis.data.DataSheet;
 import org.whitedoggy.mapleweb2.analysis.dto.AnalysisCombatPowerResponse;
 import org.whitedoggy.mapleweb2.analysis.dto.ChangeSlotSummary;
@@ -27,22 +28,53 @@ public class AnalysisService {
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     private final NexonApiClient nexonApiClient;
-    private final DataSheetBuilder dataSheetBuilder;
-    private final CombatPowerCalculator combatPowerCalculator;
-    private final DataSheetDiffService dataSheetDiffService;
+    private final DataSheetService dataSheetBuilder;
+    private final CombatCalculationService combatPowerCalculator;
+    private final DataSheetCompareService dataSheetDiffService;
+    private final OcidService ocidService;
+    private final DateService dateService;
+    private final SnapshotService snapshotService;
 
     public Mono<AnalysisCombatPowerResponse> getCombatPower(String characterName, LocalDate date) {
         return dataSheetBuilder.getStatSheets(characterName, date)
                 .map(this::toResponse);
     }
 
-    public Mono<List<AnalysisCombatPowerResponse>> getMonthlyCombatPowers(String characterName) {
-        LocalDate today = LocalDate.now(KST);
-        List<LocalDate> dates = new ArrayList<>();
-        for (int i = 1; i <= 14; i++) {
-            dates.add(today.minusDays(i * 2L));
-        }
-        return getCombatPowers(characterName, today, dates);
+    public Mono<List<AnalysisCombatPowerResponse>> getAnalysis(String characterName, String dateType) {
+        AnalysisDates dates = dateService.getDates(dateType);
+
+        return ocidService.getOcid(characterName)
+                .flatMapMany(ocid -> Flux.concat(
+                        snapshotService.getCurrentSnapshotByOcid(ocid, dates.today())
+                                .map(snapshot -> dataSheetBuilder.getDataSheet(snapshot, dates.today())),
+                        Flux.fromIterable(dates.historicalDates())
+                                .concatMap(date -> dataSheetBuilder.getOrLoadDataSheet(
+                                        characterName,
+                                        date,
+                                        () -> snapshotService.getSnapshotByOcid(ocid, date)
+                                ))
+                ))
+                .sort(Comparator.comparing(DataSheetResponse::date))
+                .map(response -> {
+                    DataSheet dataSheet = response.dataSheet();
+                    long combatPower = dataSheet.getCombatPower() == null ? 0L : dataSheet.getCombatPower();
+                    CombatPowerSummary combatSummary = new CombatPowerSummary(
+                            combatPower,
+                            null,
+                            null,
+                            null,
+                            dataSheet.isLucidTransformSuspected(),
+                            null
+                    );
+                    return new AnalysisCombatPowerResponse(
+                            response.characterName(),
+                            response.characterClass(),
+                            response.date(),
+                            null,
+                            combatSummary
+                    );
+                })
+                .collectList();
     }
 
     public Mono<List<AnalysisCombatPowerResponse>> getYearlyCombatPowers(String characterName) {
@@ -157,7 +189,7 @@ public class AnalysisService {
         );
     }
 
-    private CombatPowerChangeSummary toChangeSummary(DataSheetDiffService.CombatPresetDiff diff) {
+    private CombatPowerChangeSummary toChangeSummary(DataSheetCompareService.CombatPresetDiff diff) {
         return new CombatPowerChangeSummary(
                 diff.coreChanges().stream().map(this::toSourceSummary).toList(),
                 diff.petChanges().stream().map(this::toSlotSummary).toList(),
@@ -166,14 +198,14 @@ public class AnalysisService {
         );
     }
 
-    private ChangeSourceSummary toSourceSummary(DataSheetDiffService.ChangeSummary changeSummary) {
+    private ChangeSourceSummary toSourceSummary(DataSheetCompareService.ChangeSummary changeSummary) {
         return new ChangeSourceSummary(
                 changeSummary.source(),
                 changeSummary.deltas().stream().map(this::toStatDeltaSummary).toList()
         );
     }
 
-    private ChangeSlotSummary toSlotSummary(DataSheetDiffService.SlotChangeSummary changeSummary) {
+    private ChangeSlotSummary toSlotSummary(DataSheetCompareService.SlotChangeSummary changeSummary) {
         return new ChangeSlotSummary(
                 changeSummary.slot(),
                 changeSummary.changeType(),
@@ -183,7 +215,7 @@ public class AnalysisService {
         );
     }
 
-    private StatDeltaSummary toStatDeltaSummary(DataSheetDiffService.StatDelta statDelta) {
+    private StatDeltaSummary toStatDeltaSummary(DataSheetCompareService.StatDelta statDelta) {
         return new StatDeltaSummary(statDelta.statName(), statDelta.delta());
     }
 

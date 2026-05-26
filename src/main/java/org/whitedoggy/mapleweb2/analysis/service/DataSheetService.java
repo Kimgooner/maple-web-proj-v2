@@ -27,19 +27,22 @@ import org.whitedoggy.mapleweb2.domain.symbol.SymbolParser;
 import org.whitedoggy.mapleweb2.domain.union.artifact.ArtifactParser;
 import org.whitedoggy.mapleweb2.domain.union.champion.ChampionParser;
 import org.whitedoggy.mapleweb2.domain.union.raider.RaiderParser;
-import org.whitedoggy.mapleweb2.external.nexon.client.NexonApiClient;
 import org.whitedoggy.mapleweb2.external.nexon.config.NexonEndpoint;
 import org.whitedoggy.mapleweb2.global.Jsons;
+import org.whitedoggy.mapleweb2.global.cache.MapleCache;
 import reactor.core.publisher.Mono;
 import tools.jackson.databind.JsonNode;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.*;
+import java.util.function.Supplier;
 
 @Service
 @RequiredArgsConstructor
-public class DataSheetBuilder {
-    private final NexonApiClient nexonApiClient;
+public class DataSheetService {
+    private static final Duration DATASHEET_CACHE_TTL = Duration.ofHours(6);
+
     private final BasicParser basicParser;
     private final ItemEquipmentParser itemEquipmentParser;
     private final ItemParser itemParser;
@@ -56,58 +59,76 @@ public class DataSheetBuilder {
     private final HexaParser hexaParser;
     private final CashItemParser cashItemParser;
     private final PresetSelector presetSelector;
+    private final CombatCalculationService combatCalculationService;
+    private final MapleCache cache;
 
-    public Mono<DataSheetResponse> getStatSheets(String characterName, LocalDate date) {
-        return nexonApiClient.getOcid(characterName)
-                .switchIfEmpty(Mono.error(new IllegalArgumentException("캐릭터 OCID를 조회할 수 없습니다: " + characterName)))
-                .flatMap(ocidResponse -> nexonApiClient.fetchSnapshot(ocidResponse.ocid(), date))
-                .map(this::buildDataSheet);
+    public Mono<DataSheetResponse> getOrLoadDataSheet(
+            String characterName,
+            LocalDate date,
+            Supplier<Mono<CharacterSnapshot>> snapshotLoader
+    ) {
+        String cacheKey = dataSheetCacheKey(characterName, date);
+        return cache.getOrLoad(cacheKey, DataSheetResponse.class, DATASHEET_CACHE_TTL,
+                () -> snapshotLoader.get()
+                        .map(snapshot -> getDataSheet(snapshot)));
     }
 
-    public DataSheetResponse buildFromSnapshot(CharacterSnapshot snapshot) {
-        return buildDataSheet(snapshot);
+    public DataSheetResponse getDataSheet(CharacterSnapshot snapshot){
+        JsonNode basic = snapshot.document(NexonEndpoint.BASIC);
+        String characterName = basicParser.characterName(basic);
+        String characterClass = basicParser.characterClass(basic);
+        Integer characterLevel = basicParser.characterLevel(basic);
+        String characterWorld = basicParser.characterWorld(basic);
+        String characterGuild = basicParser.characterGuild(basic);
+        String characterImage = basicParser.characterImage(basic);
+
+        return new DataSheetResponse(
+                snapshot.ocid(),
+                snapshot.date(),
+                characterName,
+                characterClass,
+                characterLevel,
+                characterGuild,
+                characterWorld,
+                characterImage,
+                getDataSheet(snapshot, characterClass, characterLevel)
+        );
     }
 
-    private DataSheetResponse buildDataSheet(CharacterSnapshot snapshot) {
+    private DataSheet getDataSheet(CharacterSnapshot snapshot, String characterClass, Integer characterLevel){
+        DataSheet dataSheet = getDataSheetFromSnapShot(snapshot.documents(), characterClass);
+        Long combatPower = combatCalculationService.estimateCombatPower(dataSheet, characterClass, characterLevel);
+        dataSheet.setCombatPower(combatPower);
+        return dataSheet;
+    }
+
+    private DataSheet getDataSheetFromSnapShot(Map<NexonEndpoint, JsonNode> document, String characterClass) {
         DataSheet dataSheet = new DataSheet();
 
-        JsonNode basic = snapshot.document(NexonEndpoint.BASIC);
-        JsonNode stat = snapshot.document(NexonEndpoint.STAT);
-        JsonNode symbol = snapshot.document(NexonEndpoint.SYMBOL_EQUIPMENT);
-        JsonNode skill = snapshot.document(NexonEndpoint.SKILL_0);
-        JsonNode hexa = snapshot.document(NexonEndpoint.HEXA_MATRIX_STAT);
-        JsonNode petEquip = snapshot.document(NexonEndpoint.PET_EQUIPMENT);
-        JsonNode cashEquip = snapshot.document(NexonEndpoint.CASH_ITEM_EQUIPMENT);
-        JsonNode itemEquip = snapshot.document(NexonEndpoint.ITEM_EQUIPMENT);
-        JsonNode ability = snapshot.document(NexonEndpoint.ABILITY);
-        JsonNode hyper = snapshot.document(NexonEndpoint.HYPER_STAT);
-        JsonNode unionRaider = snapshot.document(NexonEndpoint.UNION_RAIDER);
-        JsonNode setEffect = snapshot.document(NexonEndpoint.SET_EFFECT);
-        JsonNode unionArtifact = snapshot.document(NexonEndpoint.UNION_ARTIFACT);
-        JsonNode unionChampion = snapshot.document(NexonEndpoint.UNION_CHAMPION);
+        JsonNode stat = document.get(NexonEndpoint.STAT);
+        JsonNode symbol = document.get(NexonEndpoint.SYMBOL_EQUIPMENT);
+        JsonNode skill = document.get(NexonEndpoint.SKILL_0);
+        JsonNode hexa = document.get(NexonEndpoint.HEXA_MATRIX_STAT);
+        JsonNode petEquip = document.get(NexonEndpoint.PET_EQUIPMENT);
+        JsonNode cashEquip = document.get(NexonEndpoint.CASH_ITEM_EQUIPMENT);
+        JsonNode itemEquip = document.get(NexonEndpoint.ITEM_EQUIPMENT);
+        JsonNode ability = document.get(NexonEndpoint.ABILITY);
+        JsonNode hyper = document.get(NexonEndpoint.HYPER_STAT);
+        JsonNode unionRaider = document.get(NexonEndpoint.UNION_RAIDER);
+        JsonNode setEffect = document.get(NexonEndpoint.SET_EFFECT);
+        JsonNode unionArtifact = document.get(NexonEndpoint.UNION_ARTIFACT);
+        JsonNode unionChampion = document.get(NexonEndpoint.UNION_CHAMPION);
 
-        dataSheet.setOcid(snapshot.ocid());
-        dataSheet.setDate(snapshot.date());
-        setBasics(dataSheet, basic);
         dataSheet.setAbilityPoint(setAP(stat));
         dataSheet.setSymbol(setSymbol(symbol));
         SkillParseResult skillParseResult = skillParser.getCombatRelevantSkillEffects(skill);
         dataSheet.setSkill(setSkill(skillParseResult));
         dataSheet.setLucidTransformSuspected(skillParseResult.lucidTransformSuspected());
-        dataSheet.setHexaStat(setHexa(hexa, dataSheet));
+        dataSheet.setHexaStat(setHexa(hexa, characterClass));
         dataSheet.setPetEquip(setPetEquip(petEquip));
         dataSheet.setCashEquip(setCashEquip(cashEquip));
         dataSheet.setUnionArtifact(setUnionArtifact(unionArtifact));
         dataSheet.setUnionChampion(setUnionChampion(unionChampion));
-
-        String characterClass = dataSheet.getCharacterClass();
-
-        PresetSelection currentPreset = new PresetSelection(
-                itemEquipmentParser.getCurrentPresetItemEquipment(itemEquip).orElse(1),
-                abilityParser.getCurrentPresetAbility(ability),
-                hyperStatParser.getCurrentPresetNo(hyper),
-                presetSelector.chooseCurrentUnionPreset(unionRaider)
-        );
 
         PresetSelection combatPreset = new PresetSelection(
                 presetSelector.chooseItemPreset(itemEquip),
@@ -117,17 +138,11 @@ public class DataSheetBuilder {
         );
 
         JsonNode presetItems = itemEquipmentParser.getItemEquipmentByPreset(itemEquip, combatPreset.itemPreset());
-        JsonNode currentItems = itemEquipmentParser.getItemEquipmentByPreset(itemEquip, currentPreset.itemPreset());
 
-        dataSheet.setCurrentCombatPower(getCurrentCombatPower(dataSheet, stat));
-
-        return new DataSheetResponse(
-                getDataSheet(currentItems, itemEquip, setEffect, ability, hyper, unionRaider, characterClass, currentPreset, dataSheet),
-                getDataSheet(presetItems, itemEquip, setEffect, ability, hyper, unionRaider, characterClass, combatPreset, dataSheet)
-        );
+        return buildDataSheet(presetItems, itemEquip, setEffect, ability, hyper, unionRaider, characterClass, combatPreset, dataSheet);
     }
 
-    private DataSheet getDataSheet(
+    private DataSheet buildDataSheet(
             JsonNode presetItems,
             JsonNode itemEquip,
             JsonNode setEffect,
@@ -153,27 +168,8 @@ public class DataSheetBuilder {
         result.setHyperStat(setHyperStat(hyper, preset.hyperStatPreset()));
         result.setUnionOccupied(setUnionOccupied(unionRaider, preset.unionRaiderPreset()));
         result.setUnionRaider(setUnionRaider(unionRaider, preset.unionRaiderPreset()));
+        result.buildSum();
         return result;
-    }
-
-    private long getCurrentCombatPower(DataSheet dataSheet, JsonNode node) {
-        JsonNode stats = node.path("final_stat");
-        for (JsonNode stat : stats) {
-            String statName = Jsons.text(stat, "stat_name");
-            if (statName.equals("전투력")) {
-                return Long.parseLong(Jsons.text(stat, "stat_value"));
-            }
-        }
-        return 0L;
-    }
-
-    private void setBasics(DataSheet dataSheet, JsonNode node) {
-        dataSheet.setCharacterName(basicParser.characterName(node));
-        dataSheet.setCharacterClass(basicParser.characterClass(node));
-        dataSheet.setCharacterLevel(basicParser.characterLevel(node));
-        dataSheet.setCharacterImage(basicParser.characterWorld(node));
-        dataSheet.setCharacterWorld(basicParser.characterWorld(node));
-        dataSheet.setCharacterGuild(basicParser.characterGuild(node));
     }
 
     private StatSheet setAP(JsonNode node) {
@@ -214,8 +210,8 @@ public class DataSheetBuilder {
         return statSheetParser.parse(skillParseResult.effects(), "스킬");
     }
 
-    private StatSheet setHexa(JsonNode node, DataSheet dataSheet) {
-        List<String> main = SupportMethods.getMainStat(dataSheet.getCharacterClass());
+    private StatSheet setHexa(JsonNode node, String characterClass) {
+        List<String> main = SupportMethods.getMainStat(characterClass);
         return statSheetParser.parseNoPercentStat(hexaParser.getCurrentHexa(node, main), "헥사 스텟");
     }
 
@@ -290,5 +286,13 @@ public class DataSheetBuilder {
 
     private StatSheet setUnionRaider(JsonNode node, int presetNo) {
         return statSheetParser.parseNoPercentStat(raiderParser.getUnionRaiderStatByPreset(node, presetNo), "유니온 공격대원");
+    }
+
+    private String dataSheetCacheKey(String characterName, LocalDate date) {
+        return "maple:datasheet:v1:" + normalizeCharacterName(characterName) + ":" + date;
+    }
+
+    private String normalizeCharacterName(String characterName) {
+        return characterName == null ? "" : characterName.trim().toLowerCase(Locale.ROOT);
     }
 }

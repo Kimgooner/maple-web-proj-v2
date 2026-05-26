@@ -1,5 +1,6 @@
 package org.whitedoggy.mapleweb2.analysis.service;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClientRequestException;
@@ -7,8 +8,6 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import org.whitedoggy.mapleweb2.analysis.data.CharacterSnapshot;
 import org.whitedoggy.mapleweb2.external.nexon.client.NexonApiClient;
 import org.whitedoggy.mapleweb2.external.nexon.config.NexonEndpoint;
-import org.whitedoggy.mapleweb2.global.cache.MapleCache;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
 import tools.jackson.databind.JsonNode;
@@ -16,91 +15,19 @@ import tools.jackson.databind.JsonNode;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.EnumMap;
-import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 @Service
+@RequiredArgsConstructor
 public class SnapshotService {
-    private static final Duration OCID_CACHE_TTL = Duration.ofHours(12);
-    private static final Duration SNAPSHOT_CACHE_TTL = Duration.ofHours(6);
-
-    private static final List<NexonEndpoint> REQUIRED_ENDPOINTS = List.of(
-            NexonEndpoint.BASIC,
-            NexonEndpoint.STAT,
-            NexonEndpoint.ITEM_EQUIPMENT,
-            NexonEndpoint.ABILITY,
-            NexonEndpoint.HYPER_STAT,
-            NexonEndpoint.UNION_RAIDER
-    );
-
     private final NexonApiClient nexonApiClient;
-    private final MapleCache cache;
-    private final int maxConcurrency;
 
-    public SnapshotService(
-            NexonApiClient nexonApiClient,
-            MapleCache cache,
-            @Value("${nexon.api.max-concurrency:8}") int maxConcurrency
-    ) {
-        this.nexonApiClient = nexonApiClient;
-        this.cache = cache;
-        this.maxConcurrency = Math.max(1, maxConcurrency);
+    public Mono<CharacterSnapshot> getSnapshotByOcid(String ocid, LocalDate date) {
+        return fetchSnapshot(ocid, date, true);
     }
 
-    public Mono<String> getOcid(String characterName) {
-        String cacheKey = ocidCacheKey(characterName);
-        return cache.getOrLoad(cacheKey, String.class, OCID_CACHE_TTL,
-                () -> nexonApiClient.getOcid(characterName)
-                        .switchIfEmpty(Mono.error(new IllegalArgumentException("캐릭터 OCID를 조회할 수 없습니다: " + characterName)))
-                        .map(response -> response.ocid()));
-    }
-
-    public Mono<CharacterSnapshot> getSnapshot(String characterName, LocalDate date) {
-        return getOcid(characterName)
-                .flatMap(ocid -> getSnapshotByOcid(ocid, date));
-    }
-
-    public Mono<CharacterSnapshot> getCurrentSnapshot(String characterName, LocalDate date) {
-        return getOcid(characterName)
-                .flatMap(ocid -> getCurrentSnapshotByOcid(ocid, date));
-    }
-
-    public Flux<CharacterSnapshot> getSnapshots(String characterName, LocalDate today, List<LocalDate> historicalDates) {
-        return getOcid(characterName)
-                .flatMapMany(ocid -> Flux.concat(
-                        getCurrentSnapshotByOcid(ocid, today),
-                        Flux.fromIterable(historicalDates)
-                                .flatMapSequential(date -> getSnapshotByOcid(ocid, date), maxConcurrency)
-                ));
-    }
-
-    public boolean hasRequiredDocuments(CharacterSnapshot snapshot) {
-        if (snapshot == null) {
-            return false;
-        }
-
-        for (NexonEndpoint endpoint : REQUIRED_ENDPOINTS) {
-            JsonNode document = snapshot.document(endpoint);
-            if (document == null || document.isNull()) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private Mono<CharacterSnapshot> getSnapshotByOcid(String ocid, LocalDate date) {
-        return getCachedSnapshot(ocid, date);
-    }
-
-    private Mono<CharacterSnapshot> getCurrentSnapshotByOcid(String ocid, LocalDate date) {
+    public Mono<CharacterSnapshot> getCurrentSnapshotByOcid(String ocid, LocalDate date) {
         return fetchSnapshot(ocid, date, false);
-    }
-
-    private Mono<CharacterSnapshot> getCachedSnapshot(String ocid, LocalDate date) {
-        String cacheKey = snapshotCacheKey(ocid, date);
-        return cache.getOrLoad(cacheKey, CharacterSnapshot.class, SNAPSHOT_CACHE_TTL,
-                () -> fetchSnapshot(ocid, date, true));
     }
 
     private Mono<CharacterSnapshot> fetchSnapshot(String ocid, LocalDate date, boolean includeDateParam) {
@@ -224,18 +151,6 @@ public class SnapshotService {
 
     private JsonNode nullNode() {
         return tools.jackson.databind.node.NullNode.getInstance();
-    }
-
-    private String ocidCacheKey(String characterName) {
-        return "maple:ocid:" + normalizeCharacterName(characterName);
-    }
-
-    private String snapshotCacheKey(String ocid, LocalDate date) {
-        return "maple:snapshot:" + ocid + ":" + date;
-    }
-
-    private String normalizeCharacterName(String characterName) {
-        return characterName == null ? "" : characterName.trim().toLowerCase(Locale.ROOT);
     }
 
 }

@@ -8,11 +8,9 @@ import org.whitedoggy.mapleweb2.domain.common.stat.StatSheet;
 
 import java.util.List;
 
-import static org.whitedoggy.mapleweb2.domain.common.stat.JobStatTable.JOBS;
-
 @Service
 @RequiredArgsConstructor
-public class CombatPowerCalculator {
+public class CombatCalculationService {
     private final List<String> MAGE_CLASSES = List.of(
             "비숍",
             "아크메이지(불,독)",
@@ -66,9 +64,7 @@ public class CombatPowerCalculator {
         return 0;
     }
 
-    public long estimateCombatPower(DataSheet dataSheet) {
-        String characterClass = dataSheet.getCharacterClass();
-        Integer characterLevel = dataSheet.getCharacterLevel();
+    public long estimateCombatPower(DataSheet dataSheet, String characterClass, Integer characterLevel) {
         StatSheet sheet = dataSheet.getSumSheet();
         List<String> mainStats = SupportMethods.getMainStat(characterClass);
         List<String> subStats = SupportMethods.getSubStat(characterClass);
