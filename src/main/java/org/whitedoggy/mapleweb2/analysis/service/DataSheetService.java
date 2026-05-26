@@ -2,20 +2,19 @@ package org.whitedoggy.mapleweb2.analysis.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.whitedoggy.mapleweb2.analysis.data.DataSheet;
-import org.whitedoggy.mapleweb2.domain.item.data.ItemRecord;
 import org.whitedoggy.mapleweb2.analysis.data.CharacterSnapshot;
-import org.whitedoggy.mapleweb2.analysis.dto.DataSheetResponse;
+import org.whitedoggy.mapleweb2.analysis.data.DataSheet;
+import org.whitedoggy.mapleweb2.analysis.data.PresetSelection;
 import org.whitedoggy.mapleweb2.analysis.support.PresetSelector;
 import org.whitedoggy.mapleweb2.analysis.support.SupportMethods;
 import org.whitedoggy.mapleweb2.domain.ability.AbilityParser;
 import org.whitedoggy.mapleweb2.domain.basic.BasicParser;
-import org.whitedoggy.mapleweb2.analysis.data.PresetSelection;
 import org.whitedoggy.mapleweb2.domain.cash.CashItemParser;
 import org.whitedoggy.mapleweb2.domain.common.stat.StatSheet;
 import org.whitedoggy.mapleweb2.domain.common.stat.StatSheetParser;
 import org.whitedoggy.mapleweb2.domain.hexa.HexaParser;
 import org.whitedoggy.mapleweb2.domain.hyper.HyperStatParser;
+import org.whitedoggy.mapleweb2.domain.item.data.ItemRecord;
 import org.whitedoggy.mapleweb2.domain.item.data.ItemSnapShot;
 import org.whitedoggy.mapleweb2.domain.item.parser.ItemEquipmentParser;
 import org.whitedoggy.mapleweb2.domain.item.parser.ItemParser;
@@ -35,7 +34,10 @@ import tools.jackson.databind.JsonNode;
 
 import java.time.Duration;
 import java.time.LocalDate;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.function.Supplier;
 
 @Service
@@ -62,62 +64,84 @@ public class DataSheetService {
     private final CombatCalculationService combatCalculationService;
     private final MapleCache cache;
 
-    public Mono<DataSheetResponse> getOrLoadDataSheet(
+    public Mono<DataSheet> getOrLoadDataSheet(
             String characterName,
             LocalDate date,
             Supplier<Mono<CharacterSnapshot>> snapshotLoader
     ) {
         String cacheKey = dataSheetCacheKey(characterName, date);
-        return cache.getOrLoad(cacheKey, DataSheetResponse.class, DATASHEET_CACHE_TTL,
-                () -> snapshotLoader.get()
-                        .map(snapshot -> getDataSheet(snapshot)));
+        return cache.getOrLoad(cacheKey, DataSheet.class, DATASHEET_CACHE_TTL,
+                () -> snapshotLoader.get().map(this::getCombatDataSheet));
     }
 
-    public DataSheetResponse getDataSheet(CharacterSnapshot snapshot){
-        JsonNode basic = snapshot.document(NexonEndpoint.BASIC);
-        String characterName = basicParser.characterName(basic);
-        String characterClass = basicParser.characterClass(basic);
-        Integer characterLevel = basicParser.characterLevel(basic);
-        String characterWorld = basicParser.characterWorld(basic);
-        String characterGuild = basicParser.characterGuild(basic);
-        String characterImage = basicParser.characterImage(basic);
+    public DataSheet getCombatDataSheet(CharacterSnapshot snapshot) {
+        return getDataSheet(snapshot, getCombatPresetSelection(snapshot));
+    }
 
-        return new DataSheetResponse(
-                snapshot.ocid(),
-                snapshot.date(),
-                characterName,
-                characterClass,
-                characterLevel,
-                characterGuild,
-                characterWorld,
-                characterImage,
-                getDataSheet(snapshot, characterClass, characterLevel)
+    public DataSheet getCurrentDataSheet(CharacterSnapshot snapshot) {
+        return getDataSheet(snapshot, getCurrentPresetSelection(snapshot));
+    }
+
+    public PresetSelection getCombatPresetSelection(CharacterSnapshot snapshot) {
+        JsonNode itemEquip = snapshot.document(NexonEndpoint.ITEM_EQUIPMENT);
+        JsonNode ability = snapshot.document(NexonEndpoint.ABILITY);
+        JsonNode hyper = snapshot.document(NexonEndpoint.HYPER_STAT);
+        JsonNode unionRaider = snapshot.document(NexonEndpoint.UNION_RAIDER);
+        String characterClass = basicParser.characterClass(snapshot.document(NexonEndpoint.BASIC));
+
+        return new PresetSelection(
+                presetSelector.chooseItemPreset(itemEquip),
+                presetSelector.chooseAbilityPreset(ability, characterClass),
+                presetSelector.chooseHyperPreset(hyper),
+                presetSelector.chooseUnionPreset(unionRaider)
         );
     }
 
-    private DataSheet getDataSheet(CharacterSnapshot snapshot, String characterClass, Integer characterLevel){
-        DataSheet dataSheet = getDataSheetFromSnapShot(snapshot.documents(), characterClass);
-        Long combatPower = combatCalculationService.estimateCombatPower(dataSheet, characterClass, characterLevel);
+    public PresetSelection getCurrentPresetSelection(CharacterSnapshot snapshot) {
+        JsonNode itemEquip = snapshot.document(NexonEndpoint.ITEM_EQUIPMENT);
+        JsonNode ability = snapshot.document(NexonEndpoint.ABILITY);
+        JsonNode hyper = snapshot.document(NexonEndpoint.HYPER_STAT);
+        JsonNode unionRaider = snapshot.document(NexonEndpoint.UNION_RAIDER);
+
+        return new PresetSelection(
+                itemEquipmentParser.getCurrentPresetItemEquipment(itemEquip).orElse(1),
+                abilityParser.getCurrentPresetAbility(ability),
+                hyperStatParser.getCurrentPresetNo(hyper),
+                presetSelector.chooseCurrentUnionPreset(unionRaider)
+        );
+    }
+
+    public DataSheet getDataSheet(CharacterSnapshot snapshot, PresetSelection presetSelection) {
+        JsonNode basic = snapshot.document(NexonEndpoint.BASIC);
+        String characterClass = basicParser.characterClass(basic);
+        Integer characterLevel = basicParser.characterLevel(basic);
+
+        DataSheet dataSheet = getDataSheetFromSnapshot(snapshot.documents(), characterClass, presetSelection);
+        long combatPower = combatCalculationService.estimateCombatPower(dataSheet, characterClass, characterLevel);
         dataSheet.setCombatPower(combatPower);
         return dataSheet;
     }
 
-    private DataSheet getDataSheetFromSnapShot(Map<NexonEndpoint, JsonNode> document, String characterClass) {
+    private DataSheet getDataSheetFromSnapshot(
+            Map<NexonEndpoint, JsonNode> documents,
+            String characterClass,
+            PresetSelection presetSelection
+    ) {
         DataSheet dataSheet = new DataSheet();
 
-        JsonNode stat = document.get(NexonEndpoint.STAT);
-        JsonNode symbol = document.get(NexonEndpoint.SYMBOL_EQUIPMENT);
-        JsonNode skill = document.get(NexonEndpoint.SKILL_0);
-        JsonNode hexa = document.get(NexonEndpoint.HEXA_MATRIX_STAT);
-        JsonNode petEquip = document.get(NexonEndpoint.PET_EQUIPMENT);
-        JsonNode cashEquip = document.get(NexonEndpoint.CASH_ITEM_EQUIPMENT);
-        JsonNode itemEquip = document.get(NexonEndpoint.ITEM_EQUIPMENT);
-        JsonNode ability = document.get(NexonEndpoint.ABILITY);
-        JsonNode hyper = document.get(NexonEndpoint.HYPER_STAT);
-        JsonNode unionRaider = document.get(NexonEndpoint.UNION_RAIDER);
-        JsonNode setEffect = document.get(NexonEndpoint.SET_EFFECT);
-        JsonNode unionArtifact = document.get(NexonEndpoint.UNION_ARTIFACT);
-        JsonNode unionChampion = document.get(NexonEndpoint.UNION_CHAMPION);
+        JsonNode stat = documents.get(NexonEndpoint.STAT);
+        JsonNode symbol = documents.get(NexonEndpoint.SYMBOL_EQUIPMENT);
+        JsonNode skill = documents.get(NexonEndpoint.SKILL_0);
+        JsonNode hexa = documents.get(NexonEndpoint.HEXA_MATRIX_STAT);
+        JsonNode petEquip = documents.get(NexonEndpoint.PET_EQUIPMENT);
+        JsonNode cashEquip = documents.get(NexonEndpoint.CASH_ITEM_EQUIPMENT);
+        JsonNode itemEquip = documents.get(NexonEndpoint.ITEM_EQUIPMENT);
+        JsonNode ability = documents.get(NexonEndpoint.ABILITY);
+        JsonNode hyper = documents.get(NexonEndpoint.HYPER_STAT);
+        JsonNode unionRaider = documents.get(NexonEndpoint.UNION_RAIDER);
+        JsonNode setEffect = documents.get(NexonEndpoint.SET_EFFECT);
+        JsonNode unionArtifact = documents.get(NexonEndpoint.UNION_ARTIFACT);
+        JsonNode unionChampion = documents.get(NexonEndpoint.UNION_CHAMPION);
 
         dataSheet.setAbilityPoint(setAP(stat));
         dataSheet.setSymbol(setSymbol(symbol));
@@ -130,16 +154,8 @@ public class DataSheetService {
         dataSheet.setUnionArtifact(setUnionArtifact(unionArtifact));
         dataSheet.setUnionChampion(setUnionChampion(unionChampion));
 
-        PresetSelection combatPreset = new PresetSelection(
-                presetSelector.chooseItemPreset(itemEquip),
-                presetSelector.chooseAbilityPreset(ability, characterClass),
-                presetSelector.chooseHyperPreset(hyper),
-                presetSelector.chooseUnionPreset(unionRaider)
-        );
-
-        JsonNode presetItems = itemEquipmentParser.getItemEquipmentByPreset(itemEquip, combatPreset.itemPreset());
-
-        return buildDataSheet(presetItems, itemEquip, setEffect, ability, hyper, unionRaider, characterClass, combatPreset, dataSheet);
+        JsonNode presetItems = itemEquipmentParser.getItemEquipmentByPreset(itemEquip, presetSelection.itemPreset());
+        return buildDataSheet(presetItems, itemEquip, setEffect, ability, hyper, unionRaider, characterClass, presetSelection, dataSheet);
     }
 
     private DataSheet buildDataSheet(
@@ -151,10 +167,10 @@ public class DataSheetService {
             JsonNode unionRaider,
             String characterClass,
             PresetSelection preset,
-            DataSheet dataSheet
+            DataSheet sharedDataSheet
     ) {
         DataSheet result = new DataSheet();
-        result.copy(dataSheet);
+        result.copy(sharedDataSheet);
 
         result.setItemEquip(setItemEquip(
                 presetItems,
@@ -173,7 +189,7 @@ public class DataSheetService {
     }
 
     private StatSheet setAP(JsonNode node) {
-        StatSheet abilityPoint = new StatSheet("어빌리티 포인트");
+        StatSheet abilityPoint = new StatSheet("abilityPoint");
 
         JsonNode stats = node.path("final_stat");
         for (JsonNode stat : stats) {
@@ -203,23 +219,23 @@ public class DataSheetService {
     }
 
     private StatSheet setSymbol(JsonNode node) {
-        return statSheetParser.parseNoPercentStat(symbolParser.getSymbolStatEffects(node), "심볼");
+        return statSheetParser.parseNoPercentStat(symbolParser.getSymbolStatEffects(node), "symbol");
     }
 
     private StatSheet setSkill(SkillParseResult skillParseResult) {
-        return statSheetParser.parse(skillParseResult.effects(), "스킬");
+        return statSheetParser.parse(skillParseResult.effects(), "skill");
     }
 
     private StatSheet setHexa(JsonNode node, String characterClass) {
         List<String> main = SupportMethods.getMainStat(characterClass);
-        return statSheetParser.parseNoPercentStat(hexaParser.getCurrentHexa(node, main), "헥사 스텟");
+        return statSheetParser.parseNoPercentStat(hexaParser.getCurrentHexa(node, main), "hexaStat");
     }
 
     private Map<String, ItemSnapShot> setPetEquip(JsonNode node) {
         Map<String, ItemSnapShot> petEquip = new HashMap<>();
         List<ItemRecord> itemRecords = petParser.getItemSnapShot(node);
         for (ItemRecord itemRecord : itemRecords) {
-            petEquip.put("펫 장비 - " + itemRecord.slot(), itemRecord.itemSnapShot());
+            petEquip.put("petEquip - " + itemRecord.slot(), itemRecord.itemSnapShot());
         }
         return petEquip;
     }
@@ -229,7 +245,7 @@ public class DataSheetService {
         JsonNode cashItems = node.path("cash_item_equipment_base");
         for (JsonNode item : cashItems) {
             ItemRecord itemRecord = cashItemParser.getItemSnapShot(item);
-            itemEquip.put("캐시 장비 - " + itemRecord.slot(), itemRecord.itemSnapShot());
+            itemEquip.put("cashEquip - " + itemRecord.slot(), itemRecord.itemSnapShot());
         }
         return itemEquip;
     }
@@ -237,59 +253,59 @@ public class DataSheetService {
     private Map<String, ItemSnapShot> setItemEquip(JsonNode items, JsonNode title, JsonNode dragon, JsonNode mechanic, String characterClass) {
         Map<String, ItemSnapShot> itemEquip = new HashMap<>();
         ItemRecord titleRecord = itemParser.getTitleItemSnapShot(title);
-        itemEquip.put("장비 - " + titleRecord.slot(), titleRecord.itemSnapShot());
+        itemEquip.put("itemEquip - " + titleRecord.slot(), titleRecord.itemSnapShot());
 
         for (JsonNode item : dragon) {
-            ItemRecord itemRecord = itemParser.getItemSnapShot(item, characterClass, "드래곤");
+            ItemRecord itemRecord = itemParser.getItemSnapShot(item, characterClass, "dragon");
             String slot = itemRecord.slot();
-            itemEquip.put("드래곤 장비 - " + slot, itemRecord.itemSnapShot());
+            itemEquip.put("dragonEquip - " + slot, itemRecord.itemSnapShot());
         }
 
         for (JsonNode item : mechanic) {
-            ItemRecord itemRecord = itemParser.getItemSnapShot(item, characterClass, "메카닉");
+            ItemRecord itemRecord = itemParser.getItemSnapShot(item, characterClass, "mechanic");
             String slot = itemRecord.slot();
-            itemEquip.put("메카닉 장비 - " + slot, itemRecord.itemSnapShot());
+            itemEquip.put("mechanicEquip - " + slot, itemRecord.itemSnapShot());
         }
 
         for (JsonNode item : items) {
-            ItemRecord itemRecord = itemParser.getItemSnapShot(item, characterClass, "장비");
+            ItemRecord itemRecord = itemParser.getItemSnapShot(item, characterClass, "itemEquip");
             String slot = itemRecord.slot();
-            itemEquip.put("장비 - " + slot, itemRecord.itemSnapShot());
+            itemEquip.put("itemEquip - " + slot, itemRecord.itemSnapShot());
         }
 
         return itemEquip;
     }
 
     private StatSheet setSetEffect(JsonNode node, JsonNode presetItems, String characterClass) {
-        return statSheetParser.parse(setEffectParser.getSetEffectByPreset(node, presetItems, characterClass), "세트 효과");
+        return statSheetParser.parse(setEffectParser.getSetEffectByPreset(node, presetItems, characterClass), "setEffect");
     }
 
     private StatSheet setAbility(JsonNode node, int presetNo) {
-        return statSheetParser.parseNoPercentStat(abilityParser.getCurrentAbilityByPreset(node, presetNo), "어빌리티");
+        return statSheetParser.parseNoPercentStat(abilityParser.getCurrentAbilityByPreset(node, presetNo), "ability");
     }
 
     private StatSheet setHyperStat(JsonNode node, int presetNo) {
-        return statSheetParser.parseNoPercentStat(hyperStatParser.getStatIncreaseEffects(node, presetNo), "하이퍼 스탯");
+        return statSheetParser.parseNoPercentStat(hyperStatParser.getStatIncreaseEffects(node, presetNo), "hyperStat");
     }
 
     private StatSheet setUnionArtifact(JsonNode node) {
-        return statSheetParser.parse(artifactParser.getArtifactEffectsFromCrystal(node), "유니온 아티팩트");
+        return statSheetParser.parse(artifactParser.getArtifactEffectsFromCrystal(node), "unionArtifact");
     }
 
     private StatSheet setUnionChampion(JsonNode node) {
-        return statSheetParser.parse(championParser.getChampionStats(node), "유니온 챔피언");
+        return statSheetParser.parse(championParser.getChampionStats(node), "unionChampion");
     }
 
     private StatSheet setUnionOccupied(JsonNode node, int presetNo) {
-        return statSheetParser.parse(raiderParser.getUnionOccupiedStatByPreset(node, presetNo), "유니온 점령 효과");
+        return statSheetParser.parse(raiderParser.getUnionOccupiedStatByPreset(node, presetNo), "unionOccupied");
     }
 
     private StatSheet setUnionRaider(JsonNode node, int presetNo) {
-        return statSheetParser.parseNoPercentStat(raiderParser.getUnionRaiderStatByPreset(node, presetNo), "유니온 공격대원");
+        return statSheetParser.parseNoPercentStat(raiderParser.getUnionRaiderStatByPreset(node, presetNo), "unionRaider");
     }
 
     private String dataSheetCacheKey(String characterName, LocalDate date) {
-        return "maple:datasheet:v1:" + normalizeCharacterName(characterName) + ":" + date;
+        return "maple:datasheet:v2:" + normalizeCharacterName(characterName) + ":" + date;
     }
 
     private String normalizeCharacterName(String characterName) {

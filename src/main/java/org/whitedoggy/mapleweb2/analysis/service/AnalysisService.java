@@ -3,21 +3,24 @@ package org.whitedoggy.mapleweb2.analysis.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.whitedoggy.mapleweb2.analysis.data.AnalysisDates;
+import org.whitedoggy.mapleweb2.analysis.data.CharacterSnapshot;
 import org.whitedoggy.mapleweb2.analysis.data.DataSheet;
 import org.whitedoggy.mapleweb2.analysis.dto.AnalysisCombatPowerResponse;
+import org.whitedoggy.mapleweb2.analysis.dto.AnalysisResponse;
 import org.whitedoggy.mapleweb2.analysis.dto.ChangeSlotSummary;
 import org.whitedoggy.mapleweb2.analysis.dto.ChangeSourceSummary;
-import org.whitedoggy.mapleweb2.analysis.dto.CombatPowerSummary;
 import org.whitedoggy.mapleweb2.analysis.dto.CombatPowerChangeSummary;
-import org.whitedoggy.mapleweb2.analysis.dto.DataSheetResponse;
+import org.whitedoggy.mapleweb2.analysis.dto.CombatPowerSummary;
 import org.whitedoggy.mapleweb2.analysis.dto.StatDeltaSummary;
+import org.whitedoggy.mapleweb2.domain.basic.BasicParser;
+import org.whitedoggy.mapleweb2.domain.calculator.parser.StatParser;
 import org.whitedoggy.mapleweb2.domain.common.stat.StatSheet;
-import org.whitedoggy.mapleweb2.external.nexon.client.NexonApiClient;
+import org.whitedoggy.mapleweb2.external.nexon.config.NexonEndpoint;
+import org.whitedoggy.mapleweb2.global.Jsons;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -25,152 +28,126 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class AnalysisService {
-    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
-
-    private final NexonApiClient nexonApiClient;
-    private final DataSheetService dataSheetBuilder;
-    private final CombatCalculationService combatPowerCalculator;
-    private final DataSheetCompareService dataSheetDiffService;
+    private final DataSheetService dataSheetService;
+    private final CombatCalculationService combatCalculationService;
+    private final DataSheetCompareService dataSheetCompareService;
     private final OcidService ocidService;
     private final DateService dateService;
     private final SnapshotService snapshotService;
+    private final BasicParser basicParser;
+    private final StatParser statParser;
 
-    public Mono<AnalysisCombatPowerResponse> getCombatPower(String characterName, LocalDate date) {
-        return dataSheetBuilder.getStatSheets(characterName, date)
-                .map(this::toResponse);
+    public Mono<AnalysisResponse> getCombatPower(String characterName, LocalDate date) {
+        return ocidService.getOcid(characterName)
+                .flatMap(ocid -> snapshotService.getSnapshotByOcid(ocid, date))
+                .map(snapshot -> buildAnalysisResponse(snapshot, List.of(buildCurrentEntry(snapshot))));
     }
 
-    public Mono<List<AnalysisCombatPowerResponse>> getAnalysis(String characterName, String dateType) {
+    public Mono<AnalysisResponse> getMonthlyCombatPowers(String characterName) {
+        return getAnalysis(characterName, "monthly");
+    }
+
+    public Mono<AnalysisResponse> getYearlyCombatPowers(String characterName) {
+        return getAnalysis(characterName, "yearly");
+    }
+
+    public Mono<AnalysisResponse> getAnalysis(String characterName, String dateType) {
         AnalysisDates dates = dateService.getDates(dateType);
 
         return ocidService.getOcid(characterName)
-                .flatMapMany(ocid -> Flux.concat(
-                        snapshotService.getCurrentSnapshotByOcid(ocid, dates.today())
-                                .map(snapshot -> dataSheetBuilder.getDataSheet(snapshot, dates.today())),
-                        Flux.fromIterable(dates.historicalDates())
-                                .concatMap(date -> dataSheetBuilder.getOrLoadDataSheet(
-                                        characterName,
-                                        date,
-                                        () -> snapshotService.getSnapshotByOcid(ocid, date)
-                                ))
-                ))
-                .sort(Comparator.comparing(DataSheetResponse::date))
-                .map(response -> {
-                    DataSheet dataSheet = response.dataSheet();
-                    long combatPower = dataSheet.getCombatPower() == null ? 0L : dataSheet.getCombatPower();
-                    CombatPowerSummary combatSummary = new CombatPowerSummary(
-                            combatPower,
-                            null,
-                            null,
-                            null,
-                            dataSheet.isLucidTransformSuspected(),
-                            null
-                    );
-                    return new AnalysisCombatPowerResponse(
-                            response.characterName(),
-                            response.characterClass(),
-                            response.date(),
-                            null,
-                            combatSummary
-                    );
-                })
-                .collectList();
+                .flatMap(ocid -> snapshotService.getCurrentSnapshotByOcid(ocid, dates.today())
+                        .flatMap(todaySnapshot -> Flux.concat(
+                                        Mono.just(buildPreparedEntry(todaySnapshot)),
+                                        Flux.fromIterable(dates.historicalDates())
+                                                .concatMap(date -> dataSheetService.getOrLoadDataSheet(
+                                                                characterName,
+                                                                date,
+                                                                () -> snapshotService.getSnapshotByOcid(ocid, date)
+                                                        )
+                                                        .map(dataSheet -> new PreparedEntry(date, null, null, prepareDataSheet(dataSheet), null))
+                                                )
+                                )
+                                .collectList()
+                                .map(entries -> buildAnalysisResponse(todaySnapshot, toResponses(entries)))
+                        ));
     }
 
-    public Mono<List<AnalysisCombatPowerResponse>> getYearlyCombatPowers(String characterName) {
-        LocalDate today = LocalDate.now(KST);
-        List<LocalDate> dates = new ArrayList<>();
-        for (int monthOffset = 1; monthOffset <= 11; monthOffset++) {
-            dates.add(today.minusMonths(monthOffset).withDayOfMonth(15));
-        }
-        return getCombatPowers(characterName, today, dates);
+    private PreparedEntry buildPreparedEntry(CharacterSnapshot snapshot) {
+        DataSheet currentDataSheet = prepareDataSheet(dataSheetService.getCurrentDataSheet(snapshot));
+        DataSheet combatDataSheet = prepareDataSheet(dataSheetService.getCombatDataSheet(snapshot));
+        Long apiCombatPower = currentCombatPower(snapshot);
+        return new PreparedEntry(snapshot.date(), currentDataSheet, apiCombatPower, combatDataSheet, null);
     }
 
-    private Mono<List<AnalysisCombatPowerResponse>> getCombatPowers(String characterName, LocalDate today, List<LocalDate> historicalDates) {
-        return nexonApiClient.getOcid(characterName)
-                .flatMap(ocidResponse -> Flux.concat(
-                                nexonApiClient.fetchCurrentSnapshot(ocidResponse.ocid(), today),
-                                Flux.fromIterable(historicalDates)
-                                        .concatMap(date -> nexonApiClient.fetchSnapshot(ocidResponse.ocid(), date))
-                        )
-                        .map(dataSheetBuilder::buildFromSnapshot)
-                        .filter(this::isSupported)
-                        .sort(Comparator.comparing(response -> response.CurrentPresetDataSheet().getDate()))
-                        .collectList()
-                        .map(this::toHistoricalResponses)
-                );
+    private AnalysisResponse buildAnalysisResponse(CharacterSnapshot todaySnapshot, List<AnalysisCombatPowerResponse> entries) {
+        return new AnalysisResponse(
+                todaySnapshot.ocid(),
+                basicParser.characterName(todaySnapshot.document(NexonEndpoint.BASIC)),
+                basicParser.characterClass(todaySnapshot.document(NexonEndpoint.BASIC)),
+                basicParser.characterLevel(todaySnapshot.document(NexonEndpoint.BASIC)),
+                basicParser.characterGuild(todaySnapshot.document(NexonEndpoint.BASIC)),
+                basicParser.characterWorld(todaySnapshot.document(NexonEndpoint.BASIC)),
+                basicParser.characterImage(todaySnapshot.document(NexonEndpoint.BASIC)),
+                entries
+        );
     }
 
-    private boolean isSupported(DataSheetResponse response) {
-        DataSheet current = response.CurrentPresetDataSheet();
-        return current != null
-                && current.getCharacterLevel() != null
-                && current.getCharacterLevel() >= 200
-                && current.getCharacterName() != null
-                && !current.getCharacterName().isBlank();
+    private AnalysisCombatPowerResponse buildCurrentEntry(CharacterSnapshot snapshot) {
+        PreparedEntry entry = buildPreparedEntry(snapshot);
+        return new AnalysisCombatPowerResponse(
+                entry.date(),
+                buildCurrentSummary(entry.currentDataSheet(), entry.apiCombatPower()),
+                buildCombatSummary(entry.combatDataSheet(), null)
+        );
     }
 
-    private AnalysisCombatPowerResponse toResponse(DataSheetResponse response) {
-        DataSheet current = prepareDataSheet(response.CurrentPresetDataSheet());
-        DataSheet combat = prepareDataSheet(response.CombatPresetdataSheet());
-
-        return toResponse(current, combat, null);
-    }
-
-    private List<AnalysisCombatPowerResponse> toHistoricalResponses(List<DataSheetResponse> responses) {
-        List<PreparedResponse> preparedResponses = responses.stream()
-                .map(this::prepareResponse)
-                .sorted(Comparator.comparing(preparedResponse -> preparedResponse.current().getDate()))
+    private List<AnalysisCombatPowerResponse> toResponses(List<PreparedEntry> entries) {
+        List<PreparedEntry> sortedEntries = entries.stream()
+                .sorted(Comparator.comparing(PreparedEntry::date))
                 .toList();
 
-        List<AnalysisCombatPowerResponse> result = new ArrayList<>();
-        for (int index = 0; index < preparedResponses.size(); index++) {
-            PreparedResponse current = preparedResponses.get(index);
+        List<AnalysisCombatPowerResponse> responses = new ArrayList<>();
+        for (int index = 0; index < sortedEntries.size(); index++) {
+            PreparedEntry current = sortedEntries.get(index);
             CombatPowerChangeSummary changeSummary = null;
             if (index > 0) {
-                PreparedResponse previous = preparedResponses.get(index - 1);
-                changeSummary = toChangeSummary(dataSheetDiffService.diff(previous.combat(), current.combat()));
+                PreparedEntry previous = sortedEntries.get(index - 1);
+                changeSummary = toChangeSummary(dataSheetCompareService.diff(previous.combatDataSheet(), current.combatDataSheet()));
             }
 
-            result.add(toResponse(current.current(), current.combat(), changeSummary));
+            responses.add(new AnalysisCombatPowerResponse(
+                    current.date(),
+                    current.currentDataSheet() == null ? null : buildCurrentSummary(current.currentDataSheet(), current.apiCombatPower()),
+                    buildCombatSummary(current.combatDataSheet(), changeSummary)
+            ));
         }
-        return result;
-    }
-
-    private PreparedResponse prepareResponse(DataSheetResponse response) {
-        return new PreparedResponse(
-                prepareDataSheet(response.CurrentPresetDataSheet()),
-                prepareDataSheet(response.CombatPresetdataSheet())
-        );
-    }
-
-    private AnalysisCombatPowerResponse toResponse(DataSheet current, DataSheet combat, CombatPowerChangeSummary changeSummary) {
-        return new AnalysisCombatPowerResponse(
-                current.getCharacterName(),
-                current.getCharacterClass(),
-                current.getDate(),
-                buildCurrentSummary(current),
-                buildCombatSummary(combat, changeSummary)
-        );
+        return responses;
     }
 
     private DataSheet prepareDataSheet(DataSheet dataSheet) {
-        dataSheet.setSumSheet(new StatSheet("총합"));
+        dataSheet.setSumSheet(new StatSheet("sum"));
         dataSheet.buildSum();
         return dataSheet;
     }
 
-    private CombatPowerSummary buildCurrentSummary(DataSheet dataSheet) {
-        long estimatedCombatPower = combatPowerCalculator.estimateCombatPower(dataSheet);
-        long currentCombatPower = dataSheet.getCurrentCombatPower();
-        long difference = estimatedCombatPower - currentCombatPower;
-        Double errorRatePercent = currentCombatPower == 0
+    private Long currentCombatPower(CharacterSnapshot snapshot) {
+        String currentCombatPower = statParser.currentCombatPower(snapshot.document(NexonEndpoint.STAT));
+        if (currentCombatPower == null || currentCombatPower.isBlank()) {
+            return null;
+        }
+        return (long) Math.floor(Jsons.parseDouble(currentCombatPower));
+    }
+
+    private CombatPowerSummary buildCurrentSummary(DataSheet dataSheet, Long apiCombatPower) {
+        long estimatedCombatPower = estimatedCombatPower(dataSheet);
+        Long difference = apiCombatPower == null ? null : estimatedCombatPower - apiCombatPower;
+        Double errorRatePercent = apiCombatPower == null || apiCombatPower == 0
                 ? null
-                : Math.abs(difference) * 100.0 / currentCombatPower;
+                : Math.abs(difference) * 100.0 / apiCombatPower;
 
         return new CombatPowerSummary(
                 estimatedCombatPower,
-                currentCombatPower,
+                apiCombatPower,
                 difference,
                 errorRatePercent,
                 dataSheet.isLucidTransformSuspected(),
@@ -180,13 +157,19 @@ public class AnalysisService {
 
     private CombatPowerSummary buildCombatSummary(DataSheet dataSheet, CombatPowerChangeSummary changeSummary) {
         return new CombatPowerSummary(
-                combatPowerCalculator.estimateCombatPower(dataSheet),
+                estimatedCombatPower(dataSheet),
                 null,
                 null,
                 null,
                 dataSheet.isLucidTransformSuspected(),
                 changeSummary
         );
+    }
+
+    private long estimatedCombatPower(DataSheet dataSheet) {
+        return dataSheet.getCombatPower() == null
+                ? combatCalculationService.estimateCombatPower(dataSheet, "", 0)
+                : dataSheet.getCombatPower();
     }
 
     private CombatPowerChangeSummary toChangeSummary(DataSheetCompareService.CombatPresetDiff diff) {
@@ -219,9 +202,12 @@ public class AnalysisService {
         return new StatDeltaSummary(statDelta.statName(), statDelta.delta());
     }
 
-    private record PreparedResponse(
-            DataSheet current,
-            DataSheet combat
+    private record PreparedEntry(
+            LocalDate date,
+            DataSheet currentDataSheet,
+            Long apiCombatPower,
+            DataSheet combatDataSheet,
+            CombatPowerChangeSummary changeSummary
     ) {
     }
 }

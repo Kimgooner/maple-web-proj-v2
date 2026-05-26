@@ -9,7 +9,6 @@ import org.whitedoggy.mapleweb2.domain.item.data.ItemSnapShot;
 import java.lang.reflect.Field;
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,54 +22,52 @@ public class DataSheetCompareService {
             new StatField("DEX", "DEX"),
             new StatField("INT", "INT"),
             new StatField("LUK", "LUK"),
-            new StatField("HP", "최대 HP"),
-            new StatField("ALL_STAT", "올스탯"),
-            new StatField("STR_NO_PERCENT", "% 미적용 STR"),
-            new StatField("DEX_NO_PERCENT", "% 미적용 DEX"),
-            new StatField("INT_NO_PERCENT", "% 미적용 INT"),
-            new StatField("LUK_NO_PERCENT", "% 미적용 LUK"),
-            new StatField("HP_NO_PERCENT", "% 미적용 HP"),
-            new StatField("ALL_STAT_NO_PERCENT", "% 미적용 올스탯"),
-            new StatField("ATTACK_POWER", "공격력"),
-            new StatField("MAGIC_POWER", "마력"),
-            new StatField("STR_PERCENT", "STR %"),
-            new StatField("DEX_PERCENT", "DEX %"),
-            new StatField("INT_PERCENT", "INT %"),
-            new StatField("LUK_PERCENT", "LUK %"),
-            new StatField("HP_PERCENT", "HP %"),
-            new StatField("ALL_STAT_PERCENT", "올스탯 %"),
-            new StatField("ATTACK_POWER_PERCENT", "공격력 %"),
-            new StatField("MAGIC_POWER_PERCENT", "마력 %"),
-            new StatField("DAMAGE", "데미지 %"),
-            new StatField("BOSS_DAMAGE", "보스 몬스터 데미지 %"),
-            new StatField("CRITICAL_DAMAGE", "크리티컬 데미지 %"),
-            new StatField("FINAL_DAMAGE", "최종 데미지 %")
+            new StatField("HP", "HP"),
+            new StatField("ALL_STAT", "ALL_STAT"),
+            new StatField("STR_NO_PERCENT", "STR_NO_PERCENT"),
+            new StatField("DEX_NO_PERCENT", "DEX_NO_PERCENT"),
+            new StatField("INT_NO_PERCENT", "INT_NO_PERCENT"),
+            new StatField("LUK_NO_PERCENT", "LUK_NO_PERCENT"),
+            new StatField("HP_NO_PERCENT", "HP_NO_PERCENT"),
+            new StatField("ALL_STAT_NO_PERCENT", "ALL_STAT_NO_PERCENT"),
+            new StatField("ATTACK_POWER", "ATTACK_POWER"),
+            new StatField("MAGIC_POWER", "MAGIC_POWER"),
+            new StatField("STR_PERCENT", "STR_PERCENT"),
+            new StatField("DEX_PERCENT", "DEX_PERCENT"),
+            new StatField("INT_PERCENT", "INT_PERCENT"),
+            new StatField("LUK_PERCENT", "LUK_PERCENT"),
+            new StatField("HP_PERCENT", "HP_PERCENT"),
+            new StatField("ALL_STAT_PERCENT", "ALL_STAT_PERCENT"),
+            new StatField("ATTACK_POWER_PERCENT", "ATTACK_POWER_PERCENT"),
+            new StatField("MAGIC_POWER_PERCENT", "MAGIC_POWER_PERCENT"),
+            new StatField("DAMAGE", "DAMAGE"),
+            new StatField("BOSS_DAMAGE", "BOSS_DAMAGE"),
+            new StatField("CRITICAL_DAMAGE", "CRITICAL_DAMAGE"),
+            new StatField("FINAL_DAMAGE", "FINAL_DAMAGE")
     );
 
     public List<CombatPresetDiff> diffCombatPresetSeries(List<DataSheet> dataSheets) {
-        List<DataSheet> sorted = dataSheets.stream()
+        List<DataSheet> nonNullSheets = dataSheets.stream()
                 .filter(dataSheet -> dataSheet != null)
-                .sorted(Comparator.comparing(DataSheet::getDate))
                 .toList();
 
         List<CombatPresetDiff> diffs = new ArrayList<>();
-        for (int i = 1; i < sorted.size(); i++) {
-            diffs.add(diff(sorted.get(i - 1), sorted.get(i)));
+        for (int index = 1; index < nonNullSheets.size(); index++) {
+            diffs.add(diff(nonNullSheets.get(index - 1), nonNullSheets.get(index)));
         }
         return diffs;
     }
 
     public CombatPresetDiff diff(DataSheet previous, DataSheet current) {
-        long previousCombatPower = previous.getCurrentCombatPower();
-        long currentCombatPower = current.getCurrentCombatPower();
-        long deltaCombatPower = currentCombatPower - previousCombatPower;
+        long previousCombatPower = previous.getCombatPower() == null ? 0L : previous.getCombatPower();
+        long currentCombatPower = current.getCombatPower() == null ? 0L : current.getCombatPower();
 
         return new CombatPresetDiff(
-                previous.getDate(),
-                current.getDate(),
+                null,
+                null,
                 previousCombatPower,
                 currentCombatPower,
-                deltaCombatPower,
+                currentCombatPower - previousCombatPower,
                 summarizeCoreSheets(previous, current, 6),
                 summarizeItemChanges(previous.getPetEquip(), current.getPetEquip(), 3),
                 summarizeItemChanges(previous.getCashEquip(), current.getCashEquip(), 3),
@@ -80,20 +77,20 @@ public class DataSheetCompareService {
 
     private List<ChangeSummary> summarizeCoreSheets(DataSheet previous, DataSheet current, int limit) {
         List<ChangeSummary> summaries = new ArrayList<>();
-        addSheetSummary(summaries, "어빌리티 포인트(AP)", previous.getAbilityPoint(), current.getAbilityPoint());
-        addSheetSummary(summaries, "심볼", previous.getSymbol(), current.getSymbol());
-        addSheetSummary(summaries, "스킬", previous.getSkill(), current.getSkill());
-        addSheetSummary(summaries, "헥사 스텟", previous.getHexaStat(), current.getHexaStat());
-        addSheetSummary(summaries, "어빌리티", previous.getAbility(), current.getAbility());
-        addSheetSummary(summaries, "하이퍼 스탯", previous.getHyperStat(), current.getHyperStat());
-        addSheetSummary(summaries, "세트 효괴", previous.getSetEffect(), current.getSetEffect());
-        addSheetSummary(summaries, "유니온 점령 효과", previous.getUnionOccupied(), current.getUnionOccupied());
-        addSheetSummary(summaries, "유니온 공격대원", previous.getUnionRaider(), current.getUnionRaider());
-        addSheetSummary(summaries, "유니온 아티팩트", previous.getUnionArtifact(), current.getUnionArtifact());
-        addSheetSummary(summaries, "유니온 챔피언", previous.getUnionChampion(), current.getUnionChampion());
+        addSheetSummary(summaries, "abilityPoint", previous.getAbilityPoint(), current.getAbilityPoint());
+        addSheetSummary(summaries, "symbol", previous.getSymbol(), current.getSymbol());
+        addSheetSummary(summaries, "skill", previous.getSkill(), current.getSkill());
+        addSheetSummary(summaries, "hexaStat", previous.getHexaStat(), current.getHexaStat());
+        addSheetSummary(summaries, "ability", previous.getAbility(), current.getAbility());
+        addSheetSummary(summaries, "hyperStat", previous.getHyperStat(), current.getHyperStat());
+        addSheetSummary(summaries, "setEffect", previous.getSetEffect(), current.getSetEffect());
+        addSheetSummary(summaries, "unionOccupied", previous.getUnionOccupied(), current.getUnionOccupied());
+        addSheetSummary(summaries, "unionRaider", previous.getUnionRaider(), current.getUnionRaider());
+        addSheetSummary(summaries, "unionArtifact", previous.getUnionArtifact(), current.getUnionArtifact());
+        addSheetSummary(summaries, "unionChampion", previous.getUnionChampion(), current.getUnionChampion());
 
         return summaries.stream()
-                .sorted(Comparator.comparingInt(ChangeSummary::weight).reversed())
+                .sorted((left, right) -> Integer.compare(right.weight(), left.weight()))
                 .limit(limit)
                 .toList();
     }
@@ -109,11 +106,7 @@ public class DataSheetCompareService {
             return;
         }
 
-        summaries.add(new ChangeSummary(
-                label,
-                statDeltas,
-                statDeltas.stream().mapToInt(statDelta -> (int) Math.floor(Math.abs(statDelta.delta()))).sum()
-        ));
+        summaries.add(new ChangeSummary(label, statDeltas, weight(statDeltas)));
     }
 
     private List<SlotChangeSummary> summarizeItemChanges(Map<String, ItemSnapShot> before, Map<String, ItemSnapShot> after, int limit) {
@@ -129,41 +122,17 @@ public class DataSheetCompareService {
         for (String slot : all.keySet()) {
             ItemSnapShot beforeItem = before.get(slot);
             ItemSnapShot afterItem = after.get(slot);
-            StatSheet beforeSheet = beforeItem == null ? new StatSheet(slot + " 이전") : beforeItem.getStatSheet();
-            StatSheet afterSheet = afterItem == null ? new StatSheet(slot + " 이후") : afterItem.getStatSheet();
+            StatSheet beforeSheet = beforeItem == null ? new StatSheet(slot + " before") : beforeItem.getStatSheet();
+            StatSheet afterSheet = afterItem == null ? new StatSheet(slot + " after") : afterItem.getStatSheet();
             List<StatDelta> deltas = summarizeStatDelta(afterSheet.minus(beforeSheet), 15);
 
             if (deltas.isEmpty()) {
                 continue;
             }
 
-            if (beforeItem == null) {
-                changes.add(new SlotChangeSummary(
-                        slot,
-                        "장착",
-                        encodeItemInfo(null),
-                        encodeItemInfo(afterItem),
-                        deltas,
-                        weight(deltas)
-                ));
-                continue;
-            }
-
-            if (afterItem == null) {
-                changes.add(new SlotChangeSummary(
-                        slot,
-                        "장착 해제",
-                        encodeItemInfo(beforeItem),
-                        encodeItemInfo(null),
-                        deltas,
-                        weight(deltas)
-                ));
-                continue;
-            }
-
             changes.add(new SlotChangeSummary(
                     slot,
-                    "수치 변화",
+                    changeType(beforeItem, afterItem),
                     encodeItemInfo(beforeItem),
                     encodeItemInfo(afterItem),
                     deltas,
@@ -172,9 +141,19 @@ public class DataSheetCompareService {
         }
 
         return changes.stream()
-                .sorted(Comparator.comparingInt(SlotChangeSummary::weight).reversed())
+                .sorted((left, right) -> Integer.compare(right.weight(), left.weight()))
                 .limit(limit)
                 .toList();
+    }
+
+    private String changeType(ItemSnapShot beforeItem, ItemSnapShot afterItem) {
+        if (beforeItem == null) {
+            return "ADDED";
+        }
+        if (afterItem == null) {
+            return "REMOVED";
+        }
+        return "CHANGED";
     }
 
     private List<StatDelta> summarizeStatDelta(StatSheet delta, int limit) {
@@ -187,7 +166,7 @@ public class DataSheetCompareService {
         }
 
         return deltas.stream()
-                .sorted(Comparator.comparingDouble((StatDelta statDelta) -> Math.abs(statDelta.delta())).reversed())
+                .sorted((left, right) -> Double.compare(Math.abs(right.delta()), Math.abs(left.delta())))
                 .limit(limit)
                 .toList();
     }

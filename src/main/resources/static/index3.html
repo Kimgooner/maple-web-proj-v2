@@ -776,14 +776,14 @@
         statusEl.textContent = `${range === "monthly" ? "월간" : "연간"} 변화 데이터를 불러오는 중입니다...`;
 
         try {
-            const rows = await fetchJson(`/api/analysis/combat-power/${range}?characterName=${encodeURIComponent(characterName)}`);
-            state.historyRows = Array.isArray(rows) ? rows : [];
+            const response = await fetchJson(`/api/analysis/combat-power/${range}?characterName=${encodeURIComponent(characterName)}`);
+            state.historyRows = Array.isArray(response.entries) ? response.entries : [];
             state.activeIndex = Math.max(0, state.historyRows.length - 1);
             dashboardEl.hidden = false;
             if (!state.currentSummary) {
-                renderSummaryFromHistory(characterName, state.historyRows);
-                renderInsightsFromHistory(state.historyRows);
-                warningEl.hidden = true;
+                renderSummaryFromHistory(response);
+                renderInsightsFromHistory(response.entries);
+                renderWarningFromHistory(response.entries);
             }
             renderHistorySection();
             statusEl.textContent = `${range === "monthly" ? "월간" : "연간"} 변화 데이터 조회가 완료되었습니다.`;
@@ -801,14 +801,16 @@
     }
 
     function renderSummary(data) {
-        const current = data.currentPresetDataSheet;
-        const combat = data.combatPresetDataSheet;
+        const entry = Array.isArray(data.entries) ? data.entries[0] : null;
+        const current = entry?.currentPresetDataSheet;
+        const combat = entry?.combatPresetDataSheet;
+        const date = entry?.date ?? "-";
         summaryGridEl.innerHTML = `
             <article class="metric-card profile-card">
                 <div class="avatar">${renderAvatar(data.characterClass)}</div>
                 <div>
                     <div class="profile-name">${escapeHtml(data.characterName)}</div>
-                    <div class="profile-sub">${escapeHtml(data.characterClass)}<br>${escapeHtml(data.date)}</div>
+                    <div class="profile-sub">${escapeHtml(data.characterClass)}<br>${escapeHtml(date)}</div>
                 </div>
             </article>
             <article class="metric-card">
@@ -835,8 +837,9 @@
     }
 
     function renderWarning(data) {
-        const current = data.currentPresetDataSheet?.lucidTransformSuspected;
-        const combat = data.combatPresetDataSheet?.lucidTransformSuspected;
+        const entry = Array.isArray(data.entries) ? data.entries[0] : null;
+        const current = entry?.currentPresetDataSheet?.lucidTransformSuspected;
+        const combat = entry?.combatPresetDataSheet?.lucidTransformSuspected;
         if (!current && !combat) {
             warningEl.hidden = true;
             warningEl.textContent = "";
@@ -848,8 +851,11 @@
     }
 
     function renderInsights(data) {
-        const current = data.currentPresetDataSheet;
-        const combat = data.combatPresetDataSheet;
+        const entry = Array.isArray(data.entries) ? data.entries[0] : null;
+        const current = entry?.currentPresetDataSheet;
+        const combat = entry?.combatPresetDataSheet;
+        const date = entry?.date ?? "-";
+        data.date = date;
         insightListEl.innerHTML = `
             <div class="timeline-item">
                 <div class="timeline-date">현재 API 전투력</div>
@@ -869,13 +875,14 @@
         `;
     }
 
-    function renderSummaryFromHistory(characterName, rows) {
-        const latest = Array.isArray(rows) && rows.length ? rows[rows.length - 1] : null;
+    function renderSummaryFromHistory(response) {
+        const rows = Array.isArray(response?.entries) ? response.entries : [];
+        const latest = rows.length ? rows[rows.length - 1] : null;
         if (!latest) {
             summaryGridEl.innerHTML = `
                 <article class="metric-card">
                     <div class="metric-label">캐릭터 이름</div>
-                    <div class="metric-value">${escapeHtml(characterName)}</div>
+                    <div class="metric-value">${escapeHtml(response?.characterName ?? "")}</div>
                     <div class="metric-foot">이력 데이터만 로드됨</div>
                 </article>
             `;
@@ -884,15 +891,15 @@
 
         summaryGridEl.innerHTML = `
             <article class="metric-card profile-card">
-                <div class="avatar">${renderAvatar(latest.characterClass)}</div>
+                <div class="avatar">${renderAvatar(response.characterClass)}</div>
                 <div>
-                    <div class="profile-name">${escapeHtml(latest.characterName)}</div>
-                    <div class="profile-sub">${escapeHtml(latest.characterClass)}<br>${escapeHtml(latest.date)}</div>
+                    <div class="profile-name">${escapeHtml(response.characterName)}</div>
+                    <div class="profile-sub">${escapeHtml(response.characterClass)}<br>${escapeHtml(latest.date)}</div>
                 </div>
             </article>
             <article class="metric-card">
                 <div class="metric-label">최근 Current 계산 전투력</div>
-                <div class="metric-value">${formatValue(latest.currentPresetDataSheet?.estimatedCombatPower ?? 0)}</div>
+                <div class="metric-value">${formatValue(latest.currentPresetDataSheet?.estimatedCombatPower ?? latest.combatPresetDataSheet?.estimatedCombatPower ?? 0)}</div>
                 <div class="metric-foot">이력 기준 최신 시점</div>
             </article>
             <article class="metric-card">
@@ -911,6 +918,20 @@
                 <div class="metric-foot">핀 중심 대시보드</div>
             </article>
         `;
+    }
+
+    function renderWarningFromHistory(rows) {
+        const latest = Array.isArray(rows) && rows.length ? rows[rows.length - 1] : null;
+        const current = latest?.currentPresetDataSheet?.lucidTransformSuspected;
+        const combat = latest?.combatPresetDataSheet?.lucidTransformSuspected;
+        if (!current && !combat) {
+            warningEl.hidden = true;
+            warningEl.textContent = "";
+            return;
+        }
+
+        warningEl.hidden = false;
+        warningEl.textContent = "猷⑥떆??蹂???섏떖 ?뚮옒洹멸? 媛먯??섏뿀?듬땲?? 0李??ㅽ궗 ?먮뒗 ?덉쇅 ?ㅽ꺈???ы븿???곹깭?????덉쑝??怨꾩궛 ?꾪닾???댁꽍??二쇱쓽?댁＜?몄슂.";
     }
 
     function renderInsightsFromHistory(rows) {
