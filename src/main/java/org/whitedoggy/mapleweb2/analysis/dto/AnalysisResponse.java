@@ -10,6 +10,6 @@ public record AnalysisResponse(
         String characterGuild,
         String characterWorld,
         String characterImage,
-        List<AnalysisCombatPowerResponse> entries
+        List<DataSheetByDate> entries
 ) {
 }
