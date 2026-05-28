@@ -3,10 +3,8 @@ package org.whitedoggy.mapleweb2.analysis.data;
 import lombok.Getter;
 import lombok.Setter;
 import org.whitedoggy.mapleweb2.domain.common.stat.StatSheet;
-import org.whitedoggy.mapleweb2.domain.item.data.ItemSheet;
 import org.whitedoggy.mapleweb2.domain.item.data.ItemSnapShot;
 
-import java.time.LocalDate;
 import java.util.Map;
 
 @Getter

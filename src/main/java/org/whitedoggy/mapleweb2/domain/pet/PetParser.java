@@ -6,7 +6,6 @@ import org.whitedoggy.mapleweb2.domain.common.stat.StatSheet;
 import org.whitedoggy.mapleweb2.domain.common.stat.StatSheetParser;
 import org.whitedoggy.mapleweb2.domain.common.support.EffectTextSplitter;
 import org.whitedoggy.mapleweb2.domain.item.data.ItemRecord;
-import org.whitedoggy.mapleweb2.domain.item.data.ItemSheet;
 import org.whitedoggy.mapleweb2.domain.item.data.ItemSnapShot;
 import org.whitedoggy.mapleweb2.global.Jsons;
 import tools.jackson.databind.JsonNode;
@@ -30,7 +29,7 @@ public class PetParser {
             String itemName = Jsons.text(options, "item_name");
             String itemIcon = Jsons.text(options, "item_icon");
 
-            ItemSheet itemSheet = new ItemSheet(itemName);
+            ItemSnapShot snapShot = new ItemSnapShot(itemName, itemIcon);
             StatSheet statSheet = new StatSheet(itemName);
 
             List<String> effects = new ArrayList<>();
@@ -40,12 +39,11 @@ public class PetParser {
                 EffectTextSplitter.addSplit(effects, type + " " + value);
             }
             statSheet.merge(statSheetParser.parse(effects));
-            itemRecords.add(new ItemRecord("펫 장비 " + i, new ItemSnapShot(itemSheet, statSheet)));
+            snapShot.setStatSheet(statSheet);
+            itemRecords.add(new ItemRecord("펫 장비 " + i, snapShot));
         }
         return itemRecords;
     }
-
-
 
     public List<String> getPetEquipmentEffects(JsonNode petEquipment) {
         List<String> effects = new ArrayList<>();

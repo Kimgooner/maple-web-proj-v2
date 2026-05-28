@@ -11,6 +11,7 @@ import org.whitedoggy.mapleweb2.analysis.dto.ChangeSlotSummary;
 import org.whitedoggy.mapleweb2.analysis.dto.ChangeSourceSummary;
 import org.whitedoggy.mapleweb2.analysis.dto.CombatPowerChangeSummary;
 import org.whitedoggy.mapleweb2.analysis.dto.CombatPowerSummary;
+import org.whitedoggy.mapleweb2.analysis.dto.DataSheetByDate;
 import org.whitedoggy.mapleweb2.analysis.dto.StatDeltaSummary;
 import org.whitedoggy.mapleweb2.domain.basic.BasicParser;
 import org.whitedoggy.mapleweb2.domain.calculator.parser.StatParser;
@@ -40,7 +41,7 @@ public class AnalysisService {
     public Mono<AnalysisResponse> getCombatPower(String characterName, LocalDate date) {
         return ocidService.getOcid(characterName)
                 .flatMap(ocid -> snapshotService.getSnapshotByOcid(ocid, date))
-                .map(snapshot -> buildAnalysisResponse(snapshot, List.of(buildCurrentEntry(snapshot))));
+                .map(snapshot -> buildAnalysisResponse(snapshot, List.of(buildDataSheetByDate(snapshot))));
     }
 
     public Mono<AnalysisResponse> getMonthlyCombatPowers(String characterName) {
@@ -68,8 +69,13 @@ public class AnalysisService {
                                                 )
                                 )
                                 .collectList()
-                                .map(entries -> buildAnalysisResponse(todaySnapshot, toResponses(entries)))
+                                .map(entries -> buildAnalysisResponse(todaySnapshot, toDataSheetEntries(entries)))
                         ));
+    }
+
+    private DataSheetByDate buildDataSheetByDate(CharacterSnapshot snapshot) {
+        PreparedEntry entry = buildPreparedEntry(snapshot);
+        return new DataSheetByDate(entry.date(), entry.combatDataSheet());
     }
 
     private PreparedEntry buildPreparedEntry(CharacterSnapshot snapshot) {
@@ -79,7 +85,7 @@ public class AnalysisService {
         return new PreparedEntry(snapshot.date(), currentDataSheet, apiCombatPower, combatDataSheet, null);
     }
 
-    private AnalysisResponse buildAnalysisResponse(CharacterSnapshot todaySnapshot, List<AnalysisCombatPowerResponse> entries) {
+    private AnalysisResponse buildAnalysisResponse(CharacterSnapshot todaySnapshot, List<DataSheetByDate> entries) {
         return new AnalysisResponse(
                 todaySnapshot.ocid(),
                 basicParser.characterName(todaySnapshot.document(NexonEndpoint.BASIC)),
@@ -92,36 +98,16 @@ public class AnalysisService {
         );
     }
 
-    private AnalysisCombatPowerResponse buildCurrentEntry(CharacterSnapshot snapshot) {
-        PreparedEntry entry = buildPreparedEntry(snapshot);
-        return new AnalysisCombatPowerResponse(
-                entry.date(),
-                buildCurrentSummary(entry.currentDataSheet(), entry.apiCombatPower()),
-                buildCombatSummary(entry.combatDataSheet(), null)
-        );
-    }
-
-    private List<AnalysisCombatPowerResponse> toResponses(List<PreparedEntry> entries) {
+    private List<DataSheetByDate> toDataSheetEntries(List<PreparedEntry> entries) {
         List<PreparedEntry> sortedEntries = entries.stream()
                 .sorted(Comparator.comparing(PreparedEntry::date))
                 .toList();
 
-        List<AnalysisCombatPowerResponse> responses = new ArrayList<>();
-        for (int index = 0; index < sortedEntries.size(); index++) {
-            PreparedEntry current = sortedEntries.get(index);
-            CombatPowerChangeSummary changeSummary = null;
-            if (index > 0) {
-                PreparedEntry previous = sortedEntries.get(index - 1);
-                changeSummary = toChangeSummary(dataSheetCompareService.diff(previous.combatDataSheet(), current.combatDataSheet()));
-            }
-
-            responses.add(new AnalysisCombatPowerResponse(
-                    current.date(),
-                    current.currentDataSheet() == null ? null : buildCurrentSummary(current.currentDataSheet(), current.apiCombatPower()),
-                    buildCombatSummary(current.combatDataSheet(), changeSummary)
-            ));
+        List<DataSheetByDate> entriesByDate = new ArrayList<>();
+        for (PreparedEntry entry : sortedEntries) {
+            entriesByDate.add(new DataSheetByDate(entry.date(), entry.combatDataSheet()));
         }
-        return responses;
+        return entriesByDate;
     }
 
     private DataSheet prepareDataSheet(DataSheet dataSheet) {

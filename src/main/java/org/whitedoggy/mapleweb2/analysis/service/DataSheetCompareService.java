@@ -3,7 +3,6 @@ package org.whitedoggy.mapleweb2.analysis.service;
 import org.springframework.stereotype.Service;
 import org.whitedoggy.mapleweb2.analysis.data.DataSheet;
 import org.whitedoggy.mapleweb2.domain.common.stat.StatSheet;
-import org.whitedoggy.mapleweb2.domain.item.data.ItemSheet;
 import org.whitedoggy.mapleweb2.domain.item.data.ItemSnapShot;
 
 import java.lang.reflect.Field;

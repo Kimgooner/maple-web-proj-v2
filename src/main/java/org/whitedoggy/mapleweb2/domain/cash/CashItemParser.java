@@ -6,7 +6,6 @@ import org.whitedoggy.mapleweb2.domain.common.stat.StatSheet;
 import org.whitedoggy.mapleweb2.domain.common.stat.StatSheetParser;
 import org.whitedoggy.mapleweb2.domain.item.data.ItemRecord;
 import org.whitedoggy.mapleweb2.domain.common.support.EffectTextSplitter;
-import org.whitedoggy.mapleweb2.domain.item.data.ItemSheet;
 import org.whitedoggy.mapleweb2.domain.item.data.ItemSnapShot;
 import org.whitedoggy.mapleweb2.global.Jsons;
 import tools.jackson.databind.JsonNode;
@@ -26,10 +25,9 @@ public class CashItemParser {
         String expired = Jsons.text(item, "date_option_expire");
         JsonNode options = item.get("cash_item_option");
 
-        ItemSheet itemSheet = new ItemSheet(itemName);
+        ItemSnapShot snapShot = new ItemSnapShot(itemName, itemIcon);
         StatSheet statSheet = new StatSheet(itemSlot);
 
-        itemSheet.setItemIcon(itemIcon);
         if(!expired.equals("expired")) {
             List<String> effects = new ArrayList<>();
             for (JsonNode option : options) {
@@ -40,9 +38,10 @@ public class CashItemParser {
             statSheet.merge(statSheetParser.parse(effects));
         }
         else{
-            itemSheet.setExpired("옵션 기간 만료");
+            snapShot.setExpired("옵션 기간 만료");
         }
-        return new ItemRecord(itemSlot, new ItemSnapShot(itemSheet, statSheet));
+        snapShot.setStatSheet(statSheet);
+        return new ItemRecord(itemSlot, snapShot);
     }
 
     public List<String> getCashStatEffect(JsonNode cash) {

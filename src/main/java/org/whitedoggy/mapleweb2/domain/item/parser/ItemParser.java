@@ -6,7 +6,6 @@ import org.whitedoggy.mapleweb2.domain.common.stat.StatSheet;
 import org.whitedoggy.mapleweb2.domain.common.stat.StatSheetParser;
 import org.whitedoggy.mapleweb2.domain.common.support.EffectTextSplitter;
 import org.whitedoggy.mapleweb2.domain.item.data.ItemRecord;
-import org.whitedoggy.mapleweb2.domain.item.data.ItemSheet;
 import org.whitedoggy.mapleweb2.domain.item.data.ItemSnapShot;
 import org.whitedoggy.mapleweb2.domain.item.support.BowNormalization;
 import org.whitedoggy.mapleweb2.domain.item.support.WeaponAddOptionTable;
@@ -40,7 +39,7 @@ public class ItemParser {
         String description = Jsons.text(item, "title_description");
         String itemSlot = "칭호";
 
-        ItemSheet itemSheet = new ItemSheet(itemName);
+        ItemSnapShot snapShot = new ItemSnapShot(itemName, itemIcon);
         StatSheet statSheet = new StatSheet(itemName);
 
         List<String> effects = new ArrayList<>();
@@ -48,14 +47,11 @@ public class ItemParser {
             EffectTextSplitter.addSplit(effects, description);
         }
         else{
-            itemSheet.setExpired("옵션 기간 만료");
+            snapShot.setExpired("옵션 기간 만료");
         }
-
-        itemSheet.setItemIcon(itemIcon);
-        itemSheet.setItemDescription(description);
         statSheet.merge(statSheetParser.parse(effects));
-
-        return new ItemRecord(itemSlot, new ItemSnapShot(itemSheet, statSheet));
+        snapShot.setStatSheet(statSheet);
+        return new ItemRecord(itemSlot, snapShot);
     }
 
     private ItemRecord getSubWeaponItemSnapShot(JsonNode item, String characterClass){
@@ -69,8 +65,12 @@ public class ItemParser {
         String p_grade = Jsons.text(item, "potential_option_grade");
         String ap_grade = Jsons.text(item, "addtional_potential_option_grade");
 
-        ItemSheet itemSheet = new ItemSheet(itemName);
+        ItemSnapShot snapShot = new ItemSnapShot(itemName, itemIcon);
         StatSheet statSheet = new StatSheet(itemName);
+
+        snapShot.setStarForce(starForce);
+        snapShot.setP_grade(p_grade);
+        snapShot.setAp_grade(ap_grade);
 
         List<String> effects = new ArrayList<>();
         List<String> totalOptions = new ArrayList<>();
@@ -102,19 +102,10 @@ public class ItemParser {
             EffectTextSplitter.addSplit(effects, option);
             additionalPotentialOptions.add(option);
         }
-
-        itemSheet.setItemIcon(itemIcon);
-        itemSheet.setStarForce(starForce);
-        itemSheet.setItemTotalOption(totalOptions);
-
-        itemSheet.setPotentialGrade(p_grade);
-        itemSheet.setItemPotentialOption(potentialOptions);
-
-        itemSheet.setAdditionalPotentialGrade(ap_grade);
-        itemSheet.setItemAdditionalPotentialOption(additionalPotentialOptions);
-
         statSheet.merge(statSheetParser.parse(effects));
-        return new ItemRecord(itemSlot, new ItemSnapShot(itemSheet, statSheet));
+        snapShot.setStatSheet(statSheet);
+
+        return new ItemRecord(itemSlot, snapShot);
     }
 
     private ItemRecord getWeaponItemSnapShot(JsonNode item, String characterClass){
@@ -129,8 +120,12 @@ public class ItemParser {
         String p_grade = Jsons.text(item, "potential_option_grade");
         String ap_grade = Jsons.text(item, "additional_potential_option_grade");
 
-        ItemSheet itemSheet = new ItemSheet(itemName);
+        ItemSnapShot snapShot = new ItemSnapShot(itemName, itemIcon);
         StatSheet statSheet = new StatSheet(itemName);
+
+        snapShot.setStarForce(starForce);
+        snapShot.setP_grade(p_grade);
+        snapShot.setAp_grade(ap_grade);
 
         List<String> effects = new ArrayList<>();
         List<String> totalOptions = new ArrayList<>();
@@ -166,19 +161,10 @@ public class ItemParser {
             EffectTextSplitter.addSplit(effects, option);
             additionalPotentialOptions.add(option);
         }
-
-        itemSheet.setItemIcon(itemIcon);
-        itemSheet.setStarForce(starForce);
-        itemSheet.setItemTotalOption(totalOptions);
-
-        itemSheet.setPotentialGrade(p_grade);
-        itemSheet.setItemPotentialOption(potentialOptions);
-
-        itemSheet.setAdditionalPotentialGrade(ap_grade);
-        itemSheet.setItemAdditionalPotentialOption(additionalPotentialOptions);
-
         statSheet.merge(statSheetParser.parse(effects));
-        return new ItemRecord(itemSlot, new ItemSnapShot(itemSheet, statSheet));
+        snapShot.setStatSheet(statSheet);
+
+        return new ItemRecord(itemSlot, snapShot);
     }
 
     private ItemRecord getNormalItemSnapShot(JsonNode item){
@@ -194,8 +180,12 @@ public class ItemParser {
         String p_grade = Jsons.text(item, "potential_option_grade");
         String ap_grade = Jsons.text(item, "addtional_potential_option_grade");
 
-        ItemSheet itemSheet = new ItemSheet(itemName);
+        ItemSnapShot snapShot = new ItemSnapShot(itemName, itemIcon);
         StatSheet statSheet = new StatSheet(itemName);
+
+        snapShot.setStarForce(starForce);
+        snapShot.setP_grade(p_grade);
+        snapShot.setAp_grade(ap_grade);
 
         List<String> effects = new ArrayList<>();
         List<String> totalOptions = new ArrayList<>();
@@ -218,21 +208,10 @@ public class ItemParser {
 
         //다크 크리티컬 링 등 반영.
         EffectTextSplitter.addSplit(effects, itemDescription);
-
-        itemSheet.setItemIcon(itemIcon);
-        itemSheet.setStarForce(starForce);
-        itemSheet.setItemTotalOption(totalOptions);
-        itemSheet.setItemExceptionalOption(exceptionalOptions);
-        itemSheet.setItemDescription(itemDescription);
-
-        itemSheet.setPotentialGrade(p_grade);
-        itemSheet.setItemPotentialOption(potentialOptions);
-
-        itemSheet.setAdditionalPotentialGrade(ap_grade);
-        itemSheet.setItemAdditionalPotentialOption(additionalPotentialOptions);
-
         statSheet.merge(statSheetParser.parse(effects));
-        return new ItemRecord(itemSlot, new ItemSnapShot(itemSheet, statSheet));
+        snapShot.setStatSheet(statSheet);
+
+        return new ItemRecord(itemSlot, snapShot);
     }
 
     private void addStructuredOptionEffectsV2(List<String> l1, List<String> l2, JsonNode option) {

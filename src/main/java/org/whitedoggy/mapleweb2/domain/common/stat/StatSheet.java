@@ -197,8 +197,8 @@ public class StatSheet {
                 && ALL_STAT_PERCENT == 0
                 && ATTACK_POWER_PERCENT == 0
                 && MAGIC_POWER_PERCENT == 0
-                && DAMAGE == 0
-                && BOSS_DAMAGE == 0
+                && Double.compare(DAMAGE, 0.0) == 0
+                && Double.compare(BOSS_DAMAGE, 0.0) == 0
                 && Double.compare(CRITICAL_DAMAGE, 0.0) == 0
                 && Double.compare(FINAL_DAMAGE, 0.0) == 0;
     }
