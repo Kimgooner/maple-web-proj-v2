@@ -449,7 +449,7 @@
                 throw new Error(await response.text() || "조회에 실패했습니다.");
             }
 
-            const data = await response.json();
+            const data = normalizeResponse(await response.json());
             render(data);
             statusEl.textContent = "조회가 완료되었습니다.";
         } catch (error) {
@@ -459,6 +459,43 @@
 
     monthlyButton.addEventListener("click", () => loadHistory("monthly"));
     yearlyButton.addEventListener("click", () => loadHistory("yearly"));
+
+    function normalizeResponse(response) {
+        const entry = Array.isArray(response.entries) ? normalizeEntry(response.entries[0]) : null;
+        return {
+            ...response,
+            date: entry?.date ?? response.date,
+            currentPresetDataSheet: entry?.currentPresetDataSheet ?? null,
+            combatPresetDataSheet: entry?.combatPresetDataSheet ?? null
+        };
+    }
+
+    function normalizeEntry(entry) {
+        if (!entry) {
+            return null;
+        }
+        if (entry.currentPresetDataSheet || entry.combatPresetDataSheet) {
+            return entry;
+        }
+
+        const dataSheet = entry.dataSheet ?? {};
+        const estimatedCombatPower = Number(dataSheet.combatPower ?? 0);
+        const summary = {
+            estimatedCombatPower,
+            currentCombatPower: null,
+            difference: null,
+            errorRatePercent: null,
+            lucidTransformSuspected: Boolean(dataSheet.lucidTransformSuspected),
+            changeSummary: null
+        };
+
+        return {
+            ...entry,
+            dataSheet,
+            currentPresetDataSheet: summary,
+            combatPresetDataSheet: summary
+        };
+    }
 
     function render(data) {
         summaryEl.innerHTML = `
@@ -531,7 +568,10 @@
                 throw new Error(await response.text() || "조회에 실패했습니다.");
             }
 
-            const rows = await response.json();
+            const responseBody = await response.json();
+            const rows = Array.isArray(responseBody.entries)
+                ? responseBody.entries.map((entry) => ({ ...normalizeEntry(entry), characterClass: responseBody.characterClass }))
+                : [];
             renderHistory(type, rows);
             renderHistoryDiff(type, rows);
             statusEl.textContent = "조회가 완료되었습니다.";
@@ -646,12 +686,96 @@
                 currentCombatPower,
                 deltaCombatPower: currentCombatPower - previousCombatPower,
                 cumulativeDeltaCombatPower: currentCombatPower - firstCombatPower,
-                changeSummary: currentRow.combatPresetDataSheet?.changeSummary ?? null,
+                changeSummary: currentRow.combatPresetDataSheet?.changeSummary
+                    ?? buildChangeSummary(previousRow.dataSheet, currentRow.dataSheet),
                 lucidTransformSuspected: Boolean(currentRow.combatPresetDataSheet?.lucidTransformSuspected)
             });
         }
 
         return diffs;
+    }
+
+    const statFields = [
+        "STR", "DEX", "INT", "LUK", "HP", "ALL_STAT",
+        "STR_PER_LEVEL9", "DEX_PER_LEVEL9", "INT_PER_LEVEL9", "LUK_PER_LEVEL9",
+        "STR_NO_PERCENT", "DEX_NO_PERCENT", "INT_NO_PERCENT", "LUK_NO_PERCENT", "HP_NO_PERCENT", "ALL_STAT_NO_PERCENT",
+        "ATTACK_POWER", "MAGIC_POWER",
+        "STR_PERCENT", "DEX_PERCENT", "INT_PERCENT", "LUK_PERCENT", "HP_PERCENT", "ALL_STAT_PERCENT",
+        "ATTACK_POWER_PERCENT", "MAGIC_POWER_PERCENT",
+        "DAMAGE", "BOSS_DAMAGE", "CRITICAL_DAMAGE", "FINAL_DAMAGE"
+    ];
+
+    const coreSheetNames = [
+        "abilityPoint", "symbol", "skill", "hexaStat", "ability", "hyperStat", "setEffect",
+        "unionOccupied", "unionRaider", "unionArtifact", "unionChampion"
+    ];
+
+    function buildChangeSummary(previousDataSheet, currentDataSheet) {
+        if (!previousDataSheet || !currentDataSheet) {
+            return null;
+        }
+
+        return {
+            coreChanges: coreSheetNames
+                .map((name) => buildCoreChange(name, previousDataSheet[name], currentDataSheet[name]))
+                .filter(Boolean)
+                .sort((left, right) => right.weight - left.weight)
+                .slice(0, 6),
+            petChanges: buildSlotChanges(previousDataSheet.petEquip, currentDataSheet.petEquip, 3),
+            cashChanges: buildSlotChanges(previousDataSheet.cashEquip, currentDataSheet.cashEquip, 3),
+            itemChanges: buildSlotChanges(previousDataSheet.itemEquip, currentDataSheet.itemEquip, 5)
+        };
+    }
+
+    function buildCoreChange(source, beforeSheet, afterSheet) {
+        const deltas = statDeltas(beforeSheet, afterSheet, 3);
+        if (!deltas.length) {
+            return null;
+        }
+        return { source, deltas, weight: deltaWeight(deltas) };
+    }
+
+    function buildSlotChanges(beforeItems = {}, afterItems = {}, limit) {
+        const slots = [...new Set([...Object.keys(beforeItems ?? {}), ...Object.keys(afterItems ?? {})])];
+        return slots
+            .map((slot) => buildSlotChange(slot, beforeItems?.[slot], afterItems?.[slot]))
+            .filter(Boolean)
+            .sort((left, right) => right.weight - left.weight)
+            .slice(0, limit);
+    }
+
+    function buildSlotChange(slot, beforeItem, afterItem) {
+        const deltas = statDeltas(beforeItem?.statSheet, afterItem?.statSheet, 15);
+        const sameName = beforeItem && afterItem && beforeItem.itemName === afterItem.itemName;
+        if (sameName && !deltas.length) {
+            return null;
+        }
+
+        return {
+            slot,
+            changeType: !beforeItem ? "ADDED" : !afterItem ? "REMOVED" : sameName ? "STAT_CHANGED" : "REPLACED",
+            previousItemName: beforeItem?.itemName ?? null,
+            currentItemName: afterItem?.itemName ?? null,
+            previousItemIcon: beforeItem?.itemIcon ?? null,
+            currentItemIcon: afterItem?.itemIcon ?? null,
+            deltas,
+            weight: deltaWeight(deltas)
+        };
+    }
+
+    function statDeltas(beforeSheet = {}, afterSheet = {}, limit) {
+        return statFields
+            .map((field) => ({
+                statName: field,
+                delta: Number(afterSheet?.[field] ?? 0) - Number(beforeSheet?.[field] ?? 0)
+            }))
+            .filter((delta) => delta.delta !== 0)
+            .sort((left, right) => Math.abs(right.delta) - Math.abs(left.delta))
+            .slice(0, limit);
+    }
+
+    function deltaWeight(deltas) {
+        return deltas.reduce((sum, delta) => sum + Math.floor(Math.abs(delta.delta)), 0);
     }
 
     function renderHistoryDiffRow(diff) {

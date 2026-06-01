@@ -11,10 +11,15 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 public class DataSheetCompareService {
-    private static final String ITEM_INFO_DELIMITER = "|||";
+    private static final List<String> RING_SLOTS = List.of("반지1", "반지2", "반지3", "반지4");
+    private static final List<String> PENDANT_SLOTS = List.of("펜던트", "펜던트2");
+    private static final Set<String> FLEXIBLE_ITEM_SLOTS = Set.of(
+            "반지1", "반지2", "반지3", "반지4", "펜던트", "펜던트2"
+    );
 
     private static final List<StatField> STAT_FIELDS = List.of(
             new StatField("STR", "STR"),
@@ -23,6 +28,10 @@ public class DataSheetCompareService {
             new StatField("LUK", "LUK"),
             new StatField("HP", "HP"),
             new StatField("ALL_STAT", "ALL_STAT"),
+            new StatField("STR_PER_LEVEL9", "STR_PER_LEVEL9"),
+            new StatField("DEX_PER_LEVEL9", "DEX_PER_LEVEL9"),
+            new StatField("INT_PER_LEVEL9", "INT_PER_LEVEL9"),
+            new StatField("LUK_PER_LEVEL9", "LUK_PER_LEVEL9"),
             new StatField("STR_NO_PERCENT", "STR_NO_PERCENT"),
             new StatField("DEX_NO_PERCENT", "DEX_NO_PERCENT"),
             new StatField("INT_NO_PERCENT", "INT_NO_PERCENT"),
@@ -100,49 +109,170 @@ public class DataSheetCompareService {
         }
 
         StatSheet delta = after.minus(before);
-        List<StatDelta> statDeltas = summarizeStatDelta(delta, 3);
-        if (statDeltas.isEmpty()) {
+        if (delta.isZero()) {
             return;
         }
 
+        List<StatDelta> statDeltas = summarizeStatDelta(delta, 3);
         summaries.add(new ChangeSummary(label, statDeltas, weight(statDeltas)));
     }
 
     private List<SlotChangeSummary> summarizeItemChanges(Map<String, ItemSnapShot> before, Map<String, ItemSnapShot> after, int limit) {
-        if (before == null || after == null) {
-            return List.of();
-        }
+        Map<String, ItemSnapShot> beforeItems = before == null ? Map.of() : before;
+        Map<String, ItemSnapShot> afterItems = after == null ? Map.of() : after;
 
+        List<SlotChangeSummary> changes = new ArrayList<>();
+        changes.addAll(summarizeFlexibleSlotGroup(beforeItems, afterItems, RING_SLOTS));
+        changes.addAll(summarizeFlexibleSlotGroup(beforeItems, afterItems, PENDANT_SLOTS));
+        changes.addAll(summarizeFixedSlots(beforeItems, afterItems));
+
+        return changes.stream()
+                .sorted((left, right) -> Integer.compare(right.weight(), left.weight()))
+                .limit(limit)
+                .toList();
+    }
+
+    private List<SlotChangeSummary> summarizeFixedSlots(
+            Map<String, ItemSnapShot> before,
+            Map<String, ItemSnapShot> after
+    ) {
         Map<String, ItemSnapShot> all = new LinkedHashMap<>();
         all.putAll(before);
         after.forEach(all::putIfAbsent);
 
         List<SlotChangeSummary> changes = new ArrayList<>();
         for (String slot : all.keySet()) {
-            ItemSnapShot beforeItem = before.get(slot);
-            ItemSnapShot afterItem = after.get(slot);
-            StatSheet beforeSheet = beforeItem == null ? new StatSheet(slot + " before") : beforeItem.getStatSheet();
-            StatSheet afterSheet = afterItem == null ? new StatSheet(slot + " after") : afterItem.getStatSheet();
-            List<StatDelta> deltas = summarizeStatDelta(afterSheet.minus(beforeSheet), 15);
-
-            if (deltas.isEmpty()) {
+            if (FLEXIBLE_ITEM_SLOTS.contains(slot)) {
                 continue;
             }
 
-            changes.add(new SlotChangeSummary(
+            SlotChangeSummary change = compareMatchedItems(
                     slot,
-                    changeType(beforeItem, afterItem),
-                    encodeItemInfo(beforeItem),
-                    encodeItemInfo(afterItem),
-                    deltas,
-                    weight(deltas)
-            ));
+                    slot,
+                    before.get(slot),
+                    after.get(slot)
+            );
+            if (change != null) {
+                changes.add(change);
+            }
+        }
+        return changes;
+    }
+
+    private List<SlotChangeSummary> summarizeFlexibleSlotGroup(
+            Map<String, ItemSnapShot> before,
+            Map<String, ItemSnapShot> after,
+            List<String> slots
+    ) {
+        List<EquippedItem> beforeItems = equippedItems(before, slots);
+        List<EquippedItem> unmatchedAfterItems = new ArrayList<>(equippedItems(after, slots));
+        List<SlotChangeSummary> changes = new ArrayList<>();
+
+        for (EquippedItem beforeItem : beforeItems) {
+            EquippedItem sameItem = findSameItem(beforeItem, unmatchedAfterItems);
+            if (sameItem != null) {
+                unmatchedAfterItems.remove(sameItem);
+                SlotChangeSummary change = compareMatchedItems(
+                        beforeItem.slot(),
+                        sameItem.slot(),
+                        beforeItem.itemSnapShot(),
+                        sameItem.itemSnapShot()
+                );
+                if (change != null) {
+                    changes.add(change);
+                }
+                continue;
+            }
+
+            if (!unmatchedAfterItems.isEmpty()) {
+                EquippedItem afterItem = unmatchedAfterItems.remove(0);
+                changes.add(buildSlotChange(
+                        beforeItem.slot(),
+                        afterItem.slot(),
+                        "REPLACED",
+                        beforeItem.itemSnapShot(),
+                        afterItem.itemSnapShot()
+                ));
+                continue;
+            }
+
+            changes.add(buildSlotChange(beforeItem.slot(), null, "REMOVED", beforeItem.itemSnapShot(), null));
         }
 
-        return changes.stream()
-                .sorted((left, right) -> Integer.compare(right.weight(), left.weight()))
-                .limit(limit)
-                .toList();
+        for (EquippedItem afterItem : unmatchedAfterItems) {
+            changes.add(buildSlotChange(null, afterItem.slot(), "ADDED", null, afterItem.itemSnapShot()));
+        }
+
+        return changes;
+    }
+
+    private List<EquippedItem> equippedItems(Map<String, ItemSnapShot> itemsBySlot, List<String> slots) {
+        List<EquippedItem> items = new ArrayList<>();
+        for (String slot : slots) {
+            ItemSnapShot itemSnapShot = itemsBySlot.get(slot);
+            if (itemSnapShot != null) {
+                items.add(new EquippedItem(slot, itemSnapShot));
+            }
+        }
+        return items;
+    }
+
+    private EquippedItem findSameItem(EquippedItem beforeItem, List<EquippedItem> afterItems) {
+        String itemName = beforeItem.itemSnapShot().getItemName();
+        if (itemName == null || itemName.isBlank()) {
+            return null;
+        }
+
+        for (EquippedItem afterItem : afterItems) {
+            if (itemName.equals(afterItem.itemSnapShot().getItemName())) {
+                return afterItem;
+            }
+        }
+        return null;
+    }
+
+    private SlotChangeSummary compareMatchedItems(
+            String previousSlot,
+            String currentSlot,
+            ItemSnapShot beforeItem,
+            ItemSnapShot afterItem
+    ) {
+        if (beforeItem == null && afterItem == null) {
+            return null;
+        }
+
+        StatSheet delta = statSheet(afterItem, displaySlot(previousSlot, currentSlot) + " after")
+                .minus(statSheet(beforeItem, displaySlot(previousSlot, currentSlot) + " before"));
+        if (sameItemName(beforeItem, afterItem) && delta.isZero()) {
+            return null;
+        }
+
+        return buildSlotChange(previousSlot, currentSlot, changeType(beforeItem, afterItem), beforeItem, afterItem);
+    }
+
+    private SlotChangeSummary buildSlotChange(
+            String previousSlot,
+            String currentSlot,
+            String changeType,
+            ItemSnapShot beforeItem,
+            ItemSnapShot afterItem
+    ) {
+        String displaySlot = displaySlot(previousSlot, currentSlot);
+        StatSheet delta = statSheet(afterItem, displaySlot + " after").minus(statSheet(beforeItem, displaySlot + " before"));
+        List<StatDelta> deltas = delta.isZero() ? List.of() : summarizeStatDelta(delta, 15);
+
+        return new SlotChangeSummary(
+                displaySlot,
+                previousSlot,
+                currentSlot,
+                changeType,
+                itemName(beforeItem),
+                itemName(afterItem),
+                itemIcon(beforeItem),
+                itemIcon(afterItem),
+                deltas,
+                weight(deltas)
+        );
     }
 
     private String changeType(ItemSnapShot beforeItem, ItemSnapShot afterItem) {
@@ -152,7 +282,44 @@ public class DataSheetCompareService {
         if (afterItem == null) {
             return "REMOVED";
         }
-        return "CHANGED";
+        if (!sameItemName(beforeItem, afterItem)) {
+            return "REPLACED";
+        }
+        return "STAT_CHANGED";
+    }
+
+    private StatSheet statSheet(ItemSnapShot itemSnapShot, String sheetName) {
+        if (itemSnapShot == null || itemSnapShot.getStatSheet() == null) {
+            return new StatSheet(sheetName);
+        }
+        return itemSnapShot.getStatSheet();
+    }
+
+    private boolean sameItemName(ItemSnapShot beforeItem, ItemSnapShot afterItem) {
+        if (beforeItem == null || afterItem == null) {
+            return false;
+        }
+        String beforeName = beforeItem.getItemName();
+        String afterName = afterItem.getItemName();
+        return beforeName != null && beforeName.equals(afterName);
+    }
+
+    private String itemName(ItemSnapShot itemSnapShot) {
+        return itemSnapShot == null ? null : itemSnapShot.getItemName();
+    }
+
+    private String itemIcon(ItemSnapShot itemSnapShot) {
+        return itemSnapShot == null ? null : itemSnapShot.getItemIcon();
+    }
+
+    private String displaySlot(String previousSlot, String currentSlot) {
+        if (previousSlot == null) {
+            return currentSlot;
+        }
+        if (currentSlot == null || previousSlot.equals(currentSlot)) {
+            return previousSlot;
+        }
+        return previousSlot + " -> " + currentSlot;
     }
 
     private List<StatDelta> summarizeStatDelta(StatSheet delta, int limit) {
@@ -193,17 +360,6 @@ public class DataSheetCompareService {
         }
     }
 
-    private String encodeItemInfo(ItemSnapShot itemSnapShot) {
-        if (itemSnapShot == null || itemSnapShot.getItemSheet() == null) {
-            return ITEM_INFO_DELIMITER;
-        }
-
-        ItemSheet itemSheet = itemSnapShot.getItemSheet();
-        String name = itemSheet.getItemName() == null ? "" : itemSheet.getItemName();
-        String icon = itemSheet.getItemIcon() == null ? "" : itemSheet.getItemIcon();
-        return name + ITEM_INFO_DELIMITER + icon;
-    }
-
     public record CombatPresetDiff(
             LocalDate previousDate,
             LocalDate currentDate,
@@ -226,9 +382,13 @@ public class DataSheetCompareService {
 
     public record SlotChangeSummary(
             String slot,
+            String previousSlot,
+            String currentSlot,
             String changeType,
             String previousItemName,
             String currentItemName,
+            String previousItemIcon,
+            String currentItemIcon,
             List<StatDelta> deltas,
             int weight
     ) {
@@ -243,6 +403,12 @@ public class DataSheetCompareService {
     private record StatField(
             String fieldName,
             String label
+    ) {
+    }
+
+    private record EquippedItem(
+            String slot,
+            ItemSnapShot itemSnapShot
     ) {
     }
 }

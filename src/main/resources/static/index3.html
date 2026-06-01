@@ -777,13 +777,13 @@
 
         try {
             const response = await fetchJson(`/api/analysis/combat-power/${range}?characterName=${encodeURIComponent(characterName)}`);
-            state.historyRows = Array.isArray(response.entries) ? response.entries : [];
+            state.historyRows = Array.isArray(response.entries) ? response.entries.map(normalizeEntry) : [];
             state.activeIndex = Math.max(0, state.historyRows.length - 1);
             dashboardEl.hidden = false;
             if (!state.currentSummary) {
                 renderSummaryFromHistory(response);
-                renderInsightsFromHistory(response.entries);
-                renderWarningFromHistory(response.entries);
+                renderInsightsFromHistory(state.historyRows);
+                renderWarningFromHistory(state.historyRows);
             }
             renderHistorySection();
             statusEl.textContent = `${range === "monthly" ? "월간" : "연간"} 변화 데이터 조회가 완료되었습니다.`;
@@ -800,8 +800,35 @@
         return response.json();
     }
 
+    function normalizeEntry(entry) {
+        if (!entry) {
+            return null;
+        }
+        if (entry.currentPresetDataSheet || entry.combatPresetDataSheet) {
+            return entry;
+        }
+
+        const dataSheet = entry.dataSheet ?? {};
+        const estimatedCombatPower = Number(dataSheet.combatPower ?? 0);
+        const summary = {
+            estimatedCombatPower,
+            currentCombatPower: null,
+            difference: null,
+            errorRatePercent: null,
+            lucidTransformSuspected: Boolean(dataSheet.lucidTransformSuspected),
+            changeSummary: null
+        };
+
+        return {
+            ...entry,
+            dataSheet,
+            currentPresetDataSheet: summary,
+            combatPresetDataSheet: summary
+        };
+    }
+
     function renderSummary(data) {
-        const entry = Array.isArray(data.entries) ? data.entries[0] : null;
+        const entry = Array.isArray(data.entries) ? normalizeEntry(data.entries[0]) : null;
         const current = entry?.currentPresetDataSheet;
         const combat = entry?.combatPresetDataSheet;
         const date = entry?.date ?? "-";
@@ -837,7 +864,7 @@
     }
 
     function renderWarning(data) {
-        const entry = Array.isArray(data.entries) ? data.entries[0] : null;
+        const entry = Array.isArray(data.entries) ? normalizeEntry(data.entries[0]) : null;
         const current = entry?.currentPresetDataSheet?.lucidTransformSuspected;
         const combat = entry?.combatPresetDataSheet?.lucidTransformSuspected;
         if (!current && !combat) {
@@ -851,7 +878,7 @@
     }
 
     function renderInsights(data) {
-        const entry = Array.isArray(data.entries) ? data.entries[0] : null;
+        const entry = Array.isArray(data.entries) ? normalizeEntry(data.entries[0]) : null;
         const current = entry?.currentPresetDataSheet;
         const combat = entry?.combatPresetDataSheet;
         const date = entry?.date ?? "-";
@@ -876,7 +903,7 @@
     }
 
     function renderSummaryFromHistory(response) {
-        const rows = Array.isArray(response?.entries) ? response.entries : [];
+        const rows = Array.isArray(response?.entries) ? response.entries.map(normalizeEntry) : [];
         const latest = rows.length ? rows[rows.length - 1] : null;
         if (!latest) {
             summaryGridEl.innerHTML = `
@@ -994,7 +1021,8 @@
             const currentRow = rows[index];
             const previousCombatPower = Number(previousRow.combatPresetDataSheet?.estimatedCombatPower ?? 0);
             const currentCombatPower = Number(currentRow.combatPresetDataSheet?.estimatedCombatPower ?? 0);
-            const changeSummary = currentRow.combatPresetDataSheet?.changeSummary ?? null;
+            const changeSummary = currentRow.combatPresetDataSheet?.changeSummary
+                ?? buildChangeSummary(previousRow.dataSheet, currentRow.dataSheet);
 
             diffs.push({
                 index: diffs.length,
@@ -1029,6 +1057,91 @@
         ];
 
         return groups.filter((group) => group.value);
+    }
+
+    const statFields = [
+        "STR", "DEX", "INT", "LUK", "HP", "ALL_STAT",
+        "STR_PER_LEVEL9", "DEX_PER_LEVEL9", "INT_PER_LEVEL9", "LUK_PER_LEVEL9",
+        "STR_NO_PERCENT", "DEX_NO_PERCENT", "INT_NO_PERCENT", "LUK_NO_PERCENT", "HP_NO_PERCENT", "ALL_STAT_NO_PERCENT",
+        "ATTACK_POWER", "MAGIC_POWER",
+        "STR_PERCENT", "DEX_PERCENT", "INT_PERCENT", "LUK_PERCENT", "HP_PERCENT", "ALL_STAT_PERCENT",
+        "ATTACK_POWER_PERCENT", "MAGIC_POWER_PERCENT",
+        "DAMAGE", "BOSS_DAMAGE", "CRITICAL_DAMAGE", "FINAL_DAMAGE"
+    ];
+
+    const coreSheetNames = [
+        "abilityPoint", "symbol", "skill", "hexaStat", "ability", "hyperStat", "setEffect",
+        "unionOccupied", "unionRaider", "unionArtifact", "unionChampion"
+    ];
+
+    function buildChangeSummary(previousDataSheet, currentDataSheet) {
+        if (!previousDataSheet || !currentDataSheet) {
+            return null;
+        }
+
+        return {
+            coreChanges: coreSheetNames
+                .map((name) => buildCoreChange(name, previousDataSheet[name], currentDataSheet[name]))
+                .filter(Boolean)
+                .sort((left, right) => right.weight - left.weight)
+                .slice(0, 6),
+            petChanges: buildSlotChanges(previousDataSheet.petEquip, currentDataSheet.petEquip, 3),
+            cashChanges: buildSlotChanges(previousDataSheet.cashEquip, currentDataSheet.cashEquip, 3),
+            itemChanges: buildSlotChanges(previousDataSheet.itemEquip, currentDataSheet.itemEquip, 5)
+        };
+    }
+
+    function buildCoreChange(source, beforeSheet, afterSheet) {
+        const deltas = statDeltas(beforeSheet, afterSheet, 3);
+        if (!deltas.length) {
+            return null;
+        }
+        return { source, deltas, weight: deltaWeight(deltas) };
+    }
+
+    function buildSlotChanges(beforeItems = {}, afterItems = {}, limit) {
+        const slots = [...new Set([...Object.keys(beforeItems ?? {}), ...Object.keys(afterItems ?? {})])];
+        return slots
+            .map((slot) => buildSlotChange(slot, beforeItems?.[slot], afterItems?.[slot]))
+            .filter(Boolean)
+            .sort((left, right) => right.weight - left.weight)
+            .slice(0, limit);
+    }
+
+    function buildSlotChange(slot, beforeItem, afterItem) {
+        const deltas = statDeltas(beforeItem?.statSheet, afterItem?.statSheet, 15);
+        const sameName = beforeItem && afterItem && beforeItem.itemName === afterItem.itemName;
+        if (sameName && !deltas.length) {
+            return null;
+        }
+
+        return {
+            slot,
+            previousSlot: beforeItem ? slot : null,
+            currentSlot: afterItem ? slot : null,
+            changeType: !beforeItem ? "ADDED" : !afterItem ? "REMOVED" : sameName ? "STAT_CHANGED" : "REPLACED",
+            previousItemName: beforeItem?.itemName ?? null,
+            currentItemName: afterItem?.itemName ?? null,
+            previousItemIcon: beforeItem?.itemIcon ?? null,
+            currentItemIcon: afterItem?.itemIcon ?? null,
+            deltas,
+            weight: deltaWeight(deltas)
+        };
+    }
+
+    function statDeltas(beforeSheet = {}, afterSheet = {}, limit) {
+        return statFields
+            .map((field) => ({
+                statName: field,
+                delta: Number(afterSheet?.[field] ?? 0) - Number(beforeSheet?.[field] ?? 0)
+            }))
+            .filter((delta) => delta.delta !== 0)
+            .sort((left, right) => Math.abs(right.delta) - Math.abs(left.delta))
+            .slice(0, limit);
+    }
+
+    function deltaWeight(deltas) {
+        return deltas.reduce((sum, delta) => sum + Math.floor(Math.abs(delta.delta)), 0);
     }
 
     function flattenSlotChanges(groupLabel, changes) {

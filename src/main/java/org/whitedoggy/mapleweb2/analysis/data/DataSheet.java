@@ -29,7 +29,7 @@ public class DataSheet {
     StatSheet unionRaider;
 
     //종합 시트
-    StatSheet sumSheet;
+    StatSheet sumSheet = new StatSheet("종합");
     Long combatPower;
 
     boolean lucidTransformSuspected;

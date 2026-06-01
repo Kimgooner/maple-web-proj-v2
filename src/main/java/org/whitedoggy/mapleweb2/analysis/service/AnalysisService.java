@@ -177,9 +177,13 @@ public class AnalysisService {
     private ChangeSlotSummary toSlotSummary(DataSheetCompareService.SlotChangeSummary changeSummary) {
         return new ChangeSlotSummary(
                 changeSummary.slot(),
+                changeSummary.previousSlot(),
+                changeSummary.currentSlot(),
                 changeSummary.changeType(),
                 changeSummary.previousItemName(),
                 changeSummary.currentItemName(),
+                changeSummary.previousItemIcon(),
+                changeSummary.currentItemIcon(),
                 changeSummary.deltas().stream().map(this::toStatDeltaSummary).toList()
         );
     }

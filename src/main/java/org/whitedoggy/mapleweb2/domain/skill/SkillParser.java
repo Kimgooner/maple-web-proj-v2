@@ -17,7 +17,8 @@ public class SkillParser {
     private static final Set<String> DIRECT_SKILL_NAMES = Set.of(
             "파괴의 얄다바오트",
             "초월 : 결전의 의지",
-            "메이플 스위츠"
+            "메이플 스위츠",
+            "썸머 파워업"
     );
 
     public SkillParseResult getCombatRelevantSkillEffects(JsonNode skill0) {
