@@ -36,7 +36,6 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -65,11 +64,11 @@ public class DataSheetService {
     private final MapleCache cache;
 
     public Mono<DataSheet> getOrLoadDataSheet(
-            String characterName,
+            String ocid,
             LocalDate date,
             Supplier<Mono<CharacterSnapshot>> snapshotLoader
     ) {
-        String cacheKey = dataSheetCacheKey(characterName, date);
+        String cacheKey = dataSheetCacheKey(ocid, date);
         return cache.getOrLoad(cacheKey, DataSheet.class, DATASHEET_CACHE_TTL,
                 () -> snapshotLoader.get().map(this::getCombatDataSheet));
     }
@@ -304,11 +303,11 @@ public class DataSheetService {
         return statSheetParser.parseNoPercentStat(raiderParser.getUnionRaiderStatByPreset(node, presetNo), "unionRaider");
     }
 
-    private String dataSheetCacheKey(String characterName, LocalDate date) {
-        return "maple:datasheet:v2:" + normalizeCharacterName(characterName) + ":" + date;
+    private String dataSheetCacheKey(String ocid, LocalDate date) {
+        return "maple:datasheet:v3:" + normalizeOcid(ocid) + ":" + date;
     }
 
-    private String normalizeCharacterName(String characterName) {
-        return characterName == null ? "" : characterName.trim().toLowerCase(Locale.ROOT);
+    private String normalizeOcid(String ocid) {
+        return ocid == null ? "" : ocid.trim();
     }
 }

@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ranking Sample Validation</title>
+    <style>
+        :root {
+            --bg: #f7f8fb;
+            --panel: #ffffff;
+            --line: #dde3ee;
+            --text: #18202f;
+            --muted: #667085;
+            --accent: #2563eb;
+            --accent-dark: #1d4ed8;
+            --ok: #15803d;
+            --warn: #b54708;
+            --danger: #b42318;
+            --danger-bg: #fff4f2;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: "Pretendard", "Noto Sans KR", Arial, sans-serif;
+        }
+
+        main {
+            width: min(980px, calc(100% - 32px));
+            margin: 0 auto;
+            padding: 36px 0 56px;
+        }
+
+        header {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        h1, h2, p {
+            margin: 0;
+        }
+
+        h1 {
+            font-size: 30px;
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            margin-top: 8px;
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        button {
+            border: 0;
+            border-radius: 8px;
+            background: var(--accent);
+            color: white;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 700;
+            padding: 12px 18px;
+        }
+
+        button:hover {
+            background: var(--accent-dark);
+        }
+
+        button:disabled {
+            cursor: not-allowed;
+            opacity: 0.62;
+        }
+
+        .status {
+            min-height: 22px;
+            margin: 12px 0 18px;
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .status.error {
+            width: fit-content;
+            max-width: 100%;
+            border: 1px solid #fecdca;
+            border-radius: 8px;
+            background: var(--danger-bg);
+            color: var(--danger);
+            padding: 10px 12px;
+        }
+
+        .groups {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 14px;
+        }
+
+        .group {
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: var(--panel);
+            padding: 16px;
+        }
+
+        .group-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        h2 {
+            font-size: 17px;
+        }
+
+        .count {
+            color: var(--muted);
+            font-size: 13px;
+            white-space: nowrap;
+        }
+
+        ol {
+            margin: 0;
+            padding-left: 22px;
+        }
+
+        li {
+            padding: 5px 0;
+            line-height: 1.4;
+        }
+
+        .result {
+            display: grid;
+            grid-template-columns: 1.1fr 1fr 1fr 1fr 0.7fr 0.8fr;
+            gap: 8px;
+            border-top: 1px solid var(--line);
+            padding: 10px 0;
+            align-items: center;
+            font-size: 13px;
+        }
+
+        .result:first-child {
+            border-top: 0;
+            padding-top: 0;
+        }
+
+        .field-name {
+            font-weight: 800;
+            word-break: keep-all;
+        }
+
+        .error-message {
+            grid-column: 1 / -1;
+            color: var(--danger);
+            font-size: 13px;
+        }
+
+        .table-head {
+            display: grid;
+            grid-template-columns: 1.1fr 1fr 1fr 1fr 0.7fr 0.8fr;
+            gap: 8px;
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 800;
+            padding-bottom: 8px;
+        }
+
+        .empty {
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        @media (max-width: 720px) {
+            .result,
+            .table-head {
+                grid-template-columns: 1fr;
+            }
+
+            .table-head {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+<main>
+    <header>
+        <div>
+            <h1>랭킹 샘플 캐릭터</h1>
+            <p class="subtitle">스카니아/current 기준 current preset 계산 결과를 API 전투력과 비교합니다.</p>
+        </div>
+        <button id="loadButton" type="button">전투력 검증하기</button>
+    </header>
+
+    <div id="status" class="status">버튼을 누르면 랭킹 샘플을 조회하고 전투력을 검증합니다.</div>
+    <section id="groups" class="groups" aria-live="polite"></section>
+</main>
+
+<script>
+    const loadButton = document.getElementById("loadButton");
+    const statusElement = document.getElementById("status");
+    const groupsElement = document.getElementById("groups");
+
+    loadButton.addEventListener("click", async () => {
+        loadButton.disabled = true;
+        statusElement.className = "status";
+        statusElement.textContent = "조회 중...";
+        groupsElement.innerHTML = "";
+
+        try {
+            const response = await fetch("/api/validation/combat-power");
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            const data = await response.json();
+            renderGroups(data);
+            statusElement.textContent = `조회 기준일: ${data.date ?? "current"}`;
+        } catch (error) {
+            statusElement.className = "status error";
+            statusElement.textContent = `조회 실패: ${error.message}`;
+        } finally {
+            loadButton.disabled = false;
+        }
+    });
+
+    function renderGroups(data) {
+        const groups = Array.isArray(data.groups) ? data.groups : [];
+        if (groups.length === 0) {
+            groupsElement.innerHTML = `<p class="empty">조회된 그룹이 없습니다.</p>`;
+            return;
+        }
+
+        groupsElement.innerHTML = groups.map(group => {
+            const results = Array.isArray(group.results) ? group.results : [];
+            const items = results
+                .map(result => renderResult(result))
+                .join("");
+
+            return `
+                <article class="group">
+                    <div class="group-header">
+                        <h2>${escapeHtml(group.groupName ?? "-")}</h2>
+                        <span class="count">${results.length}명</span>
+                    </div>
+                    ${items ? `
+                        <div class="table-head">
+                            <span>캐릭터 이름</span>
+                            <span>직업</span>
+                            <span>계산 current 전투력</span>
+                            <span>api current 전투력</span>
+                            <span>오차율</span>
+                            <span>flag</span>
+                        </div>
+                        ${items}
+                    ` : `<p class="empty">검증 결과 없음</p>`}
+                </article>
+            `;
+        }).join("");
+    }
+
+    function renderResult(result) {
+        const hasError = Boolean(result.errorMessage);
+        const errorRate = result.errorRatePercent == null ? "-" : `${result.errorRatePercent.toFixed(2)}%`;
+        const estimated = formatNumber(result.estimatedCombatPower);
+        const current = formatNumber(result.currentCombatPower);
+        const difference = formatNumber(result.difference);
+
+        return `
+            <div class="result">
+                <span class="field-name">${escapeHtml(result.characterName ?? "")}</span>
+                <span>${escapeHtml(result.className ?? "")}</span>
+                <span>${estimated}</span>
+                <span>${current}</span>
+                <span>${errorRate}</span>
+                <span>${result.lucidTransformSuspected ? "lucid" : "-"}</span>
+                ${hasError ? `<div class="error-message">${escapeHtml(result.errorMessage)}</div>` : ""}
+            </div>
+        `;
+    }
+
+    function formatNumber(value) {
+        if (value == null) {
+            return "-";
+        }
+        return Number(value).toLocaleString("ko-KR");
+    }
+
+    function escapeHtml(value) {
+        return String(value)
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
+    }
+</script>
+</body>
+</html>

@@ -462,8 +462,11 @@
 
     function normalizeResponse(response) {
         const entry = Array.isArray(response.entries) ? normalizeEntry(response.entries[0]) : null;
+        const character = characterInfo(response);
         return {
             ...response,
+            characterName: character.name,
+            characterClass: character.className,
             date: entry?.date ?? response.date,
             currentPresetDataSheet: entry?.currentPresetDataSheet ?? null,
             combatPresetDataSheet: entry?.combatPresetDataSheet ?? null
@@ -494,6 +497,17 @@
             dataSheet,
             currentPresetDataSheet: summary,
             combatPresetDataSheet: summary
+        };
+    }
+
+    function characterInfo(response) {
+        return response?.characterInfo ?? {
+            name: response?.characterName,
+            className: response?.characterClass,
+            level: response?.characterLevel,
+            guild: response?.characterGuild,
+            world: response?.characterWorld,
+            image: response?.characterImage
         };
     }
 
@@ -569,8 +583,9 @@
             }
 
             const responseBody = await response.json();
+            const character = characterInfo(responseBody);
             const rows = Array.isArray(responseBody.entries)
-                ? responseBody.entries.map((entry) => ({ ...normalizeEntry(entry), characterClass: responseBody.characterClass }))
+                ? responseBody.entries.map((entry) => ({ ...normalizeEntry(entry), characterClass: character.className }))
                 : [];
             renderHistory(type, rows);
             renderHistoryDiff(type, rows);

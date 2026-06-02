@@ -9,7 +9,9 @@ import org.whitedoggy.mapleweb2.analysis.dto.AnalysisCombatPowerResponse;
 import org.whitedoggy.mapleweb2.analysis.dto.AnalysisResponse;
 import org.whitedoggy.mapleweb2.analysis.dto.ChangeSlotSummary;
 import org.whitedoggy.mapleweb2.analysis.dto.ChangeSourceSummary;
+import org.whitedoggy.mapleweb2.analysis.dto.CharacterInfo;
 import org.whitedoggy.mapleweb2.analysis.dto.CombatPowerChangeSummary;
+import org.whitedoggy.mapleweb2.analysis.dto.CombatPowerDetailResponse;
 import org.whitedoggy.mapleweb2.analysis.dto.CombatPowerSummary;
 import org.whitedoggy.mapleweb2.analysis.dto.DataSheetByDate;
 import org.whitedoggy.mapleweb2.analysis.dto.StatDeltaSummary;
@@ -22,6 +24,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -29,6 +32,8 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class AnalysisService {
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
+
     private final DataSheetService dataSheetService;
     private final CombatCalculationService combatCalculationService;
     private final DataSheetCompareService dataSheetCompareService;
@@ -52,6 +57,24 @@ public class AnalysisService {
         return getAnalysis(characterName, "yearly");
     }
 
+    public Mono<CombatPowerDetailResponse> getCombatPowerDetail(
+            String ocid,
+            LocalDate previousDate,
+            LocalDate currentDate
+    ) {
+        return Mono.zip(
+                        getPreparedCombatDataSheet(ocid, previousDate),
+                        getPreparedCombatDataSheet(ocid, currentDate)
+                )
+                .map(tuple -> buildCombatPowerDetailResponse(
+                        ocid,
+                        previousDate,
+                        currentDate,
+                        tuple.getT1(),
+                        tuple.getT2()
+                ));
+    }
+
     public Mono<AnalysisResponse> getAnalysis(String characterName, String dateType) {
         AnalysisDates dates = dateService.getDates(dateType);
 
@@ -61,7 +84,7 @@ public class AnalysisService {
                                         Mono.just(buildPreparedEntry(todaySnapshot)),
                                         Flux.fromIterable(dates.historicalDates())
                                                 .concatMap(date -> dataSheetService.getOrLoadDataSheet(
-                                                                characterName,
+                                                                ocid,
                                                                 date,
                                                                 () -> snapshotService.getSnapshotByOcid(ocid, date)
                                                         )
@@ -88,13 +111,19 @@ public class AnalysisService {
     private AnalysisResponse buildAnalysisResponse(CharacterSnapshot todaySnapshot, List<DataSheetByDate> entries) {
         return new AnalysisResponse(
                 todaySnapshot.ocid(),
-                basicParser.characterName(todaySnapshot.document(NexonEndpoint.BASIC)),
-                basicParser.characterClass(todaySnapshot.document(NexonEndpoint.BASIC)),
-                basicParser.characterLevel(todaySnapshot.document(NexonEndpoint.BASIC)),
-                basicParser.characterGuild(todaySnapshot.document(NexonEndpoint.BASIC)),
-                basicParser.characterWorld(todaySnapshot.document(NexonEndpoint.BASIC)),
-                basicParser.characterImage(todaySnapshot.document(NexonEndpoint.BASIC)),
+                buildCharacterInfo(todaySnapshot),
                 entries
+        );
+    }
+
+    private CharacterInfo buildCharacterInfo(CharacterSnapshot snapshot) {
+        return new CharacterInfo(
+                basicParser.characterName(snapshot.document(NexonEndpoint.BASIC)),
+                basicParser.characterClass(snapshot.document(NexonEndpoint.BASIC)),
+                basicParser.characterLevel(snapshot.document(NexonEndpoint.BASIC)),
+                basicParser.characterGuild(snapshot.document(NexonEndpoint.BASIC)),
+                basicParser.characterWorld(snapshot.document(NexonEndpoint.BASIC)),
+                basicParser.characterImage(snapshot.document(NexonEndpoint.BASIC))
         );
     }
 
@@ -108,6 +137,38 @@ public class AnalysisService {
             entriesByDate.add(new DataSheetByDate(entry.date(), entry.combatDataSheet()));
         }
         return entriesByDate;
+    }
+
+    private Mono<DataSheet> getPreparedCombatDataSheet(String ocid, LocalDate date) {
+        return dataSheetService.getOrLoadDataSheet(
+                        ocid,
+                        date,
+                        () -> loadSnapshotByDate(ocid, date)
+                )
+                .map(this::prepareDataSheet);
+    }
+
+    private Mono<CharacterSnapshot> loadSnapshotByDate(String ocid, LocalDate date) {
+        if (LocalDate.now(KST).equals(date)) {
+            return snapshotService.getCurrentSnapshotByOcid(ocid, date);
+        }
+        return snapshotService.getSnapshotByOcid(ocid, date);
+    }
+
+    private CombatPowerDetailResponse buildCombatPowerDetailResponse(
+            String ocid,
+            LocalDate previousDate,
+            LocalDate currentDate,
+            DataSheet previousDataSheet,
+            DataSheet currentDataSheet
+    ) {
+        DataSheetCompareService.CombatPresetDiff diff = dataSheetCompareService.diff(previousDataSheet, currentDataSheet);
+        return new CombatPowerDetailResponse(
+                ocid,
+                previousDate,
+                currentDate,
+                toChangeSummary(diff)
+        );
     }
 
     private DataSheet prepareDataSheet(DataSheet dataSheet) {

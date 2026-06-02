@@ -4,12 +4,7 @@ import java.util.List;
 
 public record AnalysisResponse(
         String ocid,
-        String characterName,
-        String characterClass,
-        Integer characterLevel,
-        String characterGuild,
-        String characterWorld,
-        String characterImage,
+        CharacterInfo characterInfo,
         List<DataSheetByDate> entries
 ) {
 }

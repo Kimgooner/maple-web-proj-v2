@@ -827,17 +827,29 @@
         };
     }
 
+    function characterInfo(response) {
+        return response?.characterInfo ?? {
+            name: response?.characterName,
+            className: response?.characterClass,
+            level: response?.characterLevel,
+            guild: response?.characterGuild,
+            world: response?.characterWorld,
+            image: response?.characterImage
+        };
+    }
+
     function renderSummary(data) {
+        const character = characterInfo(data);
         const entry = Array.isArray(data.entries) ? normalizeEntry(data.entries[0]) : null;
         const current = entry?.currentPresetDataSheet;
         const combat = entry?.combatPresetDataSheet;
         const date = entry?.date ?? "-";
         summaryGridEl.innerHTML = `
             <article class="metric-card profile-card">
-                <div class="avatar">${renderAvatar(data.characterClass)}</div>
+                <div class="avatar">${renderAvatar(character.className)}</div>
                 <div>
-                    <div class="profile-name">${escapeHtml(data.characterName)}</div>
-                    <div class="profile-sub">${escapeHtml(data.characterClass)}<br>${escapeHtml(date)}</div>
+                    <div class="profile-name">${escapeHtml(character.name)}</div>
+                    <div class="profile-sub">${escapeHtml(character.className)}<br>${escapeHtml(date)}</div>
                 </div>
             </article>
             <article class="metric-card">
@@ -903,13 +915,14 @@
     }
 
     function renderSummaryFromHistory(response) {
+        const character = characterInfo(response);
         const rows = Array.isArray(response?.entries) ? response.entries.map(normalizeEntry) : [];
         const latest = rows.length ? rows[rows.length - 1] : null;
         if (!latest) {
             summaryGridEl.innerHTML = `
                 <article class="metric-card">
                     <div class="metric-label">캐릭터 이름</div>
-                    <div class="metric-value">${escapeHtml(response?.characterName ?? "")}</div>
+                    <div class="metric-value">${escapeHtml(character.name ?? "")}</div>
                     <div class="metric-foot">이력 데이터만 로드됨</div>
                 </article>
             `;
@@ -918,10 +931,10 @@
 
         summaryGridEl.innerHTML = `
             <article class="metric-card profile-card">
-                <div class="avatar">${renderAvatar(response.characterClass)}</div>
+                <div class="avatar">${renderAvatar(character.className)}</div>
                 <div>
-                    <div class="profile-name">${escapeHtml(response.characterName)}</div>
-                    <div class="profile-sub">${escapeHtml(response.characterClass)}<br>${escapeHtml(latest.date)}</div>
+                    <div class="profile-name">${escapeHtml(character.name)}</div>
+                    <div class="profile-sub">${escapeHtml(character.className)}<br>${escapeHtml(latest.date)}</div>
                 </div>
             </article>
             <article class="metric-card">

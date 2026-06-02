@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.whitedoggy.mapleweb2.analysis.dto.AnalysisResponse;
+import org.whitedoggy.mapleweb2.analysis.dto.CombatPowerDetailResponse;
 import org.whitedoggy.mapleweb2.analysis.service.AnalysisService;
 import reactor.core.publisher.Mono;
 
@@ -32,5 +33,14 @@ public class AnalysisController {
     @GetMapping("/api/analysis/combat-power/yearly")
     public Mono<AnalysisResponse> getYearlyCombatPowers(@RequestParam String characterName) {
         return analysisService.getYearlyCombatPowers(characterName);
+    }
+
+    @GetMapping("/api/analysis/combat-power/detail")
+    public Mono<CombatPowerDetailResponse> getCombatPowerDetail(
+            @RequestParam String ocid,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate previousDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate currentDate
+    ) {
+        return analysisService.getCombatPowerDetail(ocid, previousDate, currentDate);
     }
 }
