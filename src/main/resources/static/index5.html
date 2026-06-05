@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Current 전투력 검증</title>
+    <style>
+        :root {
+            --bg: #f5efe6;
+            --panel: rgba(255, 252, 247, 0.95);
+            --line: #dbcab1;
+            --text: #2b241d;
+            --muted: #746250;
+            --accent: #b45d2b;
+            --accent-soft: #f6dfcd;
+            --danger: #b42318;
+            --shadow: 0 18px 36px rgba(95, 63, 37, 0.12);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: "Pretendard", "Noto Sans KR", sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(180, 93, 43, 0.18), transparent 25%),
+                linear-gradient(180deg, #faf4eb 0%, var(--bg) 100%);
+        }
+
+        main {
+            width: min(1280px, calc(100% - 32px));
+            margin: 0 auto;
+            padding: 28px 0 48px;
+        }
+
+        .hero,
+        .panel,
+        .summary-card {
+            background: var(--panel);
+            border: 1px solid rgba(116, 98, 80, 0.16);
+            border-radius: 24px;
+            box-shadow: var(--shadow);
+        }
+
+        .hero {
+            padding: 28px;
+        }
+
+        .eyebrow {
+            margin: 0 0 8px;
+            color: var(--accent);
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        h1, h2, h3, p {
+            margin: 0;
+        }
+
+        h1 {
+            font-size: clamp(30px, 5vw, 48px);
+            line-height: 1.08;
+            letter-spacing: -0.04em;
+        }
+
+        .hero p {
+            margin: 14px 0 0;
+            color: var(--muted);
+            line-height: 1.7;
+            max-width: 840px;
+        }
+
+        .page-links {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 18px;
+        }
+
+        .page-links a {
+            text-decoration: none;
+            color: var(--text);
+            padding: 10px 14px;
+            border-radius: 999px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.84);
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .page-links a.current {
+            background: var(--accent-soft);
+            border-color: rgba(180, 93, 43, 0.24);
+            color: #8a431d;
+        }
+
+        .search-form {
+            margin-top: 24px;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 12px;
+        }
+
+        input, button { font: inherit; }
+
+        input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.86);
+            color: var(--text);
+        }
+
+        button {
+            border: 0;
+            border-radius: 16px;
+            padding: 0 24px;
+            background: linear-gradient(135deg, #c96a37, #9d4e26);
+            color: #fffaf5;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        button:disabled {
+            cursor: not-allowed;
+            opacity: 0.62;
+        }
+
+        .status {
+            min-height: 24px;
+            margin-top: 14px;
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .status.error {
+            color: var(--danger);
+        }
+
+        .summary {
+            margin-top: 22px;
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .summary-card {
+            padding: 18px;
+        }
+
+        .summary-label {
+            font-size: 13px;
+            color: var(--muted);
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .summary-value {
+            font-size: clamp(20px, 2.4vw, 30px);
+            font-weight: 800;
+            letter-spacing: -0.04em;
+            word-break: break-word;
+        }
+
+        .section {
+            margin-top: 22px;
+        }
+
+        .panel {
+            padding: 20px;
+        }
+
+        .panel-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+
+        .panel h2 {
+            font-size: 20px;
+        }
+
+        .muted {
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .character {
+            display: grid;
+            grid-template-columns: 96px 1fr;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .character img {
+            width: 96px;
+            height: 96px;
+            object-fit: contain;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid var(--line);
+        }
+
+        .character-name {
+            font-size: 26px;
+            font-weight: 900;
+        }
+
+        .preset-grid,
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 10px;
+        }
+
+        .stat {
+            border: 1px solid rgba(116, 98, 80, 0.16);
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.54);
+            padding: 12px;
+        }
+
+        .stat-label {
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 800;
+            margin-bottom: 6px;
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: 800;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 760px) {
+            .search-form,
+            .summary,
+            .character {
+                grid-template-columns: 1fr;
+            }
+
+            button {
+                padding: 14px 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+<main>
+    <section class="hero">
+        <p class="eyebrow">Current Debug</p>
+        <h1>Current 전투력 단일 검증</h1>
+        <p>닉네임으로 current snapshot을 조회하고 current preset 기준 계산 전투력과 stat API의 current 전투력을 비교합니다.</p>
+        <nav class="page-links">
+            <a href="/index.html">기본 조회</a>
+            <a href="/index4.html">랭킹 검증</a>
+            <a href="/index5.html" class="current">단일 검증</a>
+        </nav>
+        <form id="searchForm" class="search-form">
+            <input id="characterName" name="characterName" type="text" placeholder="캐릭터 닉네임" autocomplete="off" required>
+            <button id="searchButton" type="submit">조회</button>
+        </form>
+        <div id="status" class="status">캐릭터 닉네임을 입력하고 조회하세요.</div>
+    </section>
+
+    <section id="result" class="hidden">
+        <div class="summary">
+            <article class="summary-card">
+                <div class="summary-label">계산 current 전투력</div>
+                <div id="estimatedCombatPower" class="summary-value">-</div>
+            </article>
+            <article class="summary-card">
+                <div class="summary-label">API current 전투력</div>
+                <div id="currentCombatPower" class="summary-value">-</div>
+            </article>
+            <article class="summary-card">
+                <div class="summary-label">차이</div>
+                <div id="difference" class="summary-value">-</div>
+            </article>
+            <article class="summary-card">
+                <div class="summary-label">오차율</div>
+                <div id="errorRatePercent" class="summary-value">-</div>
+            </article>
+        </div>
+
+        <section class="section panel">
+            <div id="character" class="character"></div>
+        </section>
+
+        <section class="section panel">
+            <div class="panel-head">
+                <div>
+                    <h2>Current Preset</h2>
+                    <p class="muted">계산에 사용된 현재 preset 번호입니다.</p>
+                </div>
+                <p id="lucidFlag" class="muted">flag -</p>
+            </div>
+            <div id="presetGrid" class="preset-grid"></div>
+        </section>
+
+        <section class="section panel">
+            <div class="panel-head">
+                <div>
+                    <h2>Stat Sheets</h2>
+                    <p class="muted">current preset DataSheet의 개별 statSheet 값입니다.</p>
+                </div>
+                <p id="dateText" class="muted"></p>
+            </div>
+            <div id="statSheets"></div>
+        </section>
+    </section>
+</main>
+
+<script>
+    const form = document.getElementById("searchForm");
+    const button = document.getElementById("searchButton");
+    const statusElement = document.getElementById("status");
+    const resultElement = document.getElementById("result");
+
+    form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const characterName = document.getElementById("characterName").value.trim();
+        if (!characterName) {
+            return;
+        }
+
+        button.disabled = true;
+        statusElement.className = "status";
+        statusElement.textContent = "조회 중...";
+
+        try {
+            const response = await fetch(`/api/analysis/combat-power/current-debug?characterName=${encodeURIComponent(characterName)}`);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            const data = await response.json();
+            render(data);
+            statusElement.textContent = "조회 완료";
+        } catch (error) {
+            statusElement.className = "status error";
+            statusElement.textContent = `조회 실패: ${error.message}`;
+        } finally {
+            button.disabled = false;
+        }
+    });
+
+    function render(data) {
+        resultElement.classList.remove("hidden");
+        document.getElementById("estimatedCombatPower").textContent = formatNumber(data.estimatedCombatPower);
+        document.getElementById("currentCombatPower").textContent = formatNumber(data.currentCombatPower);
+        document.getElementById("difference").textContent = formatNumber(data.difference);
+        document.getElementById("errorRatePercent").textContent = data.errorRatePercent == null ? "-" : `${Number(data.errorRatePercent).toFixed(2)}%`;
+        document.getElementById("dateText").textContent = `date ${data.date ?? "current"}`;
+        document.getElementById("lucidFlag").textContent = `flag ${data.lucidTransformSuspected ? "lucid" : "-"}`;
+
+        renderCharacter(data.characterInfo ?? {});
+        renderPreset(data.currentPreset ?? {});
+        renderStatSheets(data.statSheets ?? {});
+    }
+
+    function renderCharacter(info) {
+        const image = info.image ? `<img src="${escapeHtml(info.image)}" alt="${escapeHtml(info.name ?? "")}">` : "";
+        document.getElementById("character").innerHTML = `
+            ${image}
+            <div>
+                <div class="character-name">${escapeHtml(info.name ?? "-")}</div>
+                <p class="muted">${escapeHtml(info.className ?? "-")} · Lv.${info.level ?? "-"} · ${escapeHtml(info.world ?? "-")}</p>
+                <p class="muted">길드 ${escapeHtml(info.guild ?? "-")}</p>
+            </div>
+        `;
+    }
+
+    function renderPreset(preset) {
+        const entries = [
+            ["itemPreset", preset.itemPreset],
+            ["abilityPreset", preset.abilityPreset],
+            ["hyperStatPreset", preset.hyperStatPreset],
+            ["unionRaiderPreset", preset.unionRaiderPreset]
+        ];
+        document.getElementById("presetGrid").innerHTML = entries.map(([label, value]) => statCard(label, value)).join("");
+    }
+
+    function renderStatSheets(statSheets) {
+        const container = document.getElementById("statSheets");
+        const entries = Object.entries(statSheets);
+        if (entries.length === 0) {
+            container.innerHTML = `<p class="muted">표시할 statSheet가 없습니다.</p>`;
+            return;
+        }
+
+        container.innerHTML = entries.map(([name, stats]) => `
+            <section class="section">
+                <div class="panel-head">
+                    <h3>${escapeHtml(name)}</h3>
+                </div>
+                <div class="stat-grid">
+                    ${renderStats(stats)}
+                </div>
+            </section>
+        `).join("");
+    }
+
+    function renderStats(stats) {
+        const entries = [
+            ["STR", stats.str],
+            ["DEX", stats.dex],
+            ["INT", stats.intStat],
+            ["LUK", stats.luk],
+            ["HP", stats.hp],
+            ["ALL_STAT", stats.allStat],
+            ["STR_PER_LEVEL9", stats.strPerLevel9],
+            ["DEX_PER_LEVEL9", stats.dexPerLevel9],
+            ["INT_PER_LEVEL9", stats.intPerLevel9],
+            ["LUK_PER_LEVEL9", stats.lukPerLevel9],
+            ["STR_NO_PERCENT", stats.strNoPercent],
+            ["DEX_NO_PERCENT", stats.dexNoPercent],
+            ["INT_NO_PERCENT", stats.intNoPercent],
+            ["LUK_NO_PERCENT", stats.lukNoPercent],
+            ["HP_NO_PERCENT", stats.hpNoPercent],
+            ["ALL_STAT_NO_PERCENT", stats.allStatNoPercent],
+            ["ATTACK_POWER", stats.attackPower],
+            ["MAGIC_POWER", stats.magicPower],
+            ["STR_PERCENT", stats.strPercent],
+            ["DEX_PERCENT", stats.dexPercent],
+            ["INT_PERCENT", stats.intPercent],
+            ["LUK_PERCENT", stats.lukPercent],
+            ["HP_PERCENT", stats.hpPercent],
+            ["ALL_STAT_PERCENT", stats.allStatPercent],
+            ["ATTACK_POWER_PERCENT", stats.attackPowerPercent],
+            ["MAGIC_POWER_PERCENT", stats.magicPowerPercent],
+            ["DAMAGE", stats.damage],
+            ["BOSS_DAMAGE", stats.bossDamage],
+            ["CRITICAL_DAMAGE", stats.criticalDamage],
+            ["FINAL_DAMAGE", stats.finalDamage]
+        ];
+        return entries.map(([label, value]) => statCard(label, value)).join("");
+    }
+
+    function statCard(label, value) {
+        return `
+            <div class="stat">
+                <div class="stat-label">${escapeHtml(label)}</div>
+                <div class="stat-value">${formatNumber(value)}</div>
+            </div>
+        `;
+    }
+
+    function formatNumber(value) {
+        if (value == null) {
+            return "-";
+        }
+        return Number(value).toLocaleString("ko-KR");
+    }
+
+    function escapeHtml(value) {
+        return String(value)
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
+    }
+</script>
+</body>
+</html>

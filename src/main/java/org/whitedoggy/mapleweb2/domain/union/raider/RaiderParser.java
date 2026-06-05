@@ -2,8 +2,10 @@ package org.whitedoggy.mapleweb2.domain.union.raider;
 
 import org.springframework.stereotype.Component;
 import org.whitedoggy.mapleweb2.domain.common.support.EffectTextSplitter;
+import org.whitedoggy.mapleweb2.global.Jsons;
 import tools.jackson.databind.JsonNode;
 
+import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -15,6 +17,10 @@ public class RaiderParser {
 
     public List<String> getUnionOccupiedStat(JsonNode raider) {
         return readTextArray(raider.path("union_occupied_stat"));
+    }
+
+    public Integer getUnionCurrentUse(JsonNode raider){
+        return Integer.parseInt(Jsons.text(raider, "use_preset_no"));
     }
 
     public List<String> getUnionRaiderStatByPreset(JsonNode raider, int presetNo) {

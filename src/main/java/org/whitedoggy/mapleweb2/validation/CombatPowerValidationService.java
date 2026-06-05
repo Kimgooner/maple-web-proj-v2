@@ -24,6 +24,9 @@ import java.time.LocalDate;
 @Service
 @RequiredArgsConstructor
 public class CombatPowerValidationService {
+    private static final int GROUP_CONCURRENCY = 3;
+    private static final int CHARACTER_CONCURRENCY = 4;
+
     private final RankingSampleService rankingSampleService;
     private final OcidService ocidService;
     private final SnapshotService snapshotService;
@@ -33,15 +36,15 @@ public class CombatPowerValidationService {
     public Mono<CombatPowerValidationResponse> validateCurrentCombatPower() {
         return rankingSampleService.getSamples()
                 .flatMap(samples -> Flux.fromIterable(samples.groups())
-                        .concatMap(group -> validateGroup(samples.date(), group))
+                        .flatMap(group -> validateGroup(samples.date(), group), GROUP_CONCURRENCY)
                         .collectList()
                         .map(groups -> new CombatPowerValidationResponse(samples.date(), groups)));
     }
 
     private Mono<CombatPowerValidationGroup> validateGroup(LocalDate date, RankingSampleGroup group) {
         return Flux.fromIterable(group.characters())
-                .concatMap(character -> validateCharacter(date, character)
-                        .onErrorResume(error -> Mono.just(errorResult(character, error))))
+                .flatMap(character -> validateCharacter(date, character)
+                        .onErrorResume(error -> Mono.just(errorResult(character, error))), CHARACTER_CONCURRENCY)
                 .collectList()
                 .map(results -> new CombatPowerValidationGroup(group.groupName(), results));
     }

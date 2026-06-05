@@ -7,7 +7,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.whitedoggy.mapleweb2.analysis.dto.AnalysisResponse;
 import org.whitedoggy.mapleweb2.analysis.dto.CombatPowerDetailResponse;
+import org.whitedoggy.mapleweb2.analysis.dto.CurrentCombatPowerDebugResponse;
 import org.whitedoggy.mapleweb2.analysis.service.AnalysisService;
+import org.whitedoggy.mapleweb2.validation.CurrentCombatPowerDebugService;
 import reactor.core.publisher.Mono;
 
 import java.time.LocalDate;
@@ -16,6 +18,7 @@ import java.time.LocalDate;
 @RequiredArgsConstructor
 public class AnalysisController {
     private final AnalysisService analysisService;
+    private final CurrentCombatPowerDebugService currentCombatPowerDebugService;
 
     @GetMapping("/api/analysis/combat-power")
     public Mono<AnalysisResponse> getCombatPower(
@@ -42,5 +45,10 @@ public class AnalysisController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate currentDate
     ) {
         return analysisService.getCombatPowerDetail(ocid, previousDate, currentDate);
+    }
+
+    @GetMapping("/api/analysis/combat-power/current-debug")
+    public Mono<CurrentCombatPowerDebugResponse> getCurrentCombatPowerDebug(@RequestParam String characterName) {
+        return currentCombatPowerDebugService.getCurrentDebug(characterName);
     }
 }

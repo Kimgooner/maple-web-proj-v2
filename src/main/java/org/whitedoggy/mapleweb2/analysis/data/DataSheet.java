@@ -22,6 +22,7 @@ public class DataSheet {
     Map<String, ItemSnapShot> cashEquip;
     Map<String, ItemSnapShot> itemEquip;
     StatSheet setEffect;
+    StatSheet consumableItem;
 
     StatSheet unionArtifact;
     StatSheet unionChampion;
@@ -47,6 +48,7 @@ public class DataSheet {
         this.itemEquip = other.itemEquip;
         this.sumSheet = other.sumSheet;
         this.setEffect = other.setEffect;
+        this.consumableItem = other.consumableItem;
 
         this.unionArtifact = other.unionArtifact;
         this.unionChampion = other.unionChampion;
@@ -64,6 +66,7 @@ public class DataSheet {
         sumSheet.merge(this.ability);
         sumSheet.merge(this.hyperStat);
         sumSheet.merge(this.setEffect);
+        sumSheet.merge(this.consumableItem);
         sumSheet.merge(this.unionArtifact);
         sumSheet.merge(this.unionChampion);
         sumSheet.merge(this.unionOccupied);

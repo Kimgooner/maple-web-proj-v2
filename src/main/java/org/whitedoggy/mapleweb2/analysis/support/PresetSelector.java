@@ -9,7 +9,6 @@ import org.whitedoggy.mapleweb2.domain.union.raider.RaiderParser;
 import tools.jackson.databind.JsonNode;
 
 import java.util.Comparator;
-import java.util.List;
 
 @Component
 @RequiredArgsConstructor
@@ -51,13 +50,6 @@ public class PresetSelector {
     }
 
     public int chooseCurrentUnionPreset(JsonNode unionRaider) {
-        List<String> currentRaiderStats = raiderParser.getUnionRaiderStat(unionRaider);
-        List<String> currentOccupiedStats = raiderParser.getUnionOccupiedStat(unionRaider);
-
-        return raiderParser.availablePresets(unionRaider).stream()
-                .filter(preset -> currentRaiderStats.equals(raiderParser.getUnionRaiderStatByPreset(unionRaider, preset)))
-                .filter(preset -> currentOccupiedStats.equals(raiderParser.getUnionOccupiedStatByPreset(unionRaider, preset)))
-                .findFirst()
-                .orElse(raiderParser.availablePresets(unionRaider).stream().min(Integer::compareTo).orElse(1));
+        return raiderParser.getUnionCurrentUse(unionRaider);
     }
 }

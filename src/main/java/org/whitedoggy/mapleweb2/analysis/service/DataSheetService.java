@@ -179,6 +179,7 @@ public class DataSheetService {
                 characterClass
         ));
         result.setSetEffect(setSetEffect(setEffect, presetItems, characterClass));
+        result.setConsumableItem(setConsumableItem(characterClass));
         result.setAbility(setAbility(ability, preset.abilityPreset()));
         result.setHyperStat(setHyperStat(hyper, preset.hyperStatPreset()));
         result.setUnionOccupied(setUnionOccupied(unionRaider, preset.unionRaiderPreset()));
@@ -234,7 +235,7 @@ public class DataSheetService {
         Map<String, ItemSnapShot> petEquip = new HashMap<>();
         List<ItemRecord> itemRecords = petParser.getItemSnapShot(node);
         for (ItemRecord itemRecord : itemRecords) {
-            petEquip.put("petEquip - " + itemRecord.slot(), itemRecord.itemSnapShot());
+            petEquip.put("펫 장비 - " + itemRecord.slot(), itemRecord.itemSnapShot());
         }
         return petEquip;
     }
@@ -244,7 +245,7 @@ public class DataSheetService {
         JsonNode cashItems = node.path("cash_item_equipment_base");
         for (JsonNode item : cashItems) {
             ItemRecord itemRecord = cashItemParser.getItemSnapShot(item);
-            itemEquip.put("cashEquip - " + itemRecord.slot(), itemRecord.itemSnapShot());
+            itemEquip.put("캐시 장비 - " + itemRecord.slot(), itemRecord.itemSnapShot());
         }
         return itemEquip;
     }
@@ -252,24 +253,24 @@ public class DataSheetService {
     private Map<String, ItemSnapShot> setItemEquip(JsonNode items, JsonNode title, JsonNode dragon, JsonNode mechanic, String characterClass) {
         Map<String, ItemSnapShot> itemEquip = new HashMap<>();
         ItemRecord titleRecord = itemParser.getTitleItemSnapShot(title);
-        itemEquip.put("itemEquip - " + titleRecord.slot(), titleRecord.itemSnapShot());
+        itemEquip.put("장비 - " + titleRecord.slot(), titleRecord.itemSnapShot());
 
         for (JsonNode item : dragon) {
-            ItemRecord itemRecord = itemParser.getItemSnapShot(item, characterClass, "dragon");
+            ItemRecord itemRecord = itemParser.getItemSnapShot(item, characterClass, "드래곤 장비");
             String slot = itemRecord.slot();
-            itemEquip.put("dragonEquip - " + slot, itemRecord.itemSnapShot());
+            itemEquip.put("드래곤 장비 - " + slot, itemRecord.itemSnapShot());
         }
 
         for (JsonNode item : mechanic) {
-            ItemRecord itemRecord = itemParser.getItemSnapShot(item, characterClass, "mechanic");
+            ItemRecord itemRecord = itemParser.getItemSnapShot(item, characterClass, "메카닉 장비");
             String slot = itemRecord.slot();
-            itemEquip.put("mechanicEquip - " + slot, itemRecord.itemSnapShot());
+            itemEquip.put("메카닉 장비 - " + slot, itemRecord.itemSnapShot());
         }
 
         for (JsonNode item : items) {
-            ItemRecord itemRecord = itemParser.getItemSnapShot(item, characterClass, "itemEquip");
+            ItemRecord itemRecord = itemParser.getItemSnapShot(item, characterClass, "장비");
             String slot = itemRecord.slot();
-            itemEquip.put("itemEquip - " + slot, itemRecord.itemSnapShot());
+            itemEquip.put("장비 - " + slot, itemRecord.itemSnapShot());
         }
 
         return itemEquip;
@@ -277,6 +278,12 @@ public class DataSheetService {
 
     private StatSheet setSetEffect(JsonNode node, JsonNode presetItems, String characterClass) {
         return statSheetParser.parse(setEffectParser.getSetEffectByPreset(node, presetItems, characterClass), "setEffect");
+    }
+
+    private StatSheet setConsumableItem(String characterClass) {
+        StatSheet sheet = new StatSheet("consumableItem");
+        if(consumableItem.containsKey(characterClass)) sheet.setATTACK_POWER(consumableItem.get(characterClass));
+        return sheet;
     }
 
     private StatSheet setAbility(JsonNode node, int presetNo) {
@@ -310,4 +317,14 @@ public class DataSheetService {
     private String normalizeOcid(String ocid) {
         return ocid == null ? "" : ocid.trim();
     }
+
+    private final Map<String, Integer> consumableItem = Map.of(
+            "보우마스터", 9,
+            "신궁", 9,
+            "윈드브레이커", 9,
+            "와일드헌터", 9,
+            "나이트로드", 29,
+            "나이트워커", 29,
+            "캡틴", 22
+    );
 }

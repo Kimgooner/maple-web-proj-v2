@@ -81,21 +81,36 @@ public class ItemParser {
         boolean isAstra = false;
         if(characterClass.equals("제로")){
             isZero = true;
-            if(itemName.contains("아스트라")){
-                isAstra = true;
+        }
+        if(itemName.contains("아스트라")){
+            isAstra = true;
+        }
+
+        //제로O
+        if(isZero){
+            //아스트라 O
+            if(isAstra){
+                addStructuredOptionEffects(effects, totalOptionNode);
+            }
+            for(String option : getPotentialOptions(item)){
+                EffectTextSplitter.addSplit(effects, option);
+            }
+
+            for(String option : getAdditionalPotentialOptions(item)){
+                EffectTextSplitter.addSplit(effects, option);
             }
         }
-
-        if(!isZero || isAstra){
+        //제로X
+        else {
             addStructuredOptionEffects(effects, totalOptionNode);
-        }
 
-        for(String option : getPotentialOptions(item)){
-            EffectTextSplitter.addSplit(effects, option);
-        }
+            for (String option : getPotentialOptions(item)) {
+                EffectTextSplitter.addSplit(effects, option);
+            }
 
-        for(String option : getAdditionalPotentialOptions(item)){
-            EffectTextSplitter.addSplit(effects, option);
+            for (String option : getAdditionalPotentialOptions(item)) {
+                EffectTextSplitter.addSplit(effects, option);
+            }
         }
         statSheet.merge(statSheetParser.parse(effects));
         snapShot.setStatSheet(statSheet);
