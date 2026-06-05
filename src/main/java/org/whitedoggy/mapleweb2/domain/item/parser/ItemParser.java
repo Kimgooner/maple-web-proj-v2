@@ -73,9 +73,6 @@ public class ItemParser {
         snapShot.setAp_grade(ap_grade);
 
         List<String> effects = new ArrayList<>();
-        List<String> totalOptions = new ArrayList<>();
-        List<String> potentialOptions = new ArrayList<>();
-        List<String> additionalPotentialOptions = new ArrayList<>();
 
         //제로의 경우
         //아스트라 보조무기 O -> 기존 방식 그대로
@@ -90,17 +87,15 @@ public class ItemParser {
         }
 
         if(!isZero || isAstra){
-            addStructuredOptionEffectsV2(effects, totalOptions, totalOptionNode);
+            addStructuredOptionEffects(effects, totalOptionNode);
         }
 
         for(String option : getPotentialOptions(item)){
             EffectTextSplitter.addSplit(effects, option);
-            potentialOptions.add(option);
         }
 
         for(String option : getAdditionalPotentialOptions(item)){
             EffectTextSplitter.addSplit(effects, option);
-            additionalPotentialOptions.add(option);
         }
         statSheet.merge(statSheetParser.parse(effects));
         snapShot.setStatSheet(statSheet);
@@ -128,11 +123,8 @@ public class ItemParser {
         snapShot.setAp_grade(ap_grade);
 
         List<String> effects = new ArrayList<>();
-        List<String> totalOptions = new ArrayList<>();
-        List<String> potentialOptions = new ArrayList<>();
-        List<String> additionalPotentialOptions = new ArrayList<>();
 
-        addStructuredOptionEffectsForWeaponV2(effects, totalOptions, totalOptionNode);
+        addStructuredOptionEffectsForWeapon(effects, totalOptionNode);
 
         //무기 정규화
         if(characterClass.equals("제로")){
@@ -154,12 +146,10 @@ public class ItemParser {
 
         for(String option : getPotentialOptions(item)){
             EffectTextSplitter.addSplit(effects, option);
-            potentialOptions.add(option);
         }
 
         for(String option : getAdditionalPotentialOptions(item)){
             EffectTextSplitter.addSplit(effects, option);
-            additionalPotentialOptions.add(option);
         }
         statSheet.merge(statSheetParser.parse(effects));
         snapShot.setStatSheet(statSheet);
@@ -188,22 +178,15 @@ public class ItemParser {
         snapShot.setAp_grade(ap_grade);
 
         List<String> effects = new ArrayList<>();
-        List<String> totalOptions = new ArrayList<>();
-        addStructuredOptionEffectsV2(effects, totalOptions, totalOptionNode);
+        addStructuredOptionEffects(effects,totalOptionNode);
+        addStructuredOptionEffects(effects, exceptionalOptionNode);
 
-        List<String> exceptionalOptions = new ArrayList<>();
-        addStructuredOptionEffectsV2(effects, exceptionalOptions, exceptionalOptionNode);
-
-        List<String> potentialOptions = new ArrayList<>();
         for(String option : getPotentialOptions(item)){
             EffectTextSplitter.addSplit(effects, option);
-            potentialOptions.add(option);
         }
 
-        List<String> additionalPotentialOptions = new ArrayList<>();
         for(String option : getAdditionalPotentialOptions(item)){
             EffectTextSplitter.addSplit(effects, option);
-            additionalPotentialOptions.add(option);
         }
 
         //다크 크리티컬 링 등 반영.
