@@ -25,7 +25,7 @@ public class RankingSampleService {
     private final RankingCharacterClient rankingCharacterClient;
 
     public Mono<RankingSampleResponse> getSamples() {
-        LocalDate rankingDate = LocalDate.now(KST);
+        LocalDate rankingDate = LocalDate.now(KST).minusDays(1);
         return Flux.fromIterable(targetGroups())
                 .concatMap(group -> collectGroup(rankingDate, group))
                 .collectList()

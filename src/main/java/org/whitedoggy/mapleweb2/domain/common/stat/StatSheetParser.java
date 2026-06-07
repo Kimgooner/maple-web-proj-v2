@@ -96,6 +96,7 @@ public class StatSheetParser {
         }
 
         return option
+                .replaceFirst("^[\\-•]\\s*", "")
                 .replace("증가", "")
                 .replace("상승", "")
                 .replace(":", " ")

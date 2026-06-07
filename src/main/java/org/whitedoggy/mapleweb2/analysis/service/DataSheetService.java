@@ -106,7 +106,7 @@ public class DataSheetService {
                 itemEquipmentParser.getCurrentPresetItemEquipment(itemEquip).orElse(1),
                 abilityParser.getCurrentPresetAbility(ability),
                 hyperStatParser.getCurrentPresetNo(hyper),
-                presetSelector.chooseCurrentUnionPreset(unionRaider)
+                raiderParser.getUnionCurrentUse(unionRaider)
         );
     }
 

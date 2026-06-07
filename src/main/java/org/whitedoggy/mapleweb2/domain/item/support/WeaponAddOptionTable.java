@@ -246,7 +246,7 @@ public final class WeaponAddOptionTable {
         String normalizedType = normalize(weaponType);
         for (Map.Entry<String, List<Integer>> entry : family.entrySet()) {
             String key = normalize(entry.getKey());
-            if (normalizedType.equals(key) || normalizedType.contains(key) || key.contains(normalizedType)) {
+            if (normalizedType.equals(key)) {
                 return entry.getValue();
             }
         }
