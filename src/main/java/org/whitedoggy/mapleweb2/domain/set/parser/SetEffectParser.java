@@ -17,7 +17,10 @@ import java.util.List;
 import java.util.Map;
 
 @Component
+@lombok.RequiredArgsConstructor
 public class SetEffectParser {
+
+    private final org.whitedoggy.mapleweb2.domain.common.stat.GameData gameData;
     private static final String TABLE_PATH = "set/set-effect-table.json";
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -30,10 +33,11 @@ public class SetEffectParser {
 
         appendUnsupportedSetEffects(effects, node.path("set_effect"), supportedSets);
 
+        JsonNode lucky = resolveActiveLuckyItem(equipped, supportedSets, characterClass);
         for (JsonNode supportedSet : supportedSets) {
             int pieceCount = countSetPieces(equipped, supportedSet, characterClass);
-            pieceCount = applyLuckyItemBonus(equipped, supportedSet.path("pieces"), pieceCount);
-            for (String effect : resolveOptions(supportedSet.path("options"), pieceCount)) {
+            pieceCount = applyLuckyItemBonus(equipped, supportedSet, characterClass, pieceCount, lucky);
+            for (String effect : resolveOptions(supportedSet.path("options"), pieceCount, characterClass)) {
                 EffectTextSplitter.addSplit(effects, effect);
             }
         }
@@ -56,9 +60,10 @@ public class SetEffectParser {
             }
         }
 
+        JsonNode lucky = resolveActiveLuckyItem(equipped, supportedSets, characterClass);
         for (JsonNode supportedSet : supportedSets) {
             int pieceCount = countSetPieces(equipped, supportedSet, characterClass);
-            pieceCount = applyLuckyItemBonus(equipped, supportedSet.path("pieces"), pieceCount);
+            pieceCount = applyLuckyItemBonus(equipped, supportedSet, characterClass, pieceCount, lucky);
             if (pieceCount > 0) {
                 appliedSets.put(Jsons.text(supportedSet, "name"), pieceCount);
             }
@@ -86,14 +91,81 @@ public class SetEffectParser {
     }
 
     private void appendUnsupportedSetEffects(List<String> effects, JsonNode setEffects, JsonNode supportedSets) {
+        String keptCodySet = bestCashCodySet(setEffects);
         for (JsonNode setEffect : setEffects) {
-            if (isSupportedSet(supportedSets, Jsons.text(setEffect, "set_name"))) {
+            String setName = Jsons.text(setEffect, "set_name");
+            if (isSupportedSet(supportedSets, setName)) {
                 continue;
             }
+            // 캐시 코디 세트는 둘 이상 성립해도 하나만 적용된다. 자세한 근거는 표의 cashCodySet 참고.
+            if (isCashCodySet(setEffect) && !setName.equals(keptCodySet)) {
+                continue;
+            }
+            int maxSetCount = maxSetCountOf(setName);
             for (JsonNode setInfo : setEffect.path("set_effect_info")) {
+                // 존재하지 않는 단계를 API가 적용 중이라고 내려주는 세트가 있다. 표의 maxSetCount 참고.
+                if (setInfo.path("set_count").asInt(0) > maxSetCount) {
+                    continue;
+                }
                 EffectTextSplitter.addSplit(effects, Jsons.text(setInfo, "set_option"));
             }
         }
+    }
+
+    /**
+     * 성립한 캐시 코디 세트 중 남길 것 하나. 세트 개수가 가장 많은 것을 고르고,
+     * 같으면 이름 순으로 끊어 결과가 매번 같게 한다.
+     *
+     * <p>코디 세트가 하나뿐이면 그것이 곧 답이므로 동작이 바뀌지 않는다.
+     */
+    private String bestCashCodySet(JsonNode setEffects) {
+        String best = null;
+        int bestCount = -1;
+        for (JsonNode setEffect : setEffects) {
+            if (!isCashCodySet(setEffect)) {
+                continue;
+            }
+            int count = readSetCount(setEffect);
+            String name = Jsons.text(setEffect, "set_name");
+            if (count > bestCount || (count == bestCount && best != null && name.compareTo(best) < 0)) {
+                best = name;
+                bestCount = count;
+            }
+        }
+        return best;
+    }
+
+    /** 캐시 코디 세트인가. 3세트 효과 문구가 28종에서 동일해 그것으로 가른다. */
+    private boolean isCashCodySet(JsonNode setEffect) {
+        String signature = compact(setEffectTable.path("cashCodySet").path("threeSetOption").asText(""));
+        if (signature.isEmpty()) {
+            return false;
+        }
+        for (JsonNode setInfo : setEffect.path("set_effect_info")) {
+            if (compact(Jsons.text(setInfo, "set_option")).contains(signature)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 이 세트에서 실제로 존재하는 마지막 단계. 표에 없는 세트는 상한을 두지 않는다.
+     *
+     * <p>세트명에 직업이 붙어 오므로({@code "도전자의 장비 세트(마법사)"}) 접두사로 맞춘다.
+     */
+    private int maxSetCountOf(String setName) {
+        for (JsonNode limit : setEffectTable.path("maxSetCount")) {
+            if (setName.startsWith(Jsons.text(limit, "namePrefix"))) {
+                return limit.path("max").asInt(Integer.MAX_VALUE);
+            }
+        }
+        return Integer.MAX_VALUE;
+    }
+
+    /** 공백을 모두 지운 형태. API는 {@code "올스탯  +5"}처럼 공백을 둘씩 넣는다. */
+    private String compact(String value) {
+        return value == null ? "" : value.replaceAll("\\s+", "");
     }
 
     private boolean isSupportedSet(JsonNode supportedSets, String setName) {
@@ -147,35 +219,88 @@ public class SetEffectParser {
         return OBJECT_MAPPER.createArrayNode().add(alias);
     }
 
-    private int applyLuckyItemBonus(CharacterEquipmentSheet equipped, JsonNode pieces, int pieceCount) {
-        if (pieceCount < 3) {
-            return pieceCount;
-        }
+    /**
+     * 이번 캐릭터에서 실제로 효력을 갖는 럭키 아이템 하나를 고른다.
+     *
+     * <p>럭키 아이템은 <b>2개 이상 착용해도 1개만 적용</b>된다. 우선순위는
+     * 4카뚝 &gt; 스칼렛 이어링 &gt; 스칼렛·제네시스 무기 &gt; 스칼렛 링 &gt; 스칼렛 견장이며
+     * 표의 {@code priority}에 들어 있다.
+     *
+     * <p>단, 우선순위가 높아도 <b>채울 빈 부위가 없으면 효력이 없다</b>. 예를 들어 데스티니 무기는
+     * 에테르넬 세트에서 고정 부위라 럭키로 소모되지 않고, 다른 세트에 무기 부위가 없으면
+     * 다음 순위(스칼렛 견장 등)가 대신 적용된다.
+     */
+    private JsonNode resolveActiveLuckyItem(
+            CharacterEquipmentSheet equipped, JsonNode supportedSets, String characterClass) {
+        JsonNode best = null;
+        int bestPriority = Integer.MAX_VALUE;
 
         for (JsonNode luckyItem : setEffectTable.path("luckyItems")) {
-            String luckySlot = Jsons.text(luckyItem, "slot");
-            if (!matchesAnyItemAlias(equipped.itemsForSlot(luckySlot), luckyItem.path("aliases"))) {
+            int priority = luckyItem.path("priority").asInt(Integer.MAX_VALUE);
+            if (priority >= bestPriority) {
                 continue;
             }
-
-            boolean setUsesLuckySlot = false;
-            boolean alreadyMatched = false;
-            for (JsonNode piece : pieces) {
-                if (!luckySlot.equals(Jsons.text(piece, "slot"))) {
-                    continue;
-                }
-                setUsesLuckySlot = true;
-                if (matchesAnyItemAlias(equipped.itemsForSlot(luckySlot), piece.path("aliases"))) {
-                    alreadyMatched = true;
-                    break;
-                }
+            if (!matchesAnyItemAlias(equipped.itemsForSlot(Jsons.text(luckyItem, "slot")),
+                    luckyItem.path("aliases"))) {
+                continue;
             }
+            if (!fillsAnyGap(equipped, supportedSets, characterClass, luckyItem)) {
+                continue;
+            }
+            best = luckyItem;
+            bestPriority = priority;
+        }
+        return best;
+    }
 
-            if (setUsesLuckySlot && !alreadyMatched) {
-                return Math.min(pieceCount + 1, pieces.size());
+    /** 이 럭키 아이템이 채울 수 있는 빈 부위가 한 세트라도 있는가. */
+    private boolean fillsAnyGap(
+            CharacterEquipmentSheet equipped, JsonNode supportedSets,
+            String characterClass, JsonNode luckyItem) {
+        for (JsonNode supportedSet : supportedSets) {
+            int pieceCount = countSetPieces(equipped, supportedSet, characterClass);
+            if (pieceCount >= 3 && hasUnfilledLuckySlot(equipped, supportedSet, characterClass, luckyItem)) {
+                return true;
             }
         }
-        return pieceCount;
+        return false;
+    }
+
+    /**
+     * 럭키 아이템이 채울 빈 부위가 이 세트에 있는가.
+     *
+     * <p>부위가 이미 찼는지는 {@link #matchesSetPiece}로 판단한다. 이름 비교만 하면
+     * 제로의 루타비스 무기 휴리스틱처럼 이름 없이 채워지는 부위를 비어 있다고 보아,
+     * 세트가 한 번 더 세어진다.
+     */
+    private boolean hasUnfilledLuckySlot(
+            CharacterEquipmentSheet equipped, JsonNode supportedSet,
+            String characterClass, JsonNode luckyItem) {
+        String luckySlot = Jsons.text(luckyItem, "slot");
+        boolean setUsesLuckySlot = false;
+        for (JsonNode piece : supportedSet.path("pieces")) {
+            if (!luckySlot.equals(Jsons.text(piece, "slot"))) {
+                continue;
+            }
+            setUsesLuckySlot = true;
+            if (matchesSetPiece(equipped, piece, supportedSet, characterClass)) {
+                return false;   // 이미 그 부위를 정식으로 채우고 있다
+            }
+        }
+        return setUsesLuckySlot;
+    }
+
+    /** 3개 이상 착용 중인 세트의 빈 부위 하나를 럭키 아이템이 대신 채운다. */
+    private int applyLuckyItemBonus(
+            CharacterEquipmentSheet equipped, JsonNode supportedSet,
+            String characterClass, int pieceCount, JsonNode luckyItem) {
+        if (luckyItem == null || pieceCount < 3) {
+            return pieceCount;
+        }
+        if (!hasUnfilledLuckySlot(equipped, supportedSet, characterClass, luckyItem)) {
+            return pieceCount;
+        }
+        return Math.min(pieceCount + 1, supportedSet.path("pieces").size());
     }
 
     private boolean matchesAnyItemAlias(List<String> itemNames, JsonNode aliases) {
@@ -238,7 +363,26 @@ public class SetEffectParser {
                 .orElse(0);
     }
 
-    private List<String> resolveOptions(JsonNode options, int pieceCount) {
+    /**
+     * 직업군마다 옵션이 갈리는 단계를 주스탯으로 고른다.
+     *
+     * <p>루타비스 2세트는 직업의 주스탯+부스탯을 주므로 도적(DEX+LUK)·마법사(INT+LUK)·
+     * 그 외(STR+DEX)가 다르다. 표에 {@code {"INT": [...], "LUK": [...], "default": [...]}}
+     * 형태로 두고 여기서 고른다. 배열이면 직업 분기가 없는 것이므로 그대로 쓴다.
+     */
+    private JsonNode selectByMainStat(JsonNode option, String characterClass) {
+        if (!option.isObject()) {
+            return option;
+        }
+        List<String> mains = gameData.mainStats(characterClass);
+        String main = mains.isEmpty() ? "" : mains.getFirst();
+        if (option.has(main)) {
+            return option.path(main);
+        }
+        return option.path("default");
+    }
+
+    private List<String> resolveOptions(JsonNode options, int pieceCount, String characterClass) {
         if (!(options instanceof ObjectNode objectNode) || pieceCount <= 0) {
             return List.of();
         }
@@ -258,7 +402,8 @@ public class SetEffectParser {
 
         thresholds.stream()
                 .sorted(Comparator.naturalOrder())
-                .forEach(threshold -> effects.addAll(readOptionTexts(options.path(String.valueOf(threshold)))));
+                .forEach(threshold -> effects.addAll(
+                        readOptionTexts(selectByMainStat(options.path(String.valueOf(threshold)), characterClass))));
         return effects;
     }
 
