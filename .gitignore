@@ -37,3 +37,21 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Agent / local env (from artel-agent-server) ###
+.env
+.env.notion
+.jira.env
+.notion.env
+
+### macOS ###
+.DS_Store
+
+### Agent config (local only) ###
+.agents/
+.claude
+CLAUDE.md
+.plan/
+
+### 골든 픽스처 원시 API 응답 (로컬 전용, 커밋하지 않는다)
+src/test/resources/fixtures/*.json.gz
