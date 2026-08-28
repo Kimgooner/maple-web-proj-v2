@@ -15,6 +15,7 @@ import org.whitedoggy.mapleweb2.domain.basic.BasicParser;
 import org.whitedoggy.mapleweb2.domain.union.champion.ChampionParser;
 import org.whitedoggy.mapleweb2.domain.calculator.data.*;
 import org.whitedoggy.mapleweb2.domain.calculator.parser.*;
+import org.whitedoggy.mapleweb2.domain.common.stat.GameData;
 import org.whitedoggy.mapleweb2.domain.common.stat.StatSheet;
 import org.whitedoggy.mapleweb2.domain.common.stat.StatSheetParser;
 import org.whitedoggy.mapleweb2.domain.hexa.HexaParser;
@@ -37,7 +38,6 @@ import java.util.Map;
 import java.util.Optional;
 
 import static java.lang.Math.floor;
-import static org.whitedoggy.mapleweb2.domain.common.stat.JobStatTable.JOBS;
 
 @Service
 @RequiredArgsConstructor
@@ -70,6 +70,7 @@ public class StatSheetComparisonService {
     private final ChampionParser championParser;
     private final SetEffectParser setEffectParser;
     private final StatSheetParser statSheetParser;
+    private final GameData gameData;
     private final HexaParser hexaParser;
     private final CashItemParser cashItemParser;
 
@@ -90,8 +91,8 @@ public class StatSheetComparisonService {
 
         String characterClass = basicParser.characterClass(basic);
         Integer characterLevel = basicParser.characterLevel(basic);
-        List<String> mainStat = JOBS.get(characterClass).mainStats();
-        List<String> subStat = JOBS.get(characterClass).subStats();
+        List<String> mainStat = gameData.mainStats(characterClass);
+        List<String> subStat = gameData.subStats(characterClass);
 
         CommonStatSheetView sharedView = buildSharedView(snapshot, mainStat, characterClass, characterLevel);
 
@@ -151,9 +152,11 @@ public class StatSheetComparisonService {
         Map<String, StatSheet> sheets = new LinkedHashMap<>();
         sheets.put("levelPoint", buildAbilityPointStat(characterClass, characterLevel, mainStats));
         sheets.put("symbol", statSheetParser.parseNoPercentStat(symbolParser.getSymbolStatEffects(snapshot.document(NexonEndpoint.SYMBOL_EQUIPMENT)), "심볼"));
-        sheets.put("pet", statSheetParser.parse(petParser.getPetEquipmentEffects(snapshot.document(NexonEndpoint.PET_EQUIPMENT)), "펫 장비"));
-        sheets.put("cashItem", statSheetParser.parse(cashItemParser.getCashStatEffect(snapshot.document(NexonEndpoint.CASH_ITEM_EQUIPMENT)), "캐시 장비"));
-        SkillParseResult skillParseResult = skillParser.getCombatRelevantSkillEffects(snapshot.document(NexonEndpoint.SKILL_0));
+        sheets.put("pet", statSheetParser.parse(petParser.getPetEquipmentEffects(snapshot.document(NexonEndpoint.PET_EQUIPMENT), snapshot.date()), "펫 장비"));
+        sheets.put("cashItem", statSheetParser.parse(cashItemParser.getCashStatEffect(snapshot.document(NexonEndpoint.CASH_ITEM_EQUIPMENT), snapshot.date()), "캐시 장비"));
+        SkillParseResult skillParseResult = skillParser.getCombatRelevantSkillEffects(
+                snapshot.document(NexonEndpoint.SKILL_0),
+                basicParser.characterWorld(snapshot.document(NexonEndpoint.BASIC)));
         sheets.put("skill0", statSheetParser.parse(skillParseResult.effects(), "0차 스킬"));
         sheets.put("hexaStat", statSheetParser.parseNoPercentStat(hexaParser.getCurrentHexa(snapshot.document(NexonEndpoint.HEXA_MATRIX_STAT), mainStats), "헥사 스텟"));
         sheets.put("unionArtifact", statSheetParser.parse(artifactParser.getArtifactEffects(snapshot.document(NexonEndpoint.UNION_ARTIFACT)), "유니온 아티팩트"));
@@ -183,7 +186,7 @@ public class StatSheetComparisonService {
         JsonNode mechanic = itemEquipmentParser.getMechanicItem(itemEquipment);
 
         Map<String, StatSheet> sheets = new LinkedHashMap<>();
-        sheets.put("itemEquipment", buildItemSheet(presetItems, title, dragon, mechanic, characterClass));
+        sheets.put("itemEquipment", buildItemSheet(presetItems, title, dragon, mechanic, characterClass, snapshot.date()));
         sheets.put("setEffect", statSheetParser.parse(setEffectParser.getSetEffectByPreset(setEffect, presetItems, characterClass), "세트 효과"));
         sheets.put("ability", statSheetParser.parseNoPercentStat(abilityParser.getCurrentAbilityByPreset(ability, presetSelection.abilityPreset()), "어빌리티"));
         sheets.put("hyperStat", statSheetParser.parseNoPercentStat(hyperStatParser.getStatIncreaseEffects(hyperStat, presetSelection.hyperStatPreset()), "하이퍼 스탯"));
@@ -215,9 +218,9 @@ public class StatSheetComparisonService {
             "캡틴", 22
     );
 
-    private StatSheet buildItemSheet(JsonNode items, JsonNode title, JsonNode dragon, JsonNode mechanic, String characterClass) {
+    private StatSheet buildItemSheet(JsonNode items, JsonNode title, JsonNode dragon, JsonNode mechanic, String characterClass, LocalDate referenceDate) {
         StatSheet total = new StatSheet("장비 목록");
-        total.merge(statSheetParser.parse(itemParser.getTitleStatEffects(title), "칭호"));
+        total.merge(statSheetParser.parse(itemParser.getTitleStatEffects(title, referenceDate), "칭호"));
 
         for (JsonNode item : dragon) {
             String name = Jsons.text(item, "item_name");

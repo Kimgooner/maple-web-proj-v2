@@ -2,16 +2,20 @@ package org.whitedoggy.mapleweb2.domain.item.parser;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.whitedoggy.mapleweb2.domain.common.stat.GameData;
 import org.whitedoggy.mapleweb2.domain.common.stat.StatSheet;
 import org.whitedoggy.mapleweb2.domain.common.stat.StatSheetParser;
 import org.whitedoggy.mapleweb2.domain.common.support.EffectTextSplitter;
+import org.whitedoggy.mapleweb2.domain.common.support.ExpiryDates;
 import org.whitedoggy.mapleweb2.domain.item.data.ItemRecord;
 import org.whitedoggy.mapleweb2.domain.item.data.ItemSnapShot;
 import org.whitedoggy.mapleweb2.domain.item.support.BowNormalization;
-import org.whitedoggy.mapleweb2.domain.item.support.WeaponAddOptionTable;
+import org.whitedoggy.mapleweb2.domain.item.support.WeaponData;
 import org.whitedoggy.mapleweb2.global.Jsons;
 import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ObjectNode;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -21,21 +25,70 @@ import java.util.Map;
 public class ItemParser {
     private final BowNormalization bowNormalization;
     private final StatSheetParser statSheetParser;
+    private final GameData gameData;
+    private final WeaponData weaponData;
 
     public ItemRecord getItemSnapShot(JsonNode item, String characterClass, String type) {
+        return getItemSnapShot(item, characterClass, type, false);
+    }
+
+    /**
+     * @param zeroAstraEquipped 제로가 아스트라 아워글라스를 함께 착용 중인가.
+     *                          착용 중이면 대검(보조무기)이 주던 데미지·보스 데미지·방어율 무시가
+     *                          아스트라의 능력치로 대체되어 적용되지 않는다.
+     *                          출처: 넥슨 공식 공지 1.2.411 (아스트라 보조무기)
+     */
+    public ItemRecord getItemSnapShot(JsonNode item, String characterClass, String type, boolean zeroAstraEquipped) {
         String itemSlot = Jsons.text(item, "item_equipment_slot");
         if(type.equals("장비")) {
             if (itemSlot.equals("무기")) return getWeaponItemSnapShot(item, characterClass);
-            else if (itemSlot.equals("보조무기")) return getSubWeaponItemSnapShot(item, characterClass);
+            else if (itemSlot.equals("보조무기")) return getSubWeaponItemSnapShot(item, characterClass, zeroAstraEquipped);
             else return getNormalItemSnapShot(item);
         }
         else return getNormalItemSnapShot(item);
     }
 
-    public ItemRecord getTitleItemSnapShot(JsonNode item){
+    /**
+     * 아스트라 아워글라스에서 전투력에 넣을 옵션.
+     *
+     * <p>기본 옵션의 보스 공격 시 데미지(45%)와 몬스터 방어율 무시(20%)는 실제 데미지에는
+     * 들어가지만 <b>표기 전투력에는 반영되지 않는다</b>. 그래서 총합에서 기본 옵션 몫만 뺀다.
+     * 스타포스·잠재·에디셔널에서 오는 보스 데미지는 그대로 둔다.
+     *
+     * <p>출처: 인벤 전사 게시판 "제로 아스트라 보조 기본옵션 '보공45%' 전투력 반영 X",
+     * 나무위키 아스트라 보조무기. 표본 40명 측정에서도 이 값을 빼면 아스트라 착용 그룹의
+     * 오차 범위가 미착용 그룹과 정확히 겹친다(1.59~7.24% 대 1.90~7.16%).
+     */
+    private JsonNode astraCombatPowerOption(JsonNode item, JsonNode totalOption) {
+        int baseBoss = item.path("item_base_option").path("boss_damage").asInt(0);
+        if (baseBoss == 0) {
+            return totalOption;
+        }
+        ObjectNode adjusted = (ObjectNode) totalOption.deepCopy();
+        adjusted.put("boss_damage", String.valueOf(totalOption.path("boss_damage").asInt(0) - baseBoss));
+        return adjusted;
+    }
+
+    /** 아스트라 아워글라스가 대체하는 효과. 이 이름으로 시작하는 효과는 대검에서 오지 않는다. */
+    private static final List<String> ASTRA_REPLACED_EFFECTS =
+            List.of("데미지", "보스 몬스터 공격 시 데미지", "보스 몬스터 데미지", "몬스터 방어율 무시");
+
+    private boolean isReplacedByAstra(String effect) {
+        for (String name : ASTRA_REPLACED_EFFECTS) {
+            if (effect.startsWith(name)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 칭호. 옵션 기간이 지나면 칭호는 남아도 스탯만 사라진다.
+     * 스탯이 없는 칭호(연출용)는 만료돼도 전투력과 무관하므로 표시하지 않는다.
+     */
+    public ItemRecord getTitleItemSnapShot(JsonNode item, LocalDate referenceDate){
         String itemName = Jsons.text(item, "title_name");
         String itemIcon = Jsons.text(item, "title_icon");
-        String expired = Jsons.text(item, "date_option_expire");
         String description = Jsons.text(item, "title_description");
         String itemSlot = "칭호";
 
@@ -43,18 +96,23 @@ public class ItemParser {
         StatSheet statSheet = new StatSheet(itemName);
 
         List<String> effects = new ArrayList<>();
-        if(!expired.equals("expired")){
-            EffectTextSplitter.addSplit(effects, description);
+        EffectTextSplitter.addSplit(effects, description);
+        StatSheet parsed = statSheetParser.parse(effects);
+
+        boolean expired = ExpiryDates.isAnyExpired(referenceDate,
+                Jsons.text(item, "date_expire"), Jsons.text(item, "date_option_expire"));
+        if (expired) {
+            if (!parsed.isZero()) {
+                snapShot.setExpired("옵션 기간 만료");
+            }
+        } else {
+            statSheet.merge(parsed);
         }
-        else{
-            snapShot.setExpired("옵션 기간 만료");
-        }
-        statSheet.merge(statSheetParser.parse(effects));
         snapShot.setStatSheet(statSheet);
         return new ItemRecord(itemSlot, snapShot);
     }
 
-    private ItemRecord getSubWeaponItemSnapShot(JsonNode item, String characterClass){
+    private ItemRecord getSubWeaponItemSnapShot(JsonNode item, String characterClass, boolean zeroAstraEquipped){
         String itemName = Jsons.text(item, "item_name");
         String itemIcon = Jsons.text(item, "item_icon");
         String itemSlot = Jsons.text(item, "item_equipment_slot");
@@ -90,7 +148,7 @@ public class ItemParser {
         if(isZero){
             //아스트라 O
             if(isAstra){
-                addStructuredOptionEffects(effects, totalOptionNode);
+                addStructuredOptionEffects(effects, astraCombatPowerOption(item, totalOptionNode));
             }
             for(String option : getPotentialOptions(item)){
                 EffectTextSplitter.addSplit(effects, option);
@@ -98,6 +156,10 @@ public class ItemParser {
 
             for(String option : getAdditionalPotentialOptions(item)){
                 EffectTextSplitter.addSplit(effects, option);
+            }
+            // 아스트라를 끼면 대검(기본 보조무기)의 효과는 아스트라 것으로 대체되므로 통째로 뺀다.
+            if(!isAstra && zeroAstraEquipped){
+                effects.clear();
             }
         }
         //제로X
@@ -141,20 +203,18 @@ public class ItemParser {
 
         addStructuredOptionEffectsForWeapon(effects, totalOptionNode);
 
-        //무기 정규화
-        if(characterClass.equals("제로")){
-            //TODO -> 제로는 아직 추가 로직 구현 필요.
+        // 무기 정규화. 제로의 라즐리(태도)도 표에 있어 같은 방식으로 환산한다.
+        // 데스티니 22성 = 스타포스 626 + 작 72 + 1추 활환산 251 = 949.
+        int addOption;
+        if (gameData.isMagicWeaponPart(itemPart)) {
+            addOption = Integer.parseInt(Jsons.text(item.path("item_add_option"), "magic_power"));
+        } else {
+            addOption = Integer.parseInt(Jsons.text(item.path("item_add_option"), "attack_power"));
         }
-        else {
-            int addOption;
-            if (magicTypes.contains(itemPart)) {
-                addOption = Integer.parseInt(Jsons.text(item.path("item_add_option"), "magic_power"));
-            } else {
-                addOption = Integer.parseInt(Jsons.text(item.path("item_add_option"), "attack_power"));
-            }
-            String name = Jsons.text(item, "item_name");
-            effects.addAll(bowNormalization.buildNormalizedBow(itemPart, name, starForce, addOption));
-        }
+        var normalized = bowNormalization.normalize(
+                itemPart, itemName, starForce, addOption, scrollUpgrade(item));
+        effects.addAll(normalized.effects());
+        snapShot.setWeaponNormalizationFailed(!normalized.stageResolved());
 
         //무기 소울 옵션
         EffectTextSplitter.addSplit(effects, Jsons.text(item, "soul_option"));
@@ -253,24 +313,7 @@ public class ItemParser {
     }
 
 
-    private List<String> magicTypes = List.of(
-            "완드",
-            "샤이닝 로드",
-            "ESP 리미터",
-            "매직 건틀렛",
-            "스태프"
-    );
 
-    private Map<String, Integer> BOW_BASE_ATTACK = Map.of(
-            "라피스 8형", 192,
-            "라피스 9형", 276,
-            "제네시스 라피스", 318,
-            "데스티니 라피스", 349,
-            "라즐리 8형", 192,
-            "라즐리 9형", 276,
-            "제네시스 라즐리", 318,
-            "데스티니 라즐리", 349
-    );
 
     private Integer getStarForce15(Integer baseAttack, Integer scrollAttack){
         return (int) Math.floor((baseAttack + scrollAttack) / 50.0) + 1;
@@ -291,14 +334,18 @@ public class ItemParser {
         if(name.contains("8형")){
             family = "앱솔랩스";
         }
-        double bowAttack = BOW_BASE_ATTACK.get(name);
+        Integer registered = weaponData.zeroBaseAttackOf(name);
+        if (registered == null) {
+            throw new IllegalStateException("game-data.yml의 maple.game.weapon.zero-base-attack에 없는 제로 무기입니다: " + name);
+        }
+        double bowAttack = registered;
 
         double itemBaseAttack = Integer.parseInt(Jsons.text(item.path("item_base_option"), "attack_power"));
         double itemAddAttack = Integer.parseInt(Jsons.text(item.path("item_add_option"), "attack_power"));
         double itemStarAttack = Integer.parseInt(Jsons.text(item.path("item_starforce_option"), "attack_power"));
 
-        Integer addStage = WeaponAddOptionTable.findStage(family, "태도", (int) itemAddAttack);
-        double bowAddAttack = WeaponAddOptionTable.bowAddOption(family, addStage);
+        Integer addStage = weaponData.findStage(family, "태도", (int) itemAddAttack);
+        double bowAddAttack = weaponData.bowAddOption(family, addStage);
 
         System.out.println(itemBaseAttack);
         System.out.println(itemAddAttack);
@@ -413,14 +460,15 @@ public class ItemParser {
                 addStructuredOptionEffectsForWeapon(effects, item.path("item_total_option"));
                 addStructuredOptionEffectsForWeapon(effects, item.path("item_exceptional_option"));
                 String addOption = null;
-                if (magicTypes.contains(part)) {
+                if (gameData.isMagicWeaponPart(part)) {
                     addOption = Jsons.text(item.path("item_add_option"), "magic_power");
                 } else {
                     addOption = Jsons.text(item.path("item_add_option"), "attack_power");
                 }
                 String name = Jsons.text(item, "item_name");
                 Integer starForce = Integer.parseInt(Jsons.text(item, "starforce"));
-                effects.addAll(bowNormalization.buildNormalizedBow(part, name, starForce, Integer.parseInt(addOption)));
+                effects.addAll(bowNormalization.buildNormalizedBow(
+                        part, name, starForce, Integer.parseInt(addOption), scrollUpgrade(item)));
                 EffectTextSplitter.addSplit(effects, Jsons.text(item, "soul_option"));
             }
             else {
@@ -443,9 +491,12 @@ public class ItemParser {
         return effects;
     }
 
-    public List<String> getTitleStatEffects(JsonNode item) {
+    public List<String> getTitleStatEffects(JsonNode item, LocalDate referenceDate) {
         List<String> effects = new ArrayList<>();
-        if(Jsons.text(item, "date_option_expire").equals("expired")) return effects;
+        if (ExpiryDates.isAnyExpired(referenceDate,
+                Jsons.text(item, "date_expire"), Jsons.text(item, "date_option_expire"))) {
+            return effects;
+        }
         String title = Jsons.text(item, "title_description");
         EffectTextSplitter.addSplit(effects, title);
         return effects;
@@ -518,5 +569,18 @@ public class ItemParser {
     private void appendDualPercent(List<String> l1, List<String> l2, String statName, int value){
         appendPercent(l1, statName, value);
         appendPercent(l2, statName, value);
+    }
+
+    /** 주문서 작 횟수. 무기 정규화에서 작 1회당 12가 갈린다. 없으면 null. */
+    private Integer scrollUpgrade(JsonNode item) {
+        String raw = Jsons.text(item, "scroll_upgrade");
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        try {
+            return Integer.valueOf(raw);
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
     }
 }
