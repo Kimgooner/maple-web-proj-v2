@@ -56,7 +56,7 @@ class FormulaInputDumpTest {
         StringBuilder out = new StringBuilder();
         out.append(String.join("\t",
                 "file", "job", "name", "world", "level",
-                "mainStat", "mainFlat", "mainPct", "mainNoPct", "subStat", "subFlat", "subPct", "subNoPct", "subCount", "allStat", "allStatPct", "cSTR", "cDEX", "cINT", "cLUK", "power", "powerRaw", "powerPct", "damage", "bossDamage", "critDamage", "finalDamage",
+                "mainStat", "mainFlat", "mainPct", "mainNoPct", "subStat", "subFlat", "subPct", "subNoPct", "subCount", "allStat", "allStatPct", "cSTR", "cDEX", "cINT", "cLUK", "hp", "hpPct", "hpNoPct", "power", "powerRaw", "powerPct", "damage", "bossDamage", "critDamage", "finalDamage",
                 "wSet", "wPart", "wStar", "wAdd", "wStage", "wNorm", "wActual",
                 "calc", "api")).append('\n');
 
@@ -130,6 +130,8 @@ class FormulaInputDumpTest {
                     fmt(sheet.getALL_STAT()), fmt(sheet.getALL_STAT_PERCENT()),
                     fmt(statValue("STR", sheet, level)), fmt(statValue("DEX", sheet, level)),
                     fmt(statValue("INT", sheet, level)), fmt(statValue("LUK", sheet, level)),
+                    // 데몬어벤져 역산용. HP는 calculateStat 경로가 없어 성분 그대로 남긴다.
+                    fmt(sheet.getHP()), fmt(sheet.getHP_PERCENT()), fmt(sheet.getHP_NO_PERCENT()),
                     fmt(power), fmt(powerRaw), fmt(powerPct),
                     fmt(sheet.getDAMAGE()), fmt(sheet.getBOSS_DAMAGE()),
                     fmt(sheet.getCRITICAL_DAMAGE()), fmt(sheet.getFINAL_DAMAGE()),
