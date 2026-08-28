@@ -1,0 +1,3362 @@
+[
+  {
+    "world": "베라",
+    "characterName": "갓지훈",
+    "rank": 2,
+    "file": "나이트로드-2.json.gz",
+    "job": "나이트로드"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "한계",
+    "rank": 3,
+    "file": "나이트로드-3.json.gz",
+    "job": "나이트로드"
+  },
+  {
+    "world": "베라",
+    "characterName": "표도",
+    "rank": 4,
+    "file": "나이트로드-4.json.gz",
+    "job": "나이트로드"
+  },
+  {
+    "world": "베라",
+    "characterName": "번개숑숑이",
+    "rank": 5,
+    "file": "나이트로드-5.json.gz",
+    "job": "나이트로드"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "선비",
+    "rank": 6,
+    "file": "나이트로드-6.json.gz",
+    "job": "나이트로드"
+  },
+  {
+    "world": "오로라",
+    "characterName": "박댜잉",
+    "rank": 10,
+    "file": "나이트로드-10.json.gz",
+    "job": "나이트로드"
+  },
+  {
+    "world": "제니스",
+    "characterName": "한수녀",
+    "rank": 11,
+    "file": "나이트로드-11.json.gz",
+    "job": "나이트로드"
+  },
+  {
+    "world": "루나",
+    "characterName": "쫑쫑종옹",
+    "rank": 12,
+    "file": "나이트로드-12.json.gz",
+    "job": "나이트로드"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "파이",
+    "rank": 14,
+    "file": "나이트로드-14.json.gz",
+    "job": "나이트로드"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "초기",
+    "rank": 15,
+    "file": "나이트로드-15.json.gz",
+    "job": "나이트로드"
+  },
+  {
+    "world": "베라",
+    "characterName": "시가",
+    "rank": 1,
+    "file": "나이트워커-1.json.gz",
+    "job": "나이트워커"
+  },
+  {
+    "world": "루나",
+    "characterName": "초바나워",
+    "rank": 2,
+    "file": "나이트워커-2.json.gz",
+    "job": "나이트워커"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "일막",
+    "rank": 5,
+    "file": "나이트워커-5.json.gz",
+    "job": "나이트워커"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "자퇴",
+    "rank": 6,
+    "file": "나이트워커-6.json.gz",
+    "job": "나이트워커"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "에슨",
+    "rank": 7,
+    "file": "나이트워커-7.json.gz",
+    "job": "나이트워커"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "초코티",
+    "rank": 8,
+    "file": "나이트워커-8.json.gz",
+    "job": "나이트워커"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "양세찬",
+    "rank": 9,
+    "file": "나이트워커-9.json.gz",
+    "job": "나이트워커"
+  },
+  {
+    "world": "크로아",
+    "characterName": "누리",
+    "rank": 12,
+    "file": "나이트워커-12.json.gz",
+    "job": "나이트워커"
+  },
+  {
+    "world": "루나",
+    "characterName": "오신",
+    "rank": 14,
+    "file": "나이트워커-14.json.gz",
+    "job": "나이트워커"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "그닥",
+    "rank": 15,
+    "file": "나이트워커-15.json.gz",
+    "job": "나이트워커"
+  },
+  {
+    "world": "베라",
+    "characterName": "김솔밤",
+    "rank": 1,
+    "file": "다크나이트-1.json.gz",
+    "job": "다크나이트"
+  },
+  {
+    "world": "루나",
+    "characterName": "덕켄",
+    "rank": 2,
+    "file": "다크나이트-2.json.gz",
+    "job": "다크나이트"
+  },
+  {
+    "world": "베라",
+    "characterName": "얄미운메린",
+    "rank": 3,
+    "file": "다크나이트-3.json.gz",
+    "job": "다크나이트"
+  },
+  {
+    "world": "루나",
+    "characterName": "단정",
+    "rank": 4,
+    "file": "다크나이트-4.json.gz",
+    "job": "다크나이트"
+  },
+  {
+    "world": "오로라",
+    "characterName": "꼬기사장",
+    "rank": 5,
+    "file": "다크나이트-5.json.gz",
+    "job": "다크나이트"
+  },
+  {
+    "world": "이노시스",
+    "characterName": "훅지른캐릭Il",
+    "rank": 6,
+    "file": "다크나이트-6.json.gz",
+    "job": "다크나이트"
+  },
+  {
+    "world": "유니온",
+    "characterName": "팀에이컴퍼니",
+    "rank": 8,
+    "file": "다크나이트-8.json.gz",
+    "job": "다크나이트"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "스포츠",
+    "rank": 9,
+    "file": "다크나이트-9.json.gz",
+    "job": "다크나이트"
+  },
+  {
+    "world": "루나",
+    "characterName": "웬리",
+    "rank": 10,
+    "file": "다크나이트-10.json.gz",
+    "job": "다크나이트"
+  },
+  {
+    "world": "루나",
+    "characterName": "살골",
+    "rank": 11,
+    "file": "다크나이트-11.json.gz",
+    "job": "다크나이트"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "끄나",
+    "rank": 1,
+    "file": "데몬슬레이어-1.json.gz",
+    "job": "데몬슬레이어"
+  },
+  {
+    "world": "루나",
+    "characterName": "병국",
+    "rank": 2,
+    "file": "데몬슬레이어-2.json.gz",
+    "job": "데몬슬레이어"
+  },
+  {
+    "world": "루나",
+    "characterName": "쵸깡",
+    "rank": 3,
+    "file": "데몬슬레이어-3.json.gz",
+    "job": "데몬슬레이어"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "윤주",
+    "rank": 4,
+    "file": "데몬슬레이어-4.json.gz",
+    "job": "데몬슬레이어"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "언현",
+    "rank": 5,
+    "file": "데몬슬레이어-5.json.gz",
+    "job": "데몬슬레이어"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "차디",
+    "rank": 6,
+    "file": "데몬슬레이어-6.json.gz",
+    "job": "데몬슬레이어"
+  },
+  {
+    "world": "베라",
+    "characterName": "하루히",
+    "rank": 7,
+    "file": "데몬슬레이어-7.json.gz",
+    "job": "데몬슬레이어"
+  },
+  {
+    "world": "루나",
+    "characterName": "동쭌",
+    "rank": 8,
+    "file": "데몬슬레이어-8.json.gz",
+    "job": "데몬슬레이어"
+  },
+  {
+    "world": "루나",
+    "characterName": "태몬",
+    "rank": 10,
+    "file": "데몬슬레이어-10.json.gz",
+    "job": "데몬슬레이어"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "골짝이",
+    "rank": 11,
+    "file": "데몬슬레이어-11.json.gz",
+    "job": "데몬슬레이어"
+  },
+  {
+    "world": "오로라",
+    "characterName": "으파",
+    "rank": 1,
+    "file": "데몬어벤져-1.json.gz",
+    "job": "데몬어벤져"
+  },
+  {
+    "world": "베라",
+    "characterName": "재사대",
+    "rank": 2,
+    "file": "데몬어벤져-2.json.gz",
+    "job": "데몬어벤져"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "서녕찡찡",
+    "rank": 4,
+    "file": "데몬어벤져-4.json.gz",
+    "job": "데몬어벤져"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "노어",
+    "rank": 5,
+    "file": "데몬어벤져-5.json.gz",
+    "job": "데몬어벤져"
+  },
+  {
+    "world": "크로아",
+    "characterName": "뚱이",
+    "rank": 6,
+    "file": "데몬어벤져-6.json.gz",
+    "job": "데몬어벤져"
+  },
+  {
+    "world": "오로라",
+    "characterName": "에이브",
+    "rank": 7,
+    "file": "데몬어벤져-7.json.gz",
+    "job": "데몬어벤져"
+  },
+  {
+    "world": "루나",
+    "characterName": "전꽁이",
+    "rank": 10,
+    "file": "데몬어벤져-10.json.gz",
+    "job": "데몬어벤져"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "김영오",
+    "rank": 11,
+    "file": "데몬어벤져-11.json.gz",
+    "job": "데몬어벤져"
+  },
+  {
+    "world": "크로아",
+    "characterName": "걍접",
+    "rank": 13,
+    "file": "데몬어벤져-13.json.gz",
+    "job": "데몬어벤져"
+  },
+  {
+    "world": "크로아",
+    "characterName": "방개",
+    "rank": 15,
+    "file": "데몬어벤져-15.json.gz",
+    "job": "데몬어벤져"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "우정",
+    "rank": 1,
+    "file": "듀얼블레이더-1.json.gz",
+    "job": "듀얼블레이더"
+  },
+  {
+    "world": "크로아",
+    "characterName": "쁠이블",
+    "rank": 2,
+    "file": "듀얼블레이더-2.json.gz",
+    "job": "듀얼블레이더"
+  },
+  {
+    "world": "크로아",
+    "characterName": "왕이",
+    "rank": 3,
+    "file": "듀얼블레이더-3.json.gz",
+    "job": "듀얼블레이더"
+  },
+  {
+    "world": "오로라",
+    "characterName": "쳐찢",
+    "rank": 4,
+    "file": "듀얼블레이더-4.json.gz",
+    "job": "듀얼블레이더"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "칼별이삼",
+    "rank": 5,
+    "file": "듀얼블레이더-5.json.gz",
+    "job": "듀얼블레이더"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "꼴깍",
+    "rank": 6,
+    "file": "듀얼블레이더-6.json.gz",
+    "job": "듀얼블레이더"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "완치",
+    "rank": 8,
+    "file": "듀얼블레이더-8.json.gz",
+    "job": "듀얼블레이더"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "할증",
+    "rank": 10,
+    "file": "듀얼블레이더-10.json.gz",
+    "job": "듀얼블레이더"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "동듀블준",
+    "rank": 13,
+    "file": "듀얼블레이더-13.json.gz",
+    "job": "듀얼블레이더"
+  },
+  {
+    "world": "이노시스",
+    "characterName": "라쇼",
+    "rank": 14,
+    "file": "듀얼블레이더-14.json.gz",
+    "job": "듀얼블레이더"
+  },
+  {
+    "world": "루나",
+    "characterName": "평신",
+    "rank": 2,
+    "file": "라라-2.json.gz",
+    "job": "라라"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "박샤벳",
+    "rank": 4,
+    "file": "라라-4.json.gz",
+    "job": "라라"
+  },
+  {
+    "world": "크로아",
+    "characterName": "느파",
+    "rank": 5,
+    "file": "라라-5.json.gz",
+    "job": "라라"
+  },
+  {
+    "world": "크로아",
+    "characterName": "쿠노기",
+    "rank": 6,
+    "file": "라라-6.json.gz",
+    "job": "라라"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "리오티",
+    "rank": 7,
+    "file": "라라-7.json.gz",
+    "job": "라라"
+  },
+  {
+    "world": "베라",
+    "characterName": "뿡뿡혜",
+    "rank": 8,
+    "file": "라라-8.json.gz",
+    "job": "라라"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "랜드",
+    "rank": 9,
+    "file": "라라-9.json.gz",
+    "job": "라라"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "오해원",
+    "rank": 10,
+    "file": "라라-10.json.gz",
+    "job": "라라"
+  },
+  {
+    "world": "아케인",
+    "characterName": "1998",
+    "rank": 11,
+    "file": "라라-11.json.gz",
+    "job": "라라"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "슈퍼소닉라라",
+    "rank": 12,
+    "file": "라라-12.json.gz",
+    "job": "라라"
+  },
+  {
+    "world": "챌린저스3",
+    "characterName": "츄앙레테",
+    "rank": 1,
+    "file": "레테-1.json.gz",
+    "job": "레테"
+  },
+  {
+    "world": "챌린저스2",
+    "characterName": "냥하",
+    "rank": 5,
+    "file": "레테-5.json.gz",
+    "job": "레테"
+  },
+  {
+    "world": "챌린저스",
+    "characterName": "퍄이",
+    "rank": 9,
+    "file": "레테-9.json.gz",
+    "job": "레테"
+  },
+  {
+    "world": "베라",
+    "characterName": "글쓴",
+    "rank": 10,
+    "file": "레테-10.json.gz",
+    "job": "레테"
+  },
+  {
+    "world": "챌린저스",
+    "characterName": "뷔도야호",
+    "rank": 11,
+    "file": "레테-11.json.gz",
+    "job": "레테"
+  },
+  {
+    "world": "챌린저스",
+    "characterName": "먼잚",
+    "rank": 12,
+    "file": "레테-12.json.gz",
+    "job": "레테"
+  },
+  {
+    "world": "챌린저스",
+    "characterName": "마마",
+    "rank": 13,
+    "file": "레테-13.json.gz",
+    "job": "레테"
+  },
+  {
+    "world": "오로라",
+    "characterName": "걸짝",
+    "rank": 15,
+    "file": "레테-15.json.gz",
+    "job": "레테"
+  },
+  {
+    "world": "챌린저스4",
+    "characterName": "침딸",
+    "rank": 16,
+    "file": "레테-16.json.gz",
+    "job": "레테"
+  },
+  {
+    "world": "챌린저스2",
+    "characterName": "은어",
+    "rank": 18,
+    "file": "레테-18.json.gz",
+    "job": "레테"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "아이도루",
+    "rank": 2,
+    "file": "렌-2.json.gz",
+    "job": "렌"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "꿀잼이",
+    "rank": 3,
+    "file": "렌-3.json.gz",
+    "job": "렌"
+  },
+  {
+    "world": "베라",
+    "characterName": "숙화",
+    "rank": 5,
+    "file": "렌-5.json.gz",
+    "job": "렌"
+  },
+  {
+    "world": "유니온",
+    "characterName": "뉴틱",
+    "rank": 6,
+    "file": "렌-6.json.gz",
+    "job": "렌"
+  },
+  {
+    "world": "베라",
+    "characterName": "테텐",
+    "rank": 10,
+    "file": "렌-10.json.gz",
+    "job": "렌"
+  },
+  {
+    "world": "루나",
+    "characterName": "손만잡고잘렌",
+    "rank": 12,
+    "file": "렌-12.json.gz",
+    "job": "렌"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "뽀식",
+    "rank": 13,
+    "file": "렌-13.json.gz",
+    "job": "렌"
+  },
+  {
+    "world": "베라",
+    "characterName": "꾸듀",
+    "rank": 14,
+    "file": "렌-14.json.gz",
+    "job": "렌"
+  },
+  {
+    "world": "루나",
+    "characterName": "채킹",
+    "rank": 16,
+    "file": "렌-16.json.gz",
+    "job": "렌"
+  },
+  {
+    "world": "크로아",
+    "characterName": "코후캬",
+    "rank": 17,
+    "file": "렌-17.json.gz",
+    "job": "렌"
+  },
+  {
+    "world": "루나",
+    "characterName": "깨루미",
+    "rank": 2,
+    "file": "루미너스-2.json.gz",
+    "job": "루미너스"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "꼰대",
+    "rank": 3,
+    "file": "루미너스-3.json.gz",
+    "job": "루미너스"
+  },
+  {
+    "world": "오로라",
+    "characterName": "메추라기",
+    "rank": 4,
+    "file": "루미너스-4.json.gz",
+    "job": "루미너스"
+  },
+  {
+    "world": "베라",
+    "characterName": "냉째",
+    "rank": 5,
+    "file": "루미너스-5.json.gz",
+    "job": "루미너스"
+  },
+  {
+    "world": "루나",
+    "characterName": "경몬",
+    "rank": 6,
+    "file": "루미너스-6.json.gz",
+    "job": "루미너스"
+  },
+  {
+    "world": "베라",
+    "characterName": "담대히",
+    "rank": 7,
+    "file": "루미너스-7.json.gz",
+    "job": "루미너스"
+  },
+  {
+    "world": "루나",
+    "characterName": "깡김",
+    "rank": 8,
+    "file": "루미너스-8.json.gz",
+    "job": "루미너스"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "떠굴",
+    "rank": 10,
+    "file": "루미너스-10.json.gz",
+    "job": "루미너스"
+  },
+  {
+    "world": "루나",
+    "characterName": "갠림",
+    "rank": 11,
+    "file": "루미너스-11.json.gz",
+    "job": "루미너스"
+  },
+  {
+    "world": "루나",
+    "characterName": "땡이",
+    "rank": 13,
+    "file": "루미너스-13.json.gz",
+    "job": "루미너스"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "사리냥",
+    "rank": 2,
+    "file": "메르세데스-2.json.gz",
+    "job": "메르세데스"
+  },
+  {
+    "world": "유니온",
+    "characterName": "Arelliana",
+    "rank": 3,
+    "file": "메르세데스-3.json.gz",
+    "job": "메르세데스"
+  },
+  {
+    "world": "크로아",
+    "characterName": "일병참모총장",
+    "rank": 4,
+    "file": "메르세데스-4.json.gz",
+    "job": "메르세데스"
+  },
+  {
+    "world": "베라",
+    "characterName": "느밍",
+    "rank": 5,
+    "file": "메르세데스-5.json.gz",
+    "job": "메르세데스"
+  },
+  {
+    "world": "크로아",
+    "characterName": "치리",
+    "rank": 8,
+    "file": "메르세데스-8.json.gz",
+    "job": "메르세데스"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "타일런트",
+    "rank": 9,
+    "file": "메르세데스-9.json.gz",
+    "job": "메르세데스"
+  },
+  {
+    "world": "레드",
+    "characterName": "메르의왕",
+    "rank": 10,
+    "file": "메르세데스-10.json.gz",
+    "job": "메르세데스"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "여제이",
+    "rank": 11,
+    "file": "메르세데스-11.json.gz",
+    "job": "메르세데스"
+  },
+  {
+    "world": "아케인",
+    "characterName": "요정메르짱",
+    "rank": 12,
+    "file": "메르세데스-12.json.gz",
+    "job": "메르세데스"
+  },
+  {
+    "world": "크로아",
+    "characterName": "리조",
+    "rank": 14,
+    "file": "메르세데스-14.json.gz",
+    "job": "메르세데스"
+  },
+  {
+    "world": "루나",
+    "characterName": "압살",
+    "rank": 1,
+    "file": "메카닉-1.json.gz",
+    "job": "메카닉"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "Baddy",
+    "rank": 2,
+    "file": "메카닉-2.json.gz",
+    "job": "메카닉"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "고든프리맨",
+    "rank": 4,
+    "file": "메카닉-4.json.gz",
+    "job": "메카닉"
+  },
+  {
+    "world": "루나",
+    "characterName": "띤잘",
+    "rank": 6,
+    "file": "메카닉-6.json.gz",
+    "job": "메카닉"
+  },
+  {
+    "world": "루나",
+    "characterName": "이제티",
+    "rank": 7,
+    "file": "메카닉-7.json.gz",
+    "job": "메카닉"
+  },
+  {
+    "world": "유니온",
+    "characterName": "Ensillia",
+    "rank": 8,
+    "file": "메카닉-8.json.gz",
+    "job": "메카닉"
+  },
+  {
+    "world": "크로아",
+    "characterName": "에델",
+    "rank": 9,
+    "file": "메카닉-9.json.gz",
+    "job": "메카닉"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "세븐",
+    "rank": 11,
+    "file": "메카닉-11.json.gz",
+    "job": "메카닉"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "탱크",
+    "rank": 13,
+    "file": "메카닉-13.json.gz",
+    "job": "메카닉"
+  },
+  {
+    "world": "루나",
+    "characterName": "손빡",
+    "rank": 14,
+    "file": "메카닉-14.json.gz",
+    "job": "메카닉"
+  },
+  {
+    "world": "베라",
+    "characterName": "노비",
+    "rank": 1,
+    "file": "미하일-1.json.gz",
+    "job": "미하일"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "미술교육전공",
+    "rank": 2,
+    "file": "미하일-2.json.gz",
+    "job": "미하일"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "부도",
+    "rank": 3,
+    "file": "미하일-3.json.gz",
+    "job": "미하일"
+  },
+  {
+    "world": "크로아",
+    "characterName": "가드너프예정",
+    "rank": 5,
+    "file": "미하일-5.json.gz",
+    "job": "미하일"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "종뚤",
+    "rank": 6,
+    "file": "미하일-6.json.gz",
+    "job": "미하일"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "밤재간",
+    "rank": 8,
+    "file": "미하일-8.json.gz",
+    "job": "미하일"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "일선에서",
+    "rank": 9,
+    "file": "미하일-9.json.gz",
+    "job": "미하일"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "히니",
+    "rank": 10,
+    "file": "미하일-10.json.gz",
+    "job": "미하일"
+  },
+  {
+    "world": "크로아",
+    "characterName": "마딩거",
+    "rank": 12,
+    "file": "미하일-12.json.gz",
+    "job": "미하일"
+  },
+  {
+    "world": "크로아",
+    "characterName": "인테",
+    "rank": 13,
+    "file": "미하일-13.json.gz",
+    "job": "미하일"
+  },
+  {
+    "world": "레드",
+    "characterName": "엑스퍼트",
+    "rank": 1,
+    "file": "바이퍼-1.json.gz",
+    "job": "바이퍼"
+  },
+  {
+    "world": "루나",
+    "characterName": "뭐혜인마",
+    "rank": 2,
+    "file": "바이퍼-2.json.gz",
+    "job": "바이퍼"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "kwon바이퍼",
+    "rank": 3,
+    "file": "바이퍼-3.json.gz",
+    "job": "바이퍼"
+  },
+  {
+    "world": "오로라",
+    "characterName": "개실망",
+    "rank": 4,
+    "file": "바이퍼-4.json.gz",
+    "job": "바이퍼"
+  },
+  {
+    "world": "루나",
+    "characterName": "신강율",
+    "rank": 5,
+    "file": "바이퍼-5.json.gz",
+    "job": "바이퍼"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "숙원",
+    "rank": 6,
+    "file": "바이퍼-6.json.gz",
+    "job": "바이퍼"
+  },
+  {
+    "world": "루나",
+    "characterName": "dpvp",
+    "rank": 7,
+    "file": "바이퍼-7.json.gz",
+    "job": "바이퍼"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "춘택님",
+    "rank": 8,
+    "file": "바이퍼-8.json.gz",
+    "job": "바이퍼"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "천상천하주먹",
+    "rank": 10,
+    "file": "바이퍼-10.json.gz",
+    "job": "바이퍼"
+  },
+  {
+    "world": "크로아",
+    "characterName": "드메",
+    "rank": 11,
+    "file": "바이퍼-11.json.gz",
+    "job": "바이퍼"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "케인WWE챔프",
+    "rank": 1,
+    "file": "배틀메이지-1.json.gz",
+    "job": "배틀메이지"
+  },
+  {
+    "world": "노바",
+    "characterName": "옆치기",
+    "rank": 3,
+    "file": "배틀메이지-3.json.gz",
+    "job": "배틀메이지"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "tidms모르테",
+    "rank": 5,
+    "file": "배틀메이지-5.json.gz",
+    "job": "배틀메이지"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "차호",
+    "rank": 6,
+    "file": "배틀메이지-6.json.gz",
+    "job": "배틀메이지"
+  },
+  {
+    "world": "크로아",
+    "characterName": "큐리링",
+    "rank": 8,
+    "file": "배틀메이지-8.json.gz",
+    "job": "배틀메이지"
+  },
+  {
+    "world": "루나",
+    "characterName": "스카나",
+    "rank": 9,
+    "file": "배틀메이지-9.json.gz",
+    "job": "배틀메이지"
+  },
+  {
+    "world": "유니온",
+    "characterName": "배메하지말걸",
+    "rank": 11,
+    "file": "배틀메이지-11.json.gz",
+    "job": "배틀메이지"
+  },
+  {
+    "world": "베라",
+    "characterName": "모델진",
+    "rank": 12,
+    "file": "배틀메이지-12.json.gz",
+    "job": "배틀메이지"
+  },
+  {
+    "world": "루나",
+    "characterName": "젬춘",
+    "rank": 14,
+    "file": "배틀메이지-14.json.gz",
+    "job": "배틀메이지"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "엉하",
+    "rank": 16,
+    "file": "배틀메이지-16.json.gz",
+    "job": "배틀메이지"
+  },
+  {
+    "world": "제니스",
+    "characterName": "보마노랑이",
+    "rank": 1,
+    "file": "보우마스터-1.json.gz",
+    "job": "보우마스터"
+  },
+  {
+    "world": "유니온",
+    "characterName": "Marksbowman",
+    "rank": 2,
+    "file": "보우마스터-2.json.gz",
+    "job": "보우마스터"
+  },
+  {
+    "world": "이노시스",
+    "characterName": "폭등",
+    "rank": 3,
+    "file": "보우마스터-3.json.gz",
+    "job": "보우마스터"
+  },
+  {
+    "world": "베라",
+    "characterName": "천상마궁녀",
+    "rank": 4,
+    "file": "보우마스터-4.json.gz",
+    "job": "보우마스터"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "쏘여이v",
+    "rank": 7,
+    "file": "보우마스터-7.json.gz",
+    "job": "보우마스터"
+  },
+  {
+    "world": "유니온",
+    "characterName": "풍문",
+    "rank": 8,
+    "file": "보우마스터-8.json.gz",
+    "job": "보우마스터"
+  },
+  {
+    "world": "루나",
+    "characterName": "투엘리",
+    "rank": 9,
+    "file": "보우마스터-9.json.gz",
+    "job": "보우마스터"
+  },
+  {
+    "world": "루나",
+    "characterName": "서당",
+    "rank": 11,
+    "file": "보우마스터-11.json.gz",
+    "job": "보우마스터"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "부산나그네",
+    "rank": 12,
+    "file": "보우마스터-12.json.gz",
+    "job": "보우마스터"
+  },
+  {
+    "world": "루나",
+    "characterName": "뽀갈",
+    "rank": 13,
+    "file": "보우마스터-13.json.gz",
+    "job": "보우마스터"
+  },
+  {
+    "world": "루나",
+    "characterName": "벨치스",
+    "rank": 2,
+    "file": "블래스터-2.json.gz",
+    "job": "블래스터"
+  },
+  {
+    "world": "크로아",
+    "characterName": "유리카",
+    "rank": 4,
+    "file": "블래스터-4.json.gz",
+    "job": "블래스터"
+  },
+  {
+    "world": "루나",
+    "characterName": "토하",
+    "rank": 5,
+    "file": "블래스터-5.json.gz",
+    "job": "블래스터"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "퐁당서리",
+    "rank": 6,
+    "file": "블래스터-6.json.gz",
+    "job": "블래스터"
+  },
+  {
+    "world": "베라",
+    "characterName": "필부",
+    "rank": 7,
+    "file": "블래스터-7.json.gz",
+    "job": "블래스터"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "옥량",
+    "rank": 8,
+    "file": "블래스터-8.json.gz",
+    "job": "블래스터"
+  },
+  {
+    "world": "유니온",
+    "characterName": "네장학금",
+    "rank": 9,
+    "file": "블래스터-9.json.gz",
+    "job": "블래스터"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "대파",
+    "rank": 10,
+    "file": "블래스터-10.json.gz",
+    "job": "블래스터"
+  },
+  {
+    "world": "루나",
+    "characterName": "Deritas",
+    "rank": 11,
+    "file": "블래스터-11.json.gz",
+    "job": "블래스터"
+  },
+  {
+    "world": "베라",
+    "characterName": "손가락병원",
+    "rank": 12,
+    "file": "블래스터-12.json.gz",
+    "job": "블래스터"
+  },
+  {
+    "world": "크로아",
+    "characterName": "솝상",
+    "rank": 1,
+    "file": "비숍-1.json.gz",
+    "job": "비숍"
+  },
+  {
+    "world": "루나",
+    "characterName": "아욤",
+    "rank": 2,
+    "file": "비숍-2.json.gz",
+    "job": "비숍"
+  },
+  {
+    "world": "루나",
+    "characterName": "몽둥이여사님",
+    "rank": 5,
+    "file": "비숍-5.json.gz",
+    "job": "비숍"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "납낭",
+    "rank": 6,
+    "file": "비숍-6.json.gz",
+    "job": "비숍"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "마르디아",
+    "rank": 7,
+    "file": "비숍-7.json.gz",
+    "job": "비숍"
+  },
+  {
+    "world": "루나",
+    "characterName": "햐희",
+    "rank": 8,
+    "file": "비숍-8.json.gz",
+    "job": "비숍"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "주흔",
+    "rank": 9,
+    "file": "비숍-9.json.gz",
+    "job": "비숍"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "루시드st",
+    "rank": 10,
+    "file": "비숍-10.json.gz",
+    "job": "비숍"
+  },
+  {
+    "world": "제니스",
+    "characterName": "자멍임",
+    "rank": 11,
+    "file": "비숍-11.json.gz",
+    "job": "비숍"
+  },
+  {
+    "world": "유니온",
+    "characterName": "Elimentall9",
+    "rank": 13,
+    "file": "비숍-13.json.gz",
+    "job": "비숍"
+  },
+  {
+    "world": "루나",
+    "characterName": "BrutalThief",
+    "rank": 1,
+    "file": "섀도어-1.json.gz",
+    "job": "섀도어"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "섀마",
+    "rank": 2,
+    "file": "섀도어-2.json.gz",
+    "job": "섀도어"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "중기",
+    "rank": 3,
+    "file": "섀도어-3.json.gz",
+    "job": "섀도어"
+  },
+  {
+    "world": "루나",
+    "characterName": "동전",
+    "rank": 4,
+    "file": "섀도어-4.json.gz",
+    "job": "섀도어"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "정무",
+    "rank": 5,
+    "file": "섀도어-5.json.gz",
+    "job": "섀도어"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "넣싸튀",
+    "rank": 6,
+    "file": "섀도어-6.json.gz",
+    "job": "섀도어"
+  },
+  {
+    "world": "유니온",
+    "characterName": "해조",
+    "rank": 7,
+    "file": "섀도어-7.json.gz",
+    "job": "섀도어"
+  },
+  {
+    "world": "루나",
+    "characterName": "낫스",
+    "rank": 8,
+    "file": "섀도어-8.json.gz",
+    "job": "섀도어"
+  },
+  {
+    "world": "베라",
+    "characterName": "헨젠",
+    "rank": 10,
+    "file": "섀도어-10.json.gz",
+    "job": "섀도어"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "신별",
+    "rank": 11,
+    "file": "섀도어-11.json.gz",
+    "job": "섀도어"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "영돌",
+    "rank": 1,
+    "file": "소울마스터-1.json.gz",
+    "job": "소울마스터"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "신예리",
+    "rank": 2,
+    "file": "소울마스터-2.json.gz",
+    "job": "소울마스터"
+  },
+  {
+    "world": "루나",
+    "characterName": "래찬",
+    "rank": 3,
+    "file": "소울마스터-3.json.gz",
+    "job": "소울마스터"
+  },
+  {
+    "world": "루나",
+    "characterName": "Center",
+    "rank": 4,
+    "file": "소울마스터-4.json.gz",
+    "job": "소울마스터"
+  },
+  {
+    "world": "루나",
+    "characterName": "대사",
+    "rank": 5,
+    "file": "소울마스터-5.json.gz",
+    "job": "소울마스터"
+  },
+  {
+    "world": "제니스",
+    "characterName": "소울메탈",
+    "rank": 6,
+    "file": "소울마스터-6.json.gz",
+    "job": "소울마스터"
+  },
+  {
+    "world": "오로라",
+    "characterName": "민자",
+    "rank": 7,
+    "file": "소울마스터-7.json.gz",
+    "job": "소울마스터"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "가람",
+    "rank": 8,
+    "file": "소울마스터-8.json.gz",
+    "job": "소울마스터"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "메틸록",
+    "rank": 9,
+    "file": "소울마스터-9.json.gz",
+    "job": "소울마스터"
+  },
+  {
+    "world": "유니온",
+    "characterName": "형광",
+    "rank": 10,
+    "file": "소울마스터-10.json.gz",
+    "job": "소울마스터"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "벨벨",
+    "rank": 1,
+    "file": "스트라이커-1.json.gz",
+    "job": "스트라이커"
+  },
+  {
+    "world": "오로라",
+    "characterName": "조승",
+    "rank": 2,
+    "file": "스트라이커-2.json.gz",
+    "job": "스트라이커"
+  },
+  {
+    "world": "레드",
+    "characterName": "깐부상어",
+    "rank": 3,
+    "file": "스트라이커-3.json.gz",
+    "job": "스트라이커"
+  },
+  {
+    "world": "베라",
+    "characterName": "내두일이다",
+    "rank": 4,
+    "file": "스트라이커-4.json.gz",
+    "job": "스트라이커"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "상두",
+    "rank": 9,
+    "file": "스트라이커-9.json.gz",
+    "job": "스트라이커"
+  },
+  {
+    "world": "오로라",
+    "characterName": "딩엄",
+    "rank": 11,
+    "file": "스트라이커-11.json.gz",
+    "job": "스트라이커"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "혀l랑",
+    "rank": 13,
+    "file": "스트라이커-13.json.gz",
+    "job": "스트라이커"
+  },
+  {
+    "world": "크로아",
+    "characterName": "형동",
+    "rank": 14,
+    "file": "스트라이커-14.json.gz",
+    "job": "스트라이커"
+  },
+  {
+    "world": "루나",
+    "characterName": "아기상어",
+    "rank": 15,
+    "file": "스트라이커-15.json.gz",
+    "job": "스트라이커"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "김비와",
+    "rank": 16,
+    "file": "스트라이커-16.json.gz",
+    "job": "스트라이커"
+  },
+  {
+    "world": "베라",
+    "characterName": "땡수영",
+    "rank": 5,
+    "file": "신궁-5.json.gz",
+    "job": "신궁"
+  },
+  {
+    "world": "루나",
+    "characterName": "일랑",
+    "rank": 6,
+    "file": "신궁-6.json.gz",
+    "job": "신궁"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "육군사관학교",
+    "rank": 7,
+    "file": "신궁-7.json.gz",
+    "job": "신궁"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "월포",
+    "rank": 8,
+    "file": "신궁-8.json.gz",
+    "job": "신궁"
+  },
+  {
+    "world": "루나",
+    "characterName": "다정궁",
+    "rank": 9,
+    "file": "신궁-9.json.gz",
+    "job": "신궁"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "신꿍",
+    "rank": 10,
+    "file": "신궁-10.json.gz",
+    "job": "신궁"
+  },
+  {
+    "world": "루나",
+    "characterName": "이쭈꾸",
+    "rank": 11,
+    "file": "신궁-11.json.gz",
+    "job": "신궁"
+  },
+  {
+    "world": "오로라",
+    "characterName": "최원샷",
+    "rank": 12,
+    "file": "신궁-12.json.gz",
+    "job": "신궁"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "다뀨",
+    "rank": 13,
+    "file": "신궁-13.json.gz",
+    "job": "신궁"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "없써",
+    "rank": 15,
+    "file": "신궁-15.json.gz",
+    "job": "신궁"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "헨쇼",
+    "rank": 1,
+    "file": "아델-1.json.gz",
+    "job": "아델"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "팡이요",
+    "rank": 3,
+    "file": "아델-3.json.gz",
+    "job": "아델"
+  },
+  {
+    "world": "루나",
+    "characterName": "수정과",
+    "rank": 4,
+    "file": "아델-4.json.gz",
+    "job": "아델"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "채콩",
+    "rank": 5,
+    "file": "아델-5.json.gz",
+    "job": "아델"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "연님",
+    "rank": 6,
+    "file": "아델-6.json.gz",
+    "job": "아델"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "겹띵",
+    "rank": 9,
+    "file": "아델-9.json.gz",
+    "job": "아델"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "뻬삐뾰",
+    "rank": 10,
+    "file": "아델-10.json.gz",
+    "job": "아델"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "채얌",
+    "rank": 13,
+    "file": "아델-13.json.gz",
+    "job": "아델"
+  },
+  {
+    "world": "크로아",
+    "characterName": "아델하드코어",
+    "rank": 15,
+    "file": "아델-15.json.gz",
+    "job": "아델"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "디뎌",
+    "rank": 16,
+    "file": "아델-16.json.gz",
+    "job": "아델"
+  },
+  {
+    "world": "유니온",
+    "characterName": "안녕별잇",
+    "rank": 1,
+    "file": "아란-1.json.gz",
+    "job": "아란"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "록리",
+    "rank": 2,
+    "file": "아란-2.json.gz",
+    "job": "아란"
+  },
+  {
+    "world": "크로아",
+    "characterName": "인도",
+    "rank": 3,
+    "file": "아란-3.json.gz",
+    "job": "아란"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "재진",
+    "rank": 4,
+    "file": "아란-4.json.gz",
+    "job": "아란"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "야랸",
+    "rank": 5,
+    "file": "아란-5.json.gz",
+    "job": "아란"
+  },
+  {
+    "world": "크로아",
+    "characterName": "예겨",
+    "rank": 10,
+    "file": "아란-10.json.gz",
+    "job": "아란"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "파피",
+    "rank": 11,
+    "file": "아란-11.json.gz",
+    "job": "아란"
+  },
+  {
+    "world": "유니온",
+    "characterName": "후임",
+    "rank": 12,
+    "file": "아란-12.json.gz",
+    "job": "아란"
+  },
+  {
+    "world": "루나",
+    "characterName": "모래시계",
+    "rank": 13,
+    "file": "아란-13.json.gz",
+    "job": "아란"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "후딱",
+    "rank": 15,
+    "file": "아란-15.json.gz",
+    "job": "아란"
+  },
+  {
+    "world": "루나",
+    "characterName": "귀욤",
+    "rank": 1,
+    "file": "아크-1.json.gz",
+    "job": "아크"
+  },
+  {
+    "world": "베라",
+    "characterName": "퓨퓨",
+    "rank": 4,
+    "file": "아크-4.json.gz",
+    "job": "아크"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "원장",
+    "rank": 5,
+    "file": "아크-5.json.gz",
+    "job": "아크"
+  },
+  {
+    "world": "루나",
+    "characterName": "에이를리히",
+    "rank": 6,
+    "file": "아크-6.json.gz",
+    "job": "아크"
+  },
+  {
+    "world": "루나",
+    "characterName": "카사하라",
+    "rank": 8,
+    "file": "아크-8.json.gz",
+    "job": "아크"
+  },
+  {
+    "world": "루나",
+    "characterName": "춥고",
+    "rank": 9,
+    "file": "아크-9.json.gz",
+    "job": "아크"
+  },
+  {
+    "world": "루나",
+    "characterName": "구보",
+    "rank": 10,
+    "file": "아크-10.json.gz",
+    "job": "아크"
+  },
+  {
+    "world": "크로아",
+    "characterName": "바대",
+    "rank": 12,
+    "file": "아크-12.json.gz",
+    "job": "아크"
+  },
+  {
+    "world": "베라",
+    "characterName": "검정후냥이",
+    "rank": 13,
+    "file": "아크-13.json.gz",
+    "job": "아크"
+  },
+  {
+    "world": "루나",
+    "characterName": "점혈",
+    "rank": 14,
+    "file": "아크-14.json.gz",
+    "job": "아크"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "곤주",
+    "rank": 1,
+    "file": "아크메이지(불,독)-1.json.gz",
+    "job": "아크메이지(불,독)"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "법행",
+    "rank": 2,
+    "file": "아크메이지(불,독)-2.json.gz",
+    "job": "아크메이지(불,독)"
+  },
+  {
+    "world": "크로아",
+    "characterName": "오앙",
+    "rank": 3,
+    "file": "아크메이지(불,독)-3.json.gz",
+    "job": "아크메이지(불,독)"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "케롤",
+    "rank": 5,
+    "file": "아크메이지(불,독)-5.json.gz",
+    "job": "아크메이지(불,독)"
+  },
+  {
+    "world": "오로라",
+    "characterName": "딱조",
+    "rank": 6,
+    "file": "아크메이지(불,독)-6.json.gz",
+    "job": "아크메이지(불,독)"
+  },
+  {
+    "world": "루나",
+    "characterName": "문열어봐쾅쾅",
+    "rank": 7,
+    "file": "아크메이지(불,독)-7.json.gz",
+    "job": "아크메이지(불,독)"
+  },
+  {
+    "world": "루나",
+    "characterName": "아이코쿠마",
+    "rank": 8,
+    "file": "아크메이지(불,독)-8.json.gz",
+    "job": "아크메이지(불,독)"
+  },
+  {
+    "world": "크로아",
+    "characterName": "불맛",
+    "rank": 10,
+    "file": "아크메이지(불,독)-10.json.gz",
+    "job": "아크메이지(불,독)"
+  },
+  {
+    "world": "크로아",
+    "characterName": "구랙",
+    "rank": 11,
+    "file": "아크메이지(불,독)-11.json.gz",
+    "job": "아크메이지(불,독)"
+  },
+  {
+    "world": "루나",
+    "characterName": "필독",
+    "rank": 12,
+    "file": "아크메이지(불,독)-12.json.gz",
+    "job": "아크메이지(불,독)"
+  },
+  {
+    "world": "루나",
+    "characterName": "루나썬콜",
+    "rank": 1,
+    "file": "아크메이지(썬,콜)-1.json.gz",
+    "job": "아크메이지(썬,콜)"
+  },
+  {
+    "world": "베라",
+    "characterName": "감귤있어요",
+    "rank": 2,
+    "file": "아크메이지(썬,콜)-2.json.gz",
+    "job": "아크메이지(썬,콜)"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "얘야",
+    "rank": 6,
+    "file": "아크메이지(썬,콜)-6.json.gz",
+    "job": "아크메이지(썬,콜)"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "참자",
+    "rank": 7,
+    "file": "아크메이지(썬,콜)-7.json.gz",
+    "job": "아크메이지(썬,콜)"
+  },
+  {
+    "world": "제니스",
+    "characterName": "후레쉬마트",
+    "rank": 8,
+    "file": "아크메이지(썬,콜)-8.json.gz",
+    "job": "아크메이지(썬,콜)"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "싼타페7477",
+    "rank": 10,
+    "file": "아크메이지(썬,콜)-10.json.gz",
+    "job": "아크메이지(썬,콜)"
+  },
+  {
+    "world": "크로아",
+    "characterName": "처서",
+    "rank": 12,
+    "file": "아크메이지(썬,콜)-12.json.gz",
+    "job": "아크메이지(썬,콜)"
+  },
+  {
+    "world": "레드",
+    "characterName": "내일부터광부",
+    "rank": 13,
+    "file": "아크메이지(썬,콜)-13.json.gz",
+    "job": "아크메이지(썬,콜)"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "카리타니슈",
+    "rank": 14,
+    "file": "아크메이지(썬,콜)-14.json.gz",
+    "job": "아크메이지(썬,콜)"
+  },
+  {
+    "world": "베라",
+    "characterName": "차원",
+    "rank": 15,
+    "file": "아크메이지(썬,콜)-15.json.gz",
+    "job": "아크메이지(썬,콜)"
+  },
+  {
+    "world": "루나",
+    "characterName": "뎅아인",
+    "rank": 1,
+    "file": "에반-1.json.gz",
+    "job": "에반"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "남한",
+    "rank": 2,
+    "file": "에반-2.json.gz",
+    "job": "에반"
+  },
+  {
+    "world": "베라",
+    "characterName": "쌍초늬",
+    "rank": 4,
+    "file": "에반-4.json.gz",
+    "job": "에반"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "끅예",
+    "rank": 6,
+    "file": "에반-6.json.gz",
+    "job": "에반"
+  },
+  {
+    "world": "크로아",
+    "characterName": "두부는두부다",
+    "rank": 9,
+    "file": "에반-9.json.gz",
+    "job": "에반"
+  },
+  {
+    "world": "오로라",
+    "characterName": "꾹또",
+    "rank": 10,
+    "file": "에반-10.json.gz",
+    "job": "에반"
+  },
+  {
+    "world": "루나",
+    "characterName": "민식o",
+    "rank": 11,
+    "file": "에반-11.json.gz",
+    "job": "에반"
+  },
+  {
+    "world": "루나",
+    "characterName": "루이바오",
+    "rank": 12,
+    "file": "에반-12.json.gz",
+    "job": "에반"
+  },
+  {
+    "world": "루나",
+    "characterName": "오닉스",
+    "rank": 13,
+    "file": "에반-13.json.gz",
+    "job": "에반"
+  },
+  {
+    "world": "루나",
+    "characterName": "사막의빗방울",
+    "rank": 14,
+    "file": "에반-14.json.gz",
+    "job": "에반"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "영준",
+    "rank": 1,
+    "file": "엔젤릭버스터-1.json.gz",
+    "job": "엔젤릭버스터"
+  },
+  {
+    "world": "크로아",
+    "characterName": "효도",
+    "rank": 2,
+    "file": "엔젤릭버스터-2.json.gz",
+    "job": "엔젤릭버스터"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "EGO015",
+    "rank": 3,
+    "file": "엔젤릭버스터-3.json.gz",
+    "job": "엔젤릭버스터"
+  },
+  {
+    "world": "크로아",
+    "characterName": "룩룩",
+    "rank": 6,
+    "file": "엔젤릭버스터-6.json.gz",
+    "job": "엔젤릭버스터"
+  },
+  {
+    "world": "베라",
+    "characterName": "빅시커",
+    "rank": 8,
+    "file": "엔젤릭버스터-8.json.gz",
+    "job": "엔젤릭버스터"
+  },
+  {
+    "world": "루나",
+    "characterName": "무출",
+    "rank": 9,
+    "file": "엔젤릭버스터-9.json.gz",
+    "job": "엔젤릭버스터"
+  },
+  {
+    "world": "베라",
+    "characterName": "츠무기",
+    "rank": 10,
+    "file": "엔젤릭버스터-10.json.gz",
+    "job": "엔젤릭버스터"
+  },
+  {
+    "world": "루나",
+    "characterName": "귤이",
+    "rank": 11,
+    "file": "엔젤릭버스터-11.json.gz",
+    "job": "엔젤릭버스터"
+  },
+  {
+    "world": "크로아",
+    "characterName": "오노데라",
+    "rank": 12,
+    "file": "엔젤릭버스터-12.json.gz",
+    "job": "엔젤릭버스터"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "픽미",
+    "rank": 13,
+    "file": "엔젤릭버스터-13.json.gz",
+    "job": "엔젤릭버스터"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "도비",
+    "rank": 1,
+    "file": "와일드헌터-1.json.gz",
+    "job": "와일드헌터"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "남살프",
+    "rank": 2,
+    "file": "와일드헌터-2.json.gz",
+    "job": "와일드헌터"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "포켓몬",
+    "rank": 3,
+    "file": "와일드헌터-3.json.gz",
+    "job": "와일드헌터"
+  },
+  {
+    "world": "이노시스",
+    "characterName": "목표80타",
+    "rank": 5,
+    "file": "와일드헌터-5.json.gz",
+    "job": "와일드헌터"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "송은",
+    "rank": 8,
+    "file": "와일드헌터-8.json.gz",
+    "job": "와일드헌터"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "리와와",
+    "rank": 9,
+    "file": "와일드헌터-9.json.gz",
+    "job": "와일드헌터"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "쁨나",
+    "rank": 10,
+    "file": "와일드헌터-10.json.gz",
+    "job": "와일드헌터"
+  },
+  {
+    "world": "크로아",
+    "characterName": "김앰비",
+    "rank": 11,
+    "file": "와일드헌터-11.json.gz",
+    "job": "와일드헌터"
+  },
+  {
+    "world": "베라",
+    "characterName": "혈언구",
+    "rank": 12,
+    "file": "와일드헌터-12.json.gz",
+    "job": "와일드헌터"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "와미새",
+    "rank": 13,
+    "file": "와일드헌터-13.json.gz",
+    "job": "와일드헌터"
+  },
+  {
+    "world": "크로아",
+    "characterName": "이보영",
+    "rank": 2,
+    "file": "윈드브레이커-2.json.gz",
+    "job": "윈드브레이커"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "율별빛",
+    "rank": 5,
+    "file": "윈드브레이커-5.json.gz",
+    "job": "윈드브레이커"
+  },
+  {
+    "world": "크로아",
+    "characterName": "큐닝",
+    "rank": 6,
+    "file": "윈드브레이커-6.json.gz",
+    "job": "윈드브레이커"
+  },
+  {
+    "world": "오로라",
+    "characterName": "딘뽀",
+    "rank": 7,
+    "file": "윈드브레이커-7.json.gz",
+    "job": "윈드브레이커"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "미니활",
+    "rank": 8,
+    "file": "윈드브레이커-8.json.gz",
+    "job": "윈드브레이커"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "째혀이v",
+    "rank": 9,
+    "file": "윈드브레이커-9.json.gz",
+    "job": "윈드브레이커"
+  },
+  {
+    "world": "베라",
+    "characterName": "벌컥",
+    "rank": 10,
+    "file": "윈드브레이커-10.json.gz",
+    "job": "윈드브레이커"
+  },
+  {
+    "world": "크로아",
+    "characterName": "별바람",
+    "rank": 11,
+    "file": "윈드브레이커-11.json.gz",
+    "job": "윈드브레이커"
+  },
+  {
+    "world": "베라",
+    "characterName": "주갤",
+    "rank": 12,
+    "file": "윈드브레이커-12.json.gz",
+    "job": "윈드브레이커"
+  },
+  {
+    "world": "루나",
+    "characterName": "쵸파틴틴",
+    "rank": 13,
+    "file": "윈드브레이커-13.json.gz",
+    "job": "윈드브레이커"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "Lacheln",
+    "rank": 1,
+    "file": "은월-1.json.gz",
+    "job": "은월"
+  },
+  {
+    "world": "레드",
+    "characterName": "순하리",
+    "rank": 2,
+    "file": "은월-2.json.gz",
+    "job": "은월"
+  },
+  {
+    "world": "크로아",
+    "characterName": "쿠몽",
+    "rank": 4,
+    "file": "은월-4.json.gz",
+    "job": "은월"
+  },
+  {
+    "world": "제니스",
+    "characterName": "o우르키오라o",
+    "rank": 6,
+    "file": "은월-6.json.gz",
+    "job": "은월"
+  },
+  {
+    "world": "크로아",
+    "characterName": "미헨",
+    "rank": 8,
+    "file": "은월-8.json.gz",
+    "job": "은월"
+  },
+  {
+    "world": "베라",
+    "characterName": "내로",
+    "rank": 9,
+    "file": "은월-9.json.gz",
+    "job": "은월"
+  },
+  {
+    "world": "루나",
+    "characterName": "은손",
+    "rank": 10,
+    "file": "은월-10.json.gz",
+    "job": "은월"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "은잇",
+    "rank": 12,
+    "file": "은월-12.json.gz",
+    "job": "은월"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "삶의",
+    "rank": 13,
+    "file": "은월-13.json.gz",
+    "job": "은월"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "토끼신",
+    "rank": 14,
+    "file": "은월-14.json.gz",
+    "job": "은월"
+  },
+  {
+    "world": "이노시스",
+    "characterName": "혜넹",
+    "rank": 1,
+    "file": "일리움-1.json.gz",
+    "job": "일리움"
+  },
+  {
+    "world": "루나",
+    "characterName": "가뜨",
+    "rank": 2,
+    "file": "일리움-2.json.gz",
+    "job": "일리움"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "vm0지연이0mv",
+    "rank": 4,
+    "file": "일리움-4.json.gz",
+    "job": "일리움"
+  },
+  {
+    "world": "루나",
+    "characterName": "댈람이",
+    "rank": 5,
+    "file": "일리움-5.json.gz",
+    "job": "일리움"
+  },
+  {
+    "world": "크로아",
+    "characterName": "첫고백",
+    "rank": 6,
+    "file": "일리움-6.json.gz",
+    "job": "일리움"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "석반",
+    "rank": 7,
+    "file": "일리움-7.json.gz",
+    "job": "일리움"
+  },
+  {
+    "world": "이노시스",
+    "characterName": "마겨",
+    "rank": 8,
+    "file": "일리움-8.json.gz",
+    "job": "일리움"
+  },
+  {
+    "world": "루나",
+    "characterName": "헤테로",
+    "rank": 10,
+    "file": "일리움-10.json.gz",
+    "job": "일리움"
+  },
+  {
+    "world": "루나",
+    "characterName": "김보쌈",
+    "rank": 11,
+    "file": "일리움-11.json.gz",
+    "job": "일리움"
+  },
+  {
+    "world": "루나",
+    "characterName": "동전쮸",
+    "rank": 12,
+    "file": "일리움-12.json.gz",
+    "job": "일리움"
+  },
+  {
+    "world": "베라",
+    "characterName": "탱이갓제논",
+    "rank": 1,
+    "file": "제논-1.json.gz",
+    "job": "제논"
+  },
+  {
+    "world": "크로아",
+    "characterName": "빅루티",
+    "rank": 2,
+    "file": "제논-2.json.gz",
+    "job": "제논"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "이어징",
+    "rank": 3,
+    "file": "제논-3.json.gz",
+    "job": "제논"
+  },
+  {
+    "world": "크로아",
+    "characterName": "제루",
+    "rank": 4,
+    "file": "제논-4.json.gz",
+    "job": "제논"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "톰스",
+    "rank": 5,
+    "file": "제논-5.json.gz",
+    "job": "제논"
+  },
+  {
+    "world": "루나",
+    "characterName": "경기제논",
+    "rank": 6,
+    "file": "제논-6.json.gz",
+    "job": "제논"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "광선",
+    "rank": 7,
+    "file": "제논-7.json.gz",
+    "job": "제논"
+  },
+  {
+    "world": "베라",
+    "characterName": "남준",
+    "rank": 8,
+    "file": "제논-8.json.gz",
+    "job": "제논"
+  },
+  {
+    "world": "루나",
+    "characterName": "프랜스루시",
+    "rank": 9,
+    "file": "제논-9.json.gz",
+    "job": "제논"
+  },
+  {
+    "world": "베라",
+    "characterName": "보나냥냥",
+    "rank": 10,
+    "file": "제논-10.json.gz",
+    "job": "제논"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "경광등",
+    "rank": 3,
+    "file": "제로-3.json.gz",
+    "job": "제로"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "누라리한",
+    "rank": 4,
+    "file": "제로-4.json.gz",
+    "job": "제로"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "교과",
+    "rank": 6,
+    "file": "제로-6.json.gz",
+    "job": "제로"
+  },
+  {
+    "world": "제니스",
+    "characterName": "겨누인",
+    "rank": 8,
+    "file": "제로-8.json.gz",
+    "job": "제로"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "Codesaber",
+    "rank": 9,
+    "file": "제로-9.json.gz",
+    "job": "제로"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "져봐",
+    "rank": 10,
+    "file": "제로-10.json.gz",
+    "job": "제로"
+  },
+  {
+    "world": "루나",
+    "characterName": "계란",
+    "rank": 11,
+    "file": "제로-11.json.gz",
+    "job": "제로"
+  },
+  {
+    "world": "오로라",
+    "characterName": "봉술",
+    "rank": 15,
+    "file": "제로-15.json.gz",
+    "job": "제로"
+  },
+  {
+    "world": "루나",
+    "characterName": "DaisyScarlet",
+    "rank": 16,
+    "file": "제로-16.json.gz",
+    "job": "제로"
+  },
+  {
+    "world": "크로아",
+    "characterName": "제악귀",
+    "rank": 17,
+    "file": "제로-17.json.gz",
+    "job": "제로"
+  },
+  {
+    "world": "크로아",
+    "characterName": "별왕",
+    "rank": 2,
+    "file": "카데나-2.json.gz",
+    "job": "카데나"
+  },
+  {
+    "world": "제니스",
+    "characterName": "기요오",
+    "rank": 3,
+    "file": "카데나-3.json.gz",
+    "job": "카데나"
+  },
+  {
+    "world": "루나",
+    "characterName": "사슬낫의제니",
+    "rank": 4,
+    "file": "카데나-4.json.gz",
+    "job": "카데나"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "초코빵내꺼야",
+    "rank": 5,
+    "file": "카데나-5.json.gz",
+    "job": "카데나"
+  },
+  {
+    "world": "베라",
+    "characterName": "유혹하는뇨자",
+    "rank": 6,
+    "file": "카데나-6.json.gz",
+    "job": "카데나"
+  },
+  {
+    "world": "크로아",
+    "characterName": "힝반냥",
+    "rank": 7,
+    "file": "카데나-7.json.gz",
+    "job": "카데나"
+  },
+  {
+    "world": "루나",
+    "characterName": "Closer",
+    "rank": 8,
+    "file": "카데나-8.json.gz",
+    "job": "카데나"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "기문",
+    "rank": 9,
+    "file": "카데나-9.json.gz",
+    "job": "카데나"
+  },
+  {
+    "world": "루나",
+    "characterName": "나히닷",
+    "rank": 11,
+    "file": "카데나-11.json.gz",
+    "job": "카데나"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "메일스트롬",
+    "rank": 12,
+    "file": "카데나-12.json.gz",
+    "job": "카데나"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "니벨룽겐P",
+    "rank": 2,
+    "file": "카이저-2.json.gz",
+    "job": "카이저"
+  },
+  {
+    "world": "크로아",
+    "characterName": "정현영",
+    "rank": 3,
+    "file": "카이저-3.json.gz",
+    "job": "카이저"
+  },
+  {
+    "world": "크로아",
+    "characterName": "탐츠",
+    "rank": 5,
+    "file": "카이저-5.json.gz",
+    "job": "카이저"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "온논노",
+    "rank": 7,
+    "file": "카이저-7.json.gz",
+    "job": "카이저"
+  },
+  {
+    "world": "오로라",
+    "characterName": "헤이저",
+    "rank": 8,
+    "file": "카이저-8.json.gz",
+    "job": "카이저"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "공격팀",
+    "rank": 9,
+    "file": "카이저-9.json.gz",
+    "job": "카이저"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "김태풍",
+    "rank": 10,
+    "file": "카이저-10.json.gz",
+    "job": "카이저"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "시오리",
+    "rank": 11,
+    "file": "카이저-11.json.gz",
+    "job": "카이저"
+  },
+  {
+    "world": "크로아",
+    "characterName": "교보생명",
+    "rank": 12,
+    "file": "카이저-12.json.gz",
+    "job": "카이저"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "공경현",
+    "rank": 13,
+    "file": "카이저-13.json.gz",
+    "job": "카이저"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "인크카",
+    "rank": 1,
+    "file": "카인-1.json.gz",
+    "job": "카인"
+  },
+  {
+    "world": "크로아",
+    "characterName": "카인님",
+    "rank": 2,
+    "file": "카인-2.json.gz",
+    "job": "카인"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "디쩡",
+    "rank": 4,
+    "file": "카인-4.json.gz",
+    "job": "카인"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "화단백",
+    "rank": 6,
+    "file": "카인-6.json.gz",
+    "job": "카인"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "루나루비맘",
+    "rank": 7,
+    "file": "카인-7.json.gz",
+    "job": "카인"
+  },
+  {
+    "world": "루나",
+    "characterName": "신제",
+    "rank": 8,
+    "file": "카인-8.json.gz",
+    "job": "카인"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "빅딜",
+    "rank": 9,
+    "file": "카인-9.json.gz",
+    "job": "카인"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "착시도",
+    "rank": 12,
+    "file": "카인-12.json.gz",
+    "job": "카인"
+  },
+  {
+    "world": "베라",
+    "characterName": "얍기",
+    "rank": 14,
+    "file": "카인-14.json.gz",
+    "job": "카인"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "프순",
+    "rank": 15,
+    "file": "카인-15.json.gz",
+    "job": "카인"
+  },
+  {
+    "world": "루나",
+    "characterName": "YouTube세연",
+    "rank": 2,
+    "file": "칼리-2.json.gz",
+    "job": "칼리"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "사류",
+    "rank": 4,
+    "file": "칼리-4.json.gz",
+    "job": "칼리"
+  },
+  {
+    "world": "베라",
+    "characterName": "빈접시",
+    "rank": 5,
+    "file": "칼리-5.json.gz",
+    "job": "칼리"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "강은호",
+    "rank": 6,
+    "file": "칼리-6.json.gz",
+    "job": "칼리"
+  },
+  {
+    "world": "루나",
+    "characterName": "삐쨩",
+    "rank": 7,
+    "file": "칼리-7.json.gz",
+    "job": "칼리"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "분분",
+    "rank": 9,
+    "file": "칼리-9.json.gz",
+    "job": "칼리"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "쭈링",
+    "rank": 10,
+    "file": "칼리-10.json.gz",
+    "job": "칼리"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "역겨운인간들",
+    "rank": 13,
+    "file": "칼리-13.json.gz",
+    "job": "칼리"
+  },
+  {
+    "world": "루나",
+    "characterName": "아몬드",
+    "rank": 14,
+    "file": "칼리-14.json.gz",
+    "job": "칼리"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "청묘",
+    "rank": 15,
+    "file": "칼리-15.json.gz",
+    "job": "칼리"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "토고",
+    "rank": 2,
+    "file": "캐논마스터-2.json.gz",
+    "job": "캐논마스터"
+  },
+  {
+    "world": "루나",
+    "characterName": "캐슈",
+    "rank": 3,
+    "file": "캐논마스터-3.json.gz",
+    "job": "캐논마스터"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "폭탄사용",
+    "rank": 4,
+    "file": "캐논마스터-4.json.gz",
+    "job": "캐논마스터"
+  },
+  {
+    "world": "루나",
+    "characterName": "태린",
+    "rank": 5,
+    "file": "캐논마스터-5.json.gz",
+    "job": "캐논마스터"
+  },
+  {
+    "world": "유니온",
+    "characterName": "포탄",
+    "rank": 6,
+    "file": "캐논마스터-6.json.gz",
+    "job": "캐논마스터"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "빌보드",
+    "rank": 11,
+    "file": "캐논마스터-11.json.gz",
+    "job": "캐논마스터"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "햄쥬",
+    "rank": 12,
+    "file": "캐논마스터-12.json.gz",
+    "job": "캐논마스터"
+  },
+  {
+    "world": "크로아",
+    "characterName": "더협",
+    "rank": 13,
+    "file": "캐논마스터-13.json.gz",
+    "job": "캐논마스터"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "새아",
+    "rank": 14,
+    "file": "캐논마스터-14.json.gz",
+    "job": "캐논마스터"
+  },
+  {
+    "world": "크로아",
+    "characterName": "이명박",
+    "rank": 16,
+    "file": "캐논마스터-16.json.gz",
+    "job": "캐논마스터"
+  },
+  {
+    "world": "크로아",
+    "characterName": "징베",
+    "rank": 1,
+    "file": "캡틴-1.json.gz",
+    "job": "캡틴"
+  },
+  {
+    "world": "루나",
+    "characterName": "럭스",
+    "rank": 2,
+    "file": "캡틴-2.json.gz",
+    "job": "캡틴"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "사선추격",
+    "rank": 3,
+    "file": "캡틴-3.json.gz",
+    "job": "캡틴"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "슈리언즈",
+    "rank": 4,
+    "file": "캡틴-4.json.gz",
+    "job": "캡틴"
+  },
+  {
+    "world": "루나",
+    "characterName": "네퓨",
+    "rank": 5,
+    "file": "캡틴-5.json.gz",
+    "job": "캡틴"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "호이퍼",
+    "rank": 6,
+    "file": "캡틴-6.json.gz",
+    "job": "캡틴"
+  },
+  {
+    "world": "오로라",
+    "characterName": "학살자펭귄",
+    "rank": 7,
+    "file": "캡틴-7.json.gz",
+    "job": "캡틴"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "또라버닝지겹",
+    "rank": 8,
+    "file": "캡틴-8.json.gz",
+    "job": "캡틴"
+  },
+  {
+    "world": "크로아",
+    "characterName": "당황",
+    "rank": 9,
+    "file": "캡틴-9.json.gz",
+    "job": "캡틴"
+  },
+  {
+    "world": "크로아",
+    "characterName": "섹마",
+    "rank": 10,
+    "file": "캡틴-10.json.gz",
+    "job": "캡틴"
+  },
+  {
+    "world": "이노시스",
+    "characterName": "먹음쟁이",
+    "rank": 2,
+    "file": "키네시스-2.json.gz",
+    "job": "키네시스"
+  },
+  {
+    "world": "크로아",
+    "characterName": "Chaos",
+    "rank": 3,
+    "file": "키네시스-3.json.gz",
+    "job": "키네시스"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "우락키네",
+    "rank": 4,
+    "file": "키네시스-4.json.gz",
+    "job": "키네시스"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "블핑u",
+    "rank": 5,
+    "file": "키네시스-5.json.gz",
+    "job": "키네시스"
+  },
+  {
+    "world": "베라",
+    "characterName": "염력",
+    "rank": 7,
+    "file": "키네시스-7.json.gz",
+    "job": "키네시스"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "붉은청룡",
+    "rank": 9,
+    "file": "키네시스-9.json.gz",
+    "job": "키네시스"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "담탱",
+    "rank": 11,
+    "file": "키네시스-11.json.gz",
+    "job": "키네시스"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "모디비디",
+    "rank": 13,
+    "file": "키네시스-13.json.gz",
+    "job": "키네시스"
+  },
+  {
+    "world": "레드",
+    "characterName": "냇비",
+    "rank": 14,
+    "file": "키네시스-14.json.gz",
+    "job": "키네시스"
+  },
+  {
+    "world": "크로아",
+    "characterName": "도올",
+    "rank": 15,
+    "file": "키네시스-15.json.gz",
+    "job": "키네시스"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "은사",
+    "rank": 1,
+    "file": "팔라딘-1.json.gz",
+    "job": "팔라딘"
+  },
+  {
+    "world": "루나",
+    "characterName": "팔지니",
+    "rank": 2,
+    "file": "팔라딘-2.json.gz",
+    "job": "팔라딘"
+  },
+  {
+    "world": "베라",
+    "characterName": "유람선",
+    "rank": 6,
+    "file": "팔라딘-6.json.gz",
+    "job": "팔라딘"
+  },
+  {
+    "world": "루나",
+    "characterName": "남질",
+    "rank": 7,
+    "file": "팔라딘-7.json.gz",
+    "job": "팔라딘"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "미헤",
+    "rank": 8,
+    "file": "팔라딘-8.json.gz",
+    "job": "팔라딘"
+  },
+  {
+    "world": "제니스",
+    "characterName": "뼈묠",
+    "rank": 9,
+    "file": "팔라딘-9.json.gz",
+    "job": "팔라딘"
+  },
+  {
+    "world": "루나",
+    "characterName": "든기",
+    "rank": 10,
+    "file": "팔라딘-10.json.gz",
+    "job": "팔라딘"
+  },
+  {
+    "world": "베라",
+    "characterName": "많음",
+    "rank": 11,
+    "file": "팔라딘-11.json.gz",
+    "job": "팔라딘"
+  },
+  {
+    "world": "루나",
+    "characterName": "맑음딘",
+    "rank": 12,
+    "file": "팔라딘-12.json.gz",
+    "job": "팔라딘"
+  },
+  {
+    "world": "크로아",
+    "characterName": "별칸나",
+    "rank": 13,
+    "file": "팔라딘-13.json.gz",
+    "job": "팔라딘"
+  },
+  {
+    "world": "베라",
+    "characterName": "최무등",
+    "rank": 1,
+    "file": "패스파인더-1.json.gz",
+    "job": "패스파인더"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "문도",
+    "rank": 2,
+    "file": "패스파인더-2.json.gz",
+    "job": "패스파인더"
+  },
+  {
+    "world": "루나",
+    "characterName": "패팟",
+    "rank": 3,
+    "file": "패스파인더-3.json.gz",
+    "job": "패스파인더"
+  },
+  {
+    "world": "크로아",
+    "characterName": "잉엥",
+    "rank": 4,
+    "file": "패스파인더-4.json.gz",
+    "job": "패스파인더"
+  },
+  {
+    "world": "루나",
+    "characterName": "Thresh",
+    "rank": 5,
+    "file": "패스파인더-5.json.gz",
+    "job": "패스파인더"
+  },
+  {
+    "world": "루나",
+    "characterName": "뿅텔",
+    "rank": 6,
+    "file": "패스파인더-6.json.gz",
+    "job": "패스파인더"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "발락",
+    "rank": 7,
+    "file": "패스파인더-7.json.gz",
+    "job": "패스파인더"
+  },
+  {
+    "world": "루나",
+    "characterName": "승환쿤",
+    "rank": 8,
+    "file": "패스파인더-8.json.gz",
+    "job": "패스파인더"
+  },
+  {
+    "world": "크로아",
+    "characterName": "가챠대란",
+    "rank": 9,
+    "file": "패스파인더-9.json.gz",
+    "job": "패스파인더"
+  },
+  {
+    "world": "유니온",
+    "characterName": "짜푸집사",
+    "rank": 10,
+    "file": "패스파인더-10.json.gz",
+    "job": "패스파인더"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "카사",
+    "rank": 1,
+    "file": "팬텀-1.json.gz",
+    "job": "팬텀"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "모냐",
+    "rank": 2,
+    "file": "팬텀-2.json.gz",
+    "job": "팬텀"
+  },
+  {
+    "world": "루나",
+    "characterName": "raro",
+    "rank": 3,
+    "file": "팬텀-3.json.gz",
+    "job": "팬텀"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "카키",
+    "rank": 4,
+    "file": "팬텀-4.json.gz",
+    "job": "팬텀"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "현경",
+    "rank": 5,
+    "file": "팬텀-5.json.gz",
+    "job": "팬텀"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "두근",
+    "rank": 7,
+    "file": "팬텀-7.json.gz",
+    "job": "팬텀"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "쏘쿨",
+    "rank": 8,
+    "file": "팬텀-8.json.gz",
+    "job": "팬텀"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "작반",
+    "rank": 9,
+    "file": "팬텀-9.json.gz",
+    "job": "팬텀"
+  },
+  {
+    "world": "베라",
+    "characterName": "Makylia",
+    "rank": 10,
+    "file": "팬텀-10.json.gz",
+    "job": "팬텀"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "민성팬텀1",
+    "rank": 11,
+    "file": "팬텀-11.json.gz",
+    "job": "팬텀"
+  },
+  {
+    "world": "크로아",
+    "characterName": "플위",
+    "rank": 1,
+    "file": "플레임위자드-1.json.gz",
+    "job": "플레임위자드"
+  },
+  {
+    "world": "루나",
+    "characterName": "꼬마불꽃",
+    "rank": 2,
+    "file": "플레임위자드-2.json.gz",
+    "job": "플레임위자드"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "민교",
+    "rank": 3,
+    "file": "플레임위자드-3.json.gz",
+    "job": "플레임위자드"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "사탄이",
+    "rank": 5,
+    "file": "플레임위자드-5.json.gz",
+    "job": "플레임위자드"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "카라멜",
+    "rank": 9,
+    "file": "플레임위자드-9.json.gz",
+    "job": "플레임위자드"
+  },
+  {
+    "world": "루나",
+    "characterName": "환염",
+    "rank": 10,
+    "file": "플레임위자드-10.json.gz",
+    "job": "플레임위자드"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "최탱우",
+    "rank": 12,
+    "file": "플레임위자드-12.json.gz",
+    "job": "플레임위자드"
+  },
+  {
+    "world": "크로아",
+    "characterName": "예능",
+    "rank": 15,
+    "file": "플레임위자드-15.json.gz",
+    "job": "플레임위자드"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "머임",
+    "rank": 16,
+    "file": "플레임위자드-16.json.gz",
+    "job": "플레임위자드"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "물감페티",
+    "rank": 17,
+    "file": "플레임위자드-17.json.gz",
+    "job": "플레임위자드"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "하와",
+    "rank": 3,
+    "file": "호영-3.json.gz",
+    "job": "호영"
+  },
+  {
+    "world": "베라",
+    "characterName": "솜짱",
+    "rank": 4,
+    "file": "호영-4.json.gz",
+    "job": "호영"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "써브웨이",
+    "rank": 6,
+    "file": "호영-6.json.gz",
+    "job": "호영"
+  },
+  {
+    "world": "크로아",
+    "characterName": "해저",
+    "rank": 7,
+    "file": "호영-7.json.gz",
+    "job": "호영"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "다조녀",
+    "rank": 8,
+    "file": "호영-8.json.gz",
+    "job": "호영"
+  },
+  {
+    "world": "베라",
+    "characterName": "세속",
+    "rank": 9,
+    "file": "호영-9.json.gz",
+    "job": "호영"
+  },
+  {
+    "world": "오로라",
+    "characterName": "린소리",
+    "rank": 10,
+    "file": "호영-10.json.gz",
+    "job": "호영"
+  },
+  {
+    "world": "이노시스",
+    "characterName": "나꼬생각",
+    "rank": 11,
+    "file": "호영-11.json.gz",
+    "job": "호영"
+  },
+  {
+    "world": "크로아",
+    "characterName": "흐스",
+    "rank": 12,
+    "file": "호영-12.json.gz",
+    "job": "호영"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "허챔",
+    "rank": 14,
+    "file": "호영-14.json.gz",
+    "job": "호영"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "RJ115697",
+    "rank": 2,
+    "file": "히어로-2.json.gz",
+    "job": "히어로"
+  },
+  {
+    "world": "루나",
+    "characterName": "손대천",
+    "rank": 3,
+    "file": "히어로-3.json.gz",
+    "job": "히어로"
+  },
+  {
+    "world": "베라",
+    "characterName": "성조",
+    "rank": 4,
+    "file": "히어로-4.json.gz",
+    "job": "히어로"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "냥이롬",
+    "rank": 5,
+    "file": "히어로-5.json.gz",
+    "job": "히어로"
+  },
+  {
+    "world": "크로아",
+    "characterName": "애으",
+    "rank": 7,
+    "file": "히어로-7.json.gz",
+    "job": "히어로"
+  },
+  {
+    "world": "유니온",
+    "characterName": "Eilofe",
+    "rank": 8,
+    "file": "히어로-8.json.gz",
+    "job": "히어로"
+  },
+  {
+    "world": "베라",
+    "characterName": "스텝님",
+    "rank": 9,
+    "file": "히어로-9.json.gz",
+    "job": "히어로"
+  },
+  {
+    "world": "스카니아",
+    "characterName": "우화",
+    "rank": 10,
+    "file": "히어로-10.json.gz",
+    "job": "히어로"
+  },
+  {
+    "world": "엘리시움",
+    "characterName": "종초",
+    "rank": 11,
+    "file": "히어로-11.json.gz",
+    "job": "히어로"
+  },
+  {
+    "world": "베라",
+    "characterName": "덥죠",
+    "rank": 12,
+    "file": "히어로-12.json.gz",
+    "job": "히어로"
+  }
+]
