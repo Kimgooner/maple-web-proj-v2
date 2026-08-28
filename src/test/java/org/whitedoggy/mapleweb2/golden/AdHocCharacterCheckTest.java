@@ -140,8 +140,22 @@ class AdHocCharacterCheckTest {
                 statValue("INT", sum, level(documents)), statValue("LUK", sum, level(documents)),
                 sum.getHP(), sum.getHP_PERCENT(), sum.getHP_NO_PERCENT());
 
+        // 소스별 STR+DEX+LUK 합. 어느 소스가 덜 잡히는지 그룹 대조용.
+        StringBuilder bySource = new StringBuilder();
+        for (StatSheet s : List.of(sheet.getAbilityPoint(), sheet.getSymbol(), sheet.getSkill(),
+                sheet.getHexaStat(), sheet.getAbility(), sheet.getHyperStat(), sheet.getSetEffect(),
+                sheet.getOtherStat(), sheet.getUnionArtifact(), sheet.getUnionChampion(),
+                sheet.getUnionOccupied(), sheet.getUnionRaider())) {
+            bySource.append('\t').append(s == null ? 0
+                    : s.getSTR() + s.getDEX() + s.getLUK() + 3 * s.getALL_STAT()
+                    + s.getSTR_NO_PERCENT() + s.getDEX_NO_PERCENT() + s.getLUK_NO_PERCENT()
+                    + 3 * s.getALL_STAT_NO_PERCENT());
+        }
+        String sources = bySource.toString();
+
         System.out.printf("[TSV]\t%s\t%s\t%s\t%d\t%d\t%d\t%d\t%s\t%d\t%s\t%d\t%s\t%s\t%d\t%d"
-                        + "\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%d" + extra + "%n",
+                        + "\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%d"
+                        + extra + sources + "%n",
                 path.getFileName(), payload.path("job").asText(), payload.path("characterName").asText(),
                 calc, api, bare,
                 sheet.getExpiredArtifactCrystals(), sheet.isUnionRaiderDataMissing(),
