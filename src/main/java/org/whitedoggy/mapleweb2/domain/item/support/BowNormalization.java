@@ -18,6 +18,11 @@ import java.util.List;
  *
  * <p>검증: 아케인셰이드 보우 22성 = 592 + 170 = 762 (item_total_option 실측치와 일치),
  * 제네시스 듀얼보우건 22성 = 564 + 72 + 196 = 832 (실측치와 일치).
+ *
+ * <p><b>태도·대검(제로)은 예외다.</b> 다른 무기는 "같은 추 단계의 활 값"을 그대로 쓰면
+ * 맞지만 태도는 그 대응이 성립하지 않는다(필요값 179가 활 사다리에 아예 없다). 전용 표는
+ * {@code game-data.yml}의 {@code zero-bow-add-option}에 있고, 표본이 없는 단계는 비어 있어
+ * {@code stageResolved}가 false가 된다.
  */
 @Component
 @RequiredArgsConstructor
@@ -41,13 +46,24 @@ public class BowNormalization {
         Integer stage = weaponData.findStage(set.name(), weaponPart, addOption);
         int attack = weaponData.starForceAttack(set.name(), safe(starForce))
                 + weaponData.scrollAttack(set, scrollUpgrade);
-        int add = weaponData.bowAddOption(set.name(), stage);
+
+        // 태도·대검(제로)은 "같은 단계의 활 값" 대응이 성립하지 않아 전용 표를 쓴다.
+        int add;
+        boolean resolved;
+        if (weaponData.usesZeroBowAddOption(weaponPart)) {
+            Integer zero = weaponData.zeroBowAddOptionOf(set.name(), stage);
+            add = zero == null ? 0 : zero;
+            resolved = zero != null;
+        } else {
+            add = weaponData.bowAddOption(set.name(), stage);
+            resolved = stage != null;
+        }
 
         List<String> effects = new ArrayList<>();
         // 직업에 따라 둘 중 하나만 쓰인다. 어느 쪽인지는 여기서 판단하지 않는다.
         effects.add("공격력 " + (attack + add));
         effects.add("마력 " + (attack + add));
-        return new NormalizedWeapon(effects, stage != null);
+        return new NormalizedWeapon(effects, resolved);
     }
 
     public List<String> buildNormalizedBow(String weaponPart, String weaponName,

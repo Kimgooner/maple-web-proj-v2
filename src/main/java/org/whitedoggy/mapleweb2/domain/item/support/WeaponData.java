@@ -24,6 +24,7 @@ public record WeaponData(
         List<WeaponSet> sets,
         Map<String, List<Integer>> starForce,
         Map<String, Map<String, List<Integer>>> addOption,
+        Map<String, List<Integer>> zeroBowAddOption,
         Map<String, Integer> zeroBaseAttack
 ) {
     /** 무기 이름에 keywords 중 하나가 있으면 이 세트로 본다. */
@@ -41,10 +42,14 @@ public record WeaponData(
 
     private static final String BOW_PART = "활";
 
+    /** 제로의 라즐리·라피스 부위. 활 환산 대응이 다른 무기와 다르다. */
+    private static final List<String> ZERO_PARTS = List.of("태도", "대검");
+
     public WeaponData {
         sets = sets == null ? List.of() : List.copyOf(sets);
         starForce = starForce == null ? Map.of() : Map.copyOf(starForce);
         addOption = addOption == null ? Map.of() : Map.copyOf(addOption);
+        zeroBowAddOption = zeroBowAddOption == null ? Map.of() : Map.copyOf(zeroBowAddOption);
         zeroBaseAttack = zeroBaseAttack == null ? Map.of() : Map.copyOf(zeroBaseAttack);
     }
 
@@ -123,6 +128,27 @@ public record WeaponData(
     /** 제로 전용 무기의 기준 공격력. 등록되지 않은 무기면 {@code null}. */
     public Integer zeroBaseAttackOf(String weaponName) {
         return zeroBaseAttack.get(weaponName);
+    }
+
+    /** 태도·대검인가. 이 부위만 활 환산에 전용 표를 쓴다. */
+    public boolean usesZeroBowAddOption(String weaponPart) {
+        String normalized = normalize(weaponPart);
+        return ZERO_PARTS.contains(normalized);
+    }
+
+    /**
+     * 태도·대검의 활 환산 추가옵션. 표본이 없어 비워 둔 단계면 {@code null}을 준다 —
+     * 호출부가 {@code weaponNormalizationFailed}를 세우도록 하기 위함이다.
+     */
+    public Integer zeroBowAddOptionOf(String setName, Integer stage) {
+        if (stage == null) {
+            return null;
+        }
+        List<Integer> values = zeroBowAddOption.get(setName);
+        if (values == null || stage < 1 || stage > values.size()) {
+            return null;
+        }
+        return values.get(stage - 1);
     }
 
     private List<Integer> stagesOf(String setName, String weaponPart) {
