@@ -10,7 +10,7 @@ public class BasicParser {
         return Jsons.text(basic, "character_name");
     }
     public String characterWorld(JsonNode basic) {
-        return Jsons.text(basic, "character_world");
+        return Jsons.text(basic, "world_name");
     }
     public String characterGuild(JsonNode basic) {
         return Jsons.text(basic, "character_guild_name");

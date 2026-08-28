@@ -23,7 +23,9 @@ public class StatSheetParser {
             new PatternRule(Pattern.compile("^(힘|민첩|민첩성|지능|행운|지력|운)\\s*" + NUMBER + OPTIONAL_PERCENT + END), this::applyKoreanStat),
             new PatternRule(Pattern.compile("^최대 HP/MP\\s*" + NUMBER + OPTIONAL_PERCENT + END), this::applyHpMp),
             new PatternRule(Pattern.compile("^(최대 HP|HP)\\s*" + NUMBER + OPTIONAL_PERCENT + END), this::applyHp),
-            new PatternRule(Pattern.compile("^(올스탯|모든 능력치)\\s*" + NUMBER + OPTIONAL_PERCENT + END), this::applyAllStat),
+            // ALLSTAT: 레테 유니온 공격대원 효과만 이 표기를 쓴다("ALLSTAT 50, 최대 HP 2500 증가").
+            // 2026년 신직업이라 넥슨이 한글 "올스탯" 대신 영문으로 넣었다. 다른 곳은 모두 한글이다.
+            new PatternRule(Pattern.compile("^(올스탯|모든 능력치|ALLSTAT)\\s*" + NUMBER + OPTIONAL_PERCENT + END), this::applyAllStat),
             new PatternRule(Pattern.compile("^공격력\\s*" + NUMBER + OPTIONAL_PERCENT + END), this::applyAttack),
             new PatternRule(Pattern.compile("^마력\\s*" + NUMBER + OPTIONAL_PERCENT + END), this::applyMagic),
             new PatternRule(Pattern.compile("^(?:보스 몬스터 공격 시 데미지|보스 몬스터 데미지)\\s*" + NUMBER + OPTIONAL_PERCENT + END), this::applyBossDamage),
@@ -97,6 +99,11 @@ public class StatSheetParser {
 
         return option
                 .replaceFirst("^[\\-•]\\s*", "")
+                // "[패시브 효과 : 공격력 15, 마력 15 증가]" 처럼 대괄호로 감싼 라벨이 붙어 오는 경우가 있다.
+                // 쉼표 분리가 먼저 일어나므로 조각마다 여는/닫는 괄호가 따로 남는다.
+                .replace("[", "")
+                .replace("]", "")
+                .replaceFirst("^\\s*패시브 효과\\s*[:：]?\\s*", "")
                 .replace("증가", "")
                 .replace("상승", "")
                 .replace(":", " ")

@@ -5,11 +5,13 @@ import org.springframework.stereotype.Component;
 import org.whitedoggy.mapleweb2.domain.common.stat.StatSheet;
 import org.whitedoggy.mapleweb2.domain.common.stat.StatSheetParser;
 import org.whitedoggy.mapleweb2.domain.common.support.EffectTextSplitter;
+import org.whitedoggy.mapleweb2.domain.common.support.ExpiryDates;
 import org.whitedoggy.mapleweb2.domain.item.data.ItemRecord;
 import org.whitedoggy.mapleweb2.domain.item.data.ItemSnapShot;
 import org.whitedoggy.mapleweb2.global.Jsons;
 import tools.jackson.databind.JsonNode;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,16 +20,46 @@ import java.util.List;
 public class PetParser {
     private final StatSheetParser statSheetParser;
 
-    public List<ItemRecord> getItemSnapShot(JsonNode node) {
+    /**
+     * 슬롯 하나의 펫 장비. 펫 본체 만료일과 장비 노드를 함께 들고 있다.
+     *
+     * <p>같은 펫이라도 <b>월드 공유 펫</b>이면 장비가 {@code world_share_pet_N_equipment}로 오고
+     * {@code pet_N_equipment}는 빈 슬롯({@code item_date_expire = "-1"})으로 온다.
+     * 어느 쪽에 들어 있든 전투력에는 똑같이 반영되므로 둘 다 본다.
+     */
+    private record PetSlot(String petExpire, JsonNode equipment) {
+        boolean isEmpty() {
+            return equipment.path("item_option").isEmpty();
+        }
+    }
+
+    private PetSlot slot(JsonNode node, int index) {
+        JsonNode own = node.path("pet_" + index + "_equipment");
+        if (!own.path("item_option").isEmpty()) {
+            return new PetSlot(Jsons.text(node, "pet_" + index + "_date_expire"), own);
+        }
+        return new PetSlot(
+                Jsons.text(node, "world_share_pet_" + index + "_date_expire"),
+                node.path("world_share_pet_" + index + "_equipment"));
+    }
+
+    /**
+     * 펫 장비 스탯. <b>펫 장비는 펫이 살아 있어야 적용된다</b> —
+     * 펫 본체({@code pet_N_date_expire})가 만료되면 장비를 낀 채로도 스탯이 빠지므로
+     * 장비 자체의 기간과 함께 본다.
+     *
+     * <p>{@code item_date_expire == "-1"}은 만료가 아니라 <b>장비를 끼지 않은 빈 슬롯</b>이다.
+     */
+    public List<ItemRecord> getItemSnapShot(JsonNode node, LocalDate referenceDate) {
         List<ItemRecord> itemRecords = new ArrayList<>();
         for(int i = 1; i <= 3; i++) {
-            JsonNode equipment = node.path("pet_" + i + "_equipment");
-            String expired = Jsons.text(equipment, "item_date_expire");
+            PetSlot slot = slot(node, i);
+            if (slot.isEmpty()) continue;
+            JsonNode equipment = slot.equipment();
+            String equipExpire = Jsons.text(equipment, "item_date_expire");
             JsonNode options = equipment.path("item_option");
-
-            if(expired.equals("-1")) continue;
-            String itemName = Jsons.text(options, "item_name");
-            String itemIcon = Jsons.text(options, "item_icon");
+            String itemName = Jsons.text(equipment, "item_name");
+            String itemIcon = Jsons.text(equipment, "item_icon");
 
             ItemSnapShot snapShot = new ItemSnapShot(itemName, itemIcon);
             StatSheet statSheet = new StatSheet(itemName);
@@ -38,18 +70,31 @@ public class PetParser {
                 String value = Jsons.text(option, "option_value");
                 EffectTextSplitter.addSplit(effects, type + " " + value);
             }
-            statSheet.merge(statSheetParser.parse(effects));
+            StatSheet parsed = statSheetParser.parse(effects);
+
+            boolean expired = ExpiryDates.isAnyExpired(referenceDate, slot.petExpire(), equipExpire);
+            if (expired) {
+                if (!parsed.isZero()) {
+                    snapShot.setExpired("펫/펫 장비 기간 만료");
+                }
+            } else {
+                statSheet.merge(parsed);
+            }
             snapShot.setStatSheet(statSheet);
             itemRecords.add(new ItemRecord("펫 장비 " + i, snapShot));
         }
         return itemRecords;
     }
 
-    public List<String> getPetEquipmentEffects(JsonNode petEquipment) {
+    public List<String> getPetEquipmentEffects(JsonNode petEquipment, LocalDate referenceDate) {
         List<String> effects = new ArrayList<>();
         for (int i = 1; i <= 3; i++) {
-            JsonNode equipment = petEquipment.path("pet_" + i + "_equipment");
-            for (JsonNode option : equipment.path("item_option")) {
+            PetSlot slot = slot(petEquipment, i);
+            if (ExpiryDates.isAnyExpired(referenceDate,
+                    slot.petExpire(), Jsons.text(slot.equipment(), "item_date_expire"))) {
+                continue;
+            }
+            for (JsonNode option : slot.equipment().path("item_option")) {
                 String type = option.path("option_type").asText("");
                 int value = option.path("option_value").asInt(0);
                 if (value > 0 && !type.isBlank()) {
@@ -60,14 +105,13 @@ public class PetParser {
         return effects;
     }
 
-    public List<String> getPetEquip(JsonNode petEquip, Integer index) {
+    public List<String> getPetEquip(JsonNode petEquip, Integer index, LocalDate referenceDate) {
         List<String> effects = new ArrayList<>();
-        String petExpired = Jsons.text(petEquip, "pet_" + index + "_date_expire");
-        if(!petExpired.equals("expired")) {
-            JsonNode equipment = petEquip.path("pet_" + index + "_equipment");
-            String petEquipExpired = Jsons.text(equipment, "item_date_expire");
-            if(!petEquipExpired.equals("-1")) {
-                JsonNode options = equipment.path("item_option");
+        PetSlot slot = slot(petEquip, index);
+        String petEquipExpired = Jsons.text(slot.equipment(), "item_date_expire");
+        if (!ExpiryDates.isAnyExpired(referenceDate, slot.petExpire(), petEquipExpired)) {
+            if(!slot.isEmpty()) {
+                JsonNode options = slot.equipment().path("item_option");
                 for (JsonNode option : options) {
                     String type = Jsons.text(option, "option_type");
                     int value = Integer.parseInt(Jsons.text(option, "option_value"));

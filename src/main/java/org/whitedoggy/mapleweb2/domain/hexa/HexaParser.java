@@ -1,5 +1,6 @@
 package org.whitedoggy.mapleweb2.domain.hexa;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.whitedoggy.mapleweb2.global.Jsons;
 import tools.jackson.databind.JsonNode;
@@ -9,23 +10,11 @@ import java.util.List;
 import java.util.Map;
 
 @Component
+@RequiredArgsConstructor
 public class HexaParser {
-    private Map<String, double[]> MAIN_STAT = Map.ofEntries(
-            Map.entry("보스 데미지 증가" , new double[]{1, 2, 3, 4, 6, 8, 10, 13, 16, 20}),
-            Map.entry("크리티컬 데미지 증가", new double[]{0.35, 0.7, 1.05, 1.4, 2.1, 2.8, 3.5, 4.55, 5.6, 7}),
-            Map.entry("데미지 증가", new double[]{0.75, 1.5, 2.25, 3, 4.5, 6, 7.5, 9.75, 12, 15}),
-            Map.entry("공격력 증가", new double[]{5, 10, 15, 20, 30, 40, 50, 65, 80, 100}),
-            Map.entry("마력 증가", new double[]{5, 10, 15, 20, 30, 40, 50, 65, 80, 100}),
-            Map.entry("주력 스탯 증가", new double[]{100, 200, 300, 400, 600, 800, 1000, 1300, 1600, 2000})
-    );
-    private Map<String, double[]> SUB_STAT = Map.ofEntries(
-            Map.entry("보스 데미지 증가" , new double[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
-            Map.entry("크리티컬 데미지 증가", new double[]{0.35, 0.7, 1.05, 1.4, 1.75, 2.1, 2.45, 2.8, 3.15, 3.5}),
-            Map.entry("데미지 증가", new double[]{0.75, 1.5, 2.25, 3, 3.75, 4.5, 5.25, 6, 6.75, 7.5}),
-            Map.entry("공격력 증가", new double[]{5, 10, 15, 20, 25, 30, 35, 40, 45, 50}),
-            Map.entry("마력 증가", new double[]{5, 10, 15, 20, 25, 30, 35, 40, 45, 50}),
-            Map.entry("주력 스탯 증가", new double[]{100, 200, 300, 400, 500, 600, 700, 800, 900, 1000})
-    );
+
+    private final HexaStatData hexaStatData;
+
 
     private String applyMainStat(String name, Integer level, List<String> mainStats) {
         boolean optional_percent = false;
@@ -60,9 +49,12 @@ public class HexaParser {
                 }
             }
         }
+        // 테이블에 없는 스탯(방어율 무시 등)이나 아직 미지원 직업(제논)은 조용히 건너뛴다.
+        // 빈 문자열은 StatSheetParser가 무시한다.
+        if(description == null || !hexaStatData.hasMain(name)) return "";
         if(level == 0) return description + " 0";
-        if(optional_percent) return description + " " + MAIN_STAT.get(name)[level-1] + "%";
-        else return description + " " + MAIN_STAT.get(name)[level-1];
+        if(optional_percent) return description + " " + hexaStatData.mainValue(name, level) + "%";
+        else return description + " " + hexaStatData.mainValue(name, level);
     }
 
     private String applySubStat(String name, Integer level, List<String> mainStats) {
@@ -89,18 +81,19 @@ public class HexaParser {
             }
             case "주력 스탯 증가" -> {
                 if(mainStats.size() == 1){
-                    String stat = mainStats.getFirst();
-                    if(stat.equals("HP")) name = "HP";
-                    description = stat;
+                    // 데몬어벤져는 주력 스탯이 HP다. 표기만 HP로 바꾸고
+                    // 수치는 "주력 스탯 증가" 테이블을 그대로 쓴다(name을 덮어쓰면 조회가 깨진다).
+                    description = mainStats.getFirst();
                 }
                 else{
                     //TODO : 제논
                 }
             }
         }
+        if(description == null || !hexaStatData.hasSub(name)) return "";
         if(level == 0) return description + " 0";
-        if(optional_percent) return description + " " + SUB_STAT.get(name)[level-1] + "%";
-        else return description + " " + SUB_STAT.get(name)[level-1];
+        if(optional_percent) return description + " " + hexaStatData.subValue(name, level) + "%";
+        else return description + " " + hexaStatData.subValue(name, level);
     }
 
     public List<String> getCurrentHexa(JsonNode hexa, List<String> mainStats) {

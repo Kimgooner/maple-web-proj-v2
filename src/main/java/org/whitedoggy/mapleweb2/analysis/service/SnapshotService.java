@@ -38,7 +38,8 @@ public class SnapshotService {
                         fetchCashItemEquipment(ocid, date, includeDateParam),
                         fetchSetEffect(ocid, date, includeDateParam),
                         fetchSymbolEquipment(ocid, date, includeDateParam),
-                        fetchPetEquipment(ocid, date, includeDateParam)
+                        fetchPetEquipment(ocid, date, includeDateParam),
+                        fetchEndpoint(NexonEndpoint.OTHER_STAT, ocid, date, includeDateParam)
                 )
                 .zipWith(Mono.zip(
                         fetchHyperStat(ocid, date, includeDateParam),
@@ -58,6 +59,7 @@ public class SnapshotService {
                     documents.put(NexonEndpoint.SET_EFFECT, tuple.getT1().getT5());
                     documents.put(NexonEndpoint.SYMBOL_EQUIPMENT, tuple.getT1().getT6());
                     documents.put(NexonEndpoint.PET_EQUIPMENT, tuple.getT1().getT7());
+                    documents.put(NexonEndpoint.OTHER_STAT, tuple.getT1().getT8());
                     documents.put(NexonEndpoint.HYPER_STAT, tuple.getT2().getT1());
                     documents.put(NexonEndpoint.ABILITY, tuple.getT2().getT2());
                     documents.put(NexonEndpoint.SKILL_0, tuple.getT2().getT3());
