@@ -48,6 +48,25 @@ public class StatSheet {
         this.sheetName = name;
     }
 
+    /**
+     * STR과 DEX를 서로 바꾼 사본. 원본은 건드리지 않는다.
+     *
+     * <p>모험가 해적의 파이렛 블레스가 장착 장비의 힘과 민첩을 바꿔 적용하는 데 쓴다.
+     * 고정값·%·%미적용·9레벨당 증가분을 모두 함께 옮긴다.
+     */
+    public StatSheet swappedStrDex() {
+        StatSheet result = this.plus(new StatSheet(this.sheetName));
+        result.STR = this.DEX;
+        result.DEX = this.STR;
+        result.STR_PERCENT = this.DEX_PERCENT;
+        result.DEX_PERCENT = this.STR_PERCENT;
+        result.STR_NO_PERCENT = this.DEX_NO_PERCENT;
+        result.DEX_NO_PERCENT = this.STR_NO_PERCENT;
+        result.STR_PER_LEVEL9 = this.DEX_PER_LEVEL9;
+        result.DEX_PER_LEVEL9 = this.STR_PER_LEVEL9;
+        return result;
+    }
+
     public StatSheet plus(StatSheet other) {
         StatSheet result = new StatSheet(this.sheetName);
 

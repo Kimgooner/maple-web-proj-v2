@@ -3,7 +3,7 @@ package org.whitedoggy.mapleweb2.analysis.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.whitedoggy.mapleweb2.analysis.data.DataSheet;
-import org.whitedoggy.mapleweb2.analysis.support.SupportMethods;
+import org.whitedoggy.mapleweb2.domain.common.stat.GameData;
 import org.whitedoggy.mapleweb2.domain.common.stat.StatSheet;
 
 import java.util.List;
@@ -11,21 +11,10 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class CombatCalculationService {
-    private final List<String> MAGE_CLASSES = List.of(
-            "비숍",
-            "아크메이지(불,독)",
-            "아크메이지(썬,콜)",
-            "플레임위자드",
-            "배틀메이지",
-            "에반",
-            "일리움",
-            "라라",
-            "키네시스",
-            "루미너스"
-    );
+    private final GameData gameData;
 
     private boolean isMageClass(String characterClass) {
-        return MAGE_CLASSES.stream().anyMatch(characterClass::contains);
+        return gameData.isMageClass(characterClass);
     }
 
     private Integer statPerLevel(String statName, StatSheet sheet, Integer characterLevel) {
@@ -66,8 +55,8 @@ public class CombatCalculationService {
 
     public long estimateCombatPower(DataSheet dataSheet, String characterClass, Integer characterLevel) {
         StatSheet sheet = dataSheet.getSumSheet();
-        List<String> mainStats = SupportMethods.getMainStat(characterClass);
-        List<String> subStats = SupportMethods.getSubStat(characterClass);
+        List<String> mainStats = gameData.mainStats(characterClass);
+        List<String> subStats = gameData.subStats(characterClass);
         double finalMainStat = 0.0;
         double finalSubStat = 0.0;
         if (characterClass.equals("데몬어벤져")) {
