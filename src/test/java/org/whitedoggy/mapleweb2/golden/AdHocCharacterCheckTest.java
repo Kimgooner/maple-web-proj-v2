@@ -133,8 +133,15 @@ class AdHocCharacterCheckTest {
         String subName = subs.isEmpty() ? "" : subs.getFirst();
 
         // 기계 판독용 한 줄. TSV.
+        // 제논(주스탯 3개)·데몬어벤져(주스탯 HP)는 mainName 하나로는 역산이 안 된다.
+        // 네 스탯의 계산값과 HP 성분을 뒤에 붙인다.
+        String extra = String.format("\t%.0f\t%.0f\t%.0f\t%.0f\t%d\t%d\t%d",
+                statValue("STR", sum, level(documents)), statValue("DEX", sum, level(documents)),
+                statValue("INT", sum, level(documents)), statValue("LUK", sum, level(documents)),
+                sum.getHP(), sum.getHP_PERCENT(), sum.getHP_NO_PERCENT());
+
         System.out.printf("[TSV]\t%s\t%s\t%s\t%d\t%d\t%d\t%d\t%s\t%d\t%s\t%d\t%s\t%s\t%d\t%d"
-                        + "\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%d%n",
+                        + "\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%d" + extra + "%n",
                 path.getFileName(), payload.path("job").asText(), payload.path("characterName").asText(),
                 calc, api, bare,
                 sheet.getExpiredArtifactCrystals(), sheet.isUnionRaiderDataMissing(),
@@ -220,6 +227,11 @@ class AdHocCharacterCheckTest {
             case "INT" -> s.getINT_PERCENT(); case "LUK" -> s.getLUK_PERCENT(); default -> 0;
         };
         return base + s.getALL_STAT_PERCENT();
+    }
+
+    /** {@code CombatCalculationService.calculateStat}과 같은 식. */
+    private double statValue(String stat, StatSheet s, int level) {
+        return Math.floor(flatOf(stat, s, level) * (100.0 + pctOf(stat, s)) / 100.0 + noPctOf(stat, s));
     }
 
     private double noPctOf(String stat, StatSheet s) {
