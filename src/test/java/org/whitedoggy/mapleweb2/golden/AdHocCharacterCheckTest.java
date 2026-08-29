@@ -134,6 +134,11 @@ class AdHocCharacterCheckTest {
         String mainName = mains.isEmpty() ? "" : mains.getFirst();
         String subName = subs.isEmpty() ? "" : subs.getFirst();
 
+        // -Dadhoc.detail=이름 이면 그 캐릭터의 부위별 파싱 결과를 원본과 나란히 찍는다.
+        if (payload.path("characterName").asText().equals(System.getProperty("adhoc.detail"))) {
+            dumpItemDetail(sheet, documents.get(NexonEndpoint.ITEM_EQUIPMENT));
+        }
+
         // 적용된 세트와 개수. API 의 set_effect 목록과 대조용.
         var presetSelection = dataSheetService.getCurrentPresetSelection(snapshot);
         var presetItems = itemEquipmentParser.getItemEquipmentByPreset(
@@ -185,6 +190,27 @@ class AdHocCharacterCheckTest {
                 flatOf(subName, sum, level(documents)), pctOf(subName, sum), noPctOf(subName, sum),
                 sum.getDAMAGE(), sum.getBOSS_DAMAGE(), sum.getCRITICAL_DAMAGE(), sum.getFINAL_DAMAGE(),
                 subs.size());
+    }
+
+    /** 부위별로 우리가 뽑은 스탯과 원본 item_total_option 을 나란히 찍는다. */
+    private void dumpItemDetail(DataSheet sheet, JsonNode itemEquip) {
+        Map<String, JsonNode> raw = new java.util.LinkedHashMap<>();
+        for (JsonNode item : itemEquip.path("item_equipment")) {
+            raw.put(Jsons.text(item, "item_equipment_slot"), item);
+        }
+        System.out.printf("%n  %-16s %-24s %s%n", "부위", "우리(STR/DEX/LUK/ALL/공격력)", "원본 total(str/dex/luk/공격력)");
+        for (Map.Entry<String, ItemSnapShot> e : sheet.getItemEquip().entrySet()) {
+            String slot = e.getKey().contains(" - ") ? e.getKey().substring(e.getKey().lastIndexOf(" - ") + 3) : e.getKey();
+            StatSheet s = e.getValue().getStatSheet();
+            JsonNode r = raw.get(slot);
+            JsonNode t = r == null ? null : r.path("item_total_option");
+            System.out.printf("  %-16s %4d/%4d/%4d/%4d/%5d   %s%n", slot,
+                    s.getSTR(), s.getDEX(), s.getLUK(), s.getALL_STAT(), s.getATTACK_POWER(),
+                    t == null ? "-" : String.format("%s/%s/%s/%s  %s",
+                            t.path("str").asText("0"), t.path("dex").asText("0"),
+                            t.path("luk").asText("0"), t.path("attack_power").asText("0"),
+                            Jsons.text(r, "item_name")));
+        }
     }
 
     private long withoutUnion(CharacterSnapshot snapshot, Map<NexonEndpoint, JsonNode> documents) {

@@ -41,7 +41,7 @@ tasks.named('test') {
     // 진단 도구용 시스템 프로퍼티는 여기에 등록해야 테스트 JVM으로 넘어간다.
     // 빠뜨리면 @EnabledIfSystemProperty 때문에 테스트가 조용히 SKIPPED 된다.
     ['select.staging', 'select.count', 'source.job', 'source.names', 'union.probe',
-     'adhoc.fixture', 'ablation.names', 'item.names'].each { key ->
+     'adhoc.fixture', 'adhoc.detail', 'ablation.names', 'item.names'].each { key ->
         if (System.getProperty(key)) { systemProperty key, System.getProperty(key) }
     }
 }
