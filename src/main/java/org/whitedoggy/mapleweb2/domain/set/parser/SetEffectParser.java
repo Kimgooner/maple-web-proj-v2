@@ -92,19 +92,24 @@ public class SetEffectParser {
             equipped.setItem(slot, name);
             String group = gameData.setJobGroupOf(name);
             if (group == null && multiMainStat && "무기".equals(slot)) {
-                group = gameData.weaponJobGroupOf(largestBaseStat(item));
+                group = gameData.weaponJobGroupOf(weaponJobGroupStat(item));
             }
             equipped.setJobGroup(slot, group);
         }
         return equipped;
     }
 
-    /** 무기 기본 옵션에서 가장 큰 스탯 이름. 도적용 무기는 운, 해적용은 힘이 붙는다. */
-    private String largestBaseStat(JsonNode item) {
+    /**
+     * 무기 직업군을 가르는 기본 스탯. 도적용 무기는 운, 해적용은 힘이 붙는다.
+     *
+     * <p>제논은 세 스탯을 다 쓰므로 민첩은 양쪽에 붙는다. 가르는 것은 힘과 운뿐이라
+     * 둘만 비교한다(예: STR0/DEX190/LUK190 이면 도적, STR100/DEX100/LUK0 이면 해적).
+     */
+    private String weaponJobGroupStat(JsonNode item) {
         JsonNode base = item.path("item_base_option");
         String best = null;
         int bestValue = 0;
-        for (String stat : List.of("STR", "DEX", "INT", "LUK")) {
+        for (String stat : List.of("STR", "LUK")) {
             int value = base.path(stat.toLowerCase()).asInt(0);
             if (value > bestValue) {
                 bestValue = value;
