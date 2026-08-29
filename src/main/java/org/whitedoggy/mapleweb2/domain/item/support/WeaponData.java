@@ -27,8 +27,21 @@ public record WeaponData(
         Map<String, List<Integer>> zeroBowAddOption,
         Map<String, Integer> zeroBaseAttack
 ) {
-    /** 무기 이름에 keywords 중 하나가 있으면 이 세트로 본다. */
-    public record WeaponSet(String name, List<String> keywords, int scroll, int assumedScroll) {
+    /**
+     * 무기 이름에 keywords 중 하나가 있으면 이 세트로 본다.
+     *
+     * @param minStar 이 세트에 존재하는 가장 낮은 스타포스. 제네시스는 1차 해방 때
+     *                22성으로 지급되어 그 아래가 게임에 없다. 더 낮은 값이 오면 표에
+     *                답이 없다는 뜻이라 정규화 실패로 본다. 없으면 제한하지 않는다.
+     */
+    public record WeaponSet(String name, List<String> keywords, int scroll, int assumedScroll,
+                            Integer minStar) {
+    }
+
+    /** 이 세트에 존재할 수 있는 스타포스인가. 표에 값이 있다고 믿을 수 있는지를 뜻한다. */
+    public boolean starForceInRange(WeaponSet set, Integer starForce) {
+        return set.minStar() == null
+                || (starForce == null ? 0 : starForce) >= set.minStar();
     }
 
     /**
@@ -67,7 +80,7 @@ public record WeaponData(
         if (matched != null) {
             return matched;
         }
-        return new WeaponSet(defaultSet, List.of(), 0, 0);
+        return new WeaponSet(defaultSet, List.of(), 0, 0, null);
     }
 
     /**

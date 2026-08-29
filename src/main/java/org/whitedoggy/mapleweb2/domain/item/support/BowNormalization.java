@@ -50,13 +50,23 @@ public class BowNormalization {
         // 태도·대검(제로)은 "같은 단계의 활 값" 대응이 성립하지 않아 전용 표를 쓴다.
         int add;
         boolean resolved;
-        if (weaponData.usesZeroBowAddOption(weaponPart)) {
+        if (addOption == null || addOption <= 0) {
+            // 추가옵션이 아예 없는 무기(봉인된 제네시스 등)다. 활로 바꿔도 0이므로
+            // 답을 아는 것이지 못 찾은 것이 아니다. 표 결손과 구분해 플래그를 세우지 않는다.
+            add = 0;
+            resolved = true;
+        } else if (weaponData.usesZeroBowAddOption(weaponPart)) {
             Integer zero = weaponData.zeroBowAddOptionOf(set.name(), stage);
             add = zero == null ? 0 : zero;
             resolved = zero != null;
         } else {
             add = weaponData.bowAddOption(set.name(), stage);
             resolved = stage != null;
+        }
+
+        // 그 세트에 없는 스타포스면 표값이 무엇이든 근거가 없다(해방 전 제네시스 등).
+        if (!weaponData.starForceInRange(set, starForce)) {
+            resolved = false;
         }
 
         List<String> effects = new ArrayList<>();
