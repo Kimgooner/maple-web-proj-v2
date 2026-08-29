@@ -23,9 +23,13 @@ public class PetParser {
     /**
      * 슬롯 하나의 펫 장비. 펫 본체 만료일과 장비 노드를 함께 들고 있다.
      *
-     * <p>같은 펫이라도 <b>월드 공유 펫</b>이면 장비가 {@code world_share_pet_N_equipment}로 오고
-     * {@code pet_N_equipment}는 빈 슬롯({@code item_date_expire = "-1"})으로 온다.
-     * 어느 쪽에 들어 있든 전투력에는 똑같이 반영되므로 둘 다 본다.
+     * <p>어느 쪽 장비를 쓰는지는 {@code pet_activate_flag}가 정한다. 이 값이 1이면 세 슬롯이
+     * <b>월드 공유 펫</b>이고 장비는 {@code world_share_pet_N_equipment}가 실제 착용분이다.
+     * 이때 {@code pet_N_equipment}에도 값이 남아 있을 수 있지만 그것은 적용되지 않는다.
+     *
+     * <p>둘 다 보고 값이 있는 쪽을 쓰면 공유 펫인데도 옛 장비가 섞여 들어간다. 실제로
+     * 제논 표본 250명 중 둘이 이 때문에 공격력이 7·8 모자랐다(후닝 142 대신 150,
+     * 곡곡 128 대신 135). 나머지 248명은 어느 규칙이든 값이 같다.
      */
     private record PetSlot(String petExpire, JsonNode equipment) {
         boolean isEmpty() {
@@ -34,13 +38,15 @@ public class PetParser {
     }
 
     private PetSlot slot(JsonNode node, int index) {
-        JsonNode own = node.path("pet_" + index + "_equipment");
-        if (!own.path("item_option").isEmpty()) {
-            return new PetSlot(Jsons.text(node, "pet_" + index + "_date_expire"), own);
-        }
+        String prefix = usesWorldSharePet(node) ? "world_share_pet_" : "pet_";
         return new PetSlot(
-                Jsons.text(node, "world_share_pet_" + index + "_date_expire"),
-                node.path("world_share_pet_" + index + "_equipment"));
+                Jsons.text(node, prefix + index + "_date_expire"),
+                node.path(prefix + index + "_equipment"));
+    }
+
+    /** 월드 공유 펫을 쓰는 캐릭터인가. */
+    private boolean usesWorldSharePet(JsonNode node) {
+        return "1".equals(Jsons.text(node, "pet_activate_flag"));
     }
 
     /**

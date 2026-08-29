@@ -137,6 +137,7 @@ class AdHocCharacterCheckTest {
         // -Dadhoc.detail=이름 이면 그 캐릭터의 부위별 파싱 결과를 원본과 나란히 찍는다.
         if (payload.path("characterName").asText().equals(System.getProperty("adhoc.detail"))) {
             dumpItemDetail(sheet, documents.get(NexonEndpoint.ITEM_EQUIPMENT));
+            dumpTermsBySource(sheet);
         }
 
         // 적용된 세트와 개수. API 의 set_effect 목록과 대조용.
@@ -204,6 +205,44 @@ class AdHocCharacterCheckTest {
                 flatOf(subName, sum, level(documents)), pctOf(subName, sum), noPctOf(subName, sum),
                 sum.getDAMAGE(), sum.getBOSS_DAMAGE(), sum.getCRITICAL_DAMAGE(), sum.getFINAL_DAMAGE(),
                 subs.size());
+    }
+
+    /** 소스별로 공식의 각 항을 찍는다. 어느 소스에서 어긋나는지 좁힐 때 쓴다. */
+    private void dumpTermsBySource(DataSheet sheet) {
+        java.util.Map<String, StatSheet> sources = new java.util.LinkedHashMap<>();
+        sources.put("abilityPoint", sheet.getAbilityPoint());
+        sources.put("symbol", sheet.getSymbol());
+        sources.put("skill", sheet.getSkill());
+        sources.put("hexaStat", sheet.getHexaStat());
+        sources.put("ability", sheet.getAbility());
+        sources.put("hyperStat", sheet.getHyperStat());
+        sources.put("setEffect", sheet.getSetEffect());
+        sources.put("otherStat", sheet.getOtherStat());
+        sources.put("unionArtifact", sheet.getUnionArtifact());
+        sources.put("unionChampion", sheet.getUnionChampion());
+        sources.put("unionOccupied", sheet.getUnionOccupied());
+        sources.put("unionRaider", sheet.getUnionRaider());
+        sources.put("conversionSF", sheet.getConversionStarforce());
+        System.out.printf("%n  %-16s %8s %8s %8s %8s %8s%n", "소스", "공격력", "공%", "데미지", "보스뎀", "크뎀");
+        for (Map.Entry<String, StatSheet> e : sources.entrySet()) {
+            StatSheet v = e.getValue();
+            if (v == null) continue;
+            System.out.printf("  %-16s %8d %8d %8.2f %8.2f %8.2f%n", e.getKey(),
+                    v.getATTACK_POWER(), v.getATTACK_POWER_PERCENT(),
+                    v.getDAMAGE(), v.getBOSS_DAMAGE(), v.getCRITICAL_DAMAGE());
+        }
+        for (String label : List.of("장비", "펫", "캐시")) {
+            Map<String, ItemSnapShot> map = label.equals("장비") ? sheet.getItemEquip()
+                    : label.equals("펫") ? sheet.getPetEquip() : sheet.getCashEquip();
+            int att = 0, pct = 0;
+            double dmg = 0, boss = 0, crit = 0;
+            for (ItemSnapShot i : map.values()) {
+                StatSheet v = i.getStatSheet();
+                att += v.getATTACK_POWER(); pct += v.getATTACK_POWER_PERCENT();
+                dmg += v.getDAMAGE(); boss += v.getBOSS_DAMAGE(); crit += v.getCRITICAL_DAMAGE();
+            }
+            System.out.printf("  %-16s %8d %8d %8.2f %8.2f %8.2f%n", label, att, pct, dmg, boss, crit);
+        }
     }
 
     /** 부위별로 우리가 뽑은 스탯과 원본 item_total_option 을 나란히 찍는다. */
