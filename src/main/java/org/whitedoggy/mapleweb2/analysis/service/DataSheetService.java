@@ -206,7 +206,7 @@ public class DataSheetService {
         result.setConversionStarforce(setConversionStarforce(presetItems, characterClass));
         result.setSetEffect(setSetEffect(setEffect, presetItems, characterClass));
         result.setConsumableItem(setConsumableItem(characterClass));
-        result.setAbility(setAbility(ability, preset.abilityPreset()));
+        result.setAbility(setAbility(ability, preset.abilityPreset(), result.getAbilityPoint()));
         result.setHyperStat(setHyperStat(hyper, preset.hyperStatPreset()));
         result.setUnionOccupied(setUnionOccupied(unionRaider, preset.unionRaiderPreset()));
         result.setUnionRaider(setUnionRaider(unionRaider, preset.unionRaiderPreset()));
@@ -408,8 +408,11 @@ public class DataSheetService {
         return sheet;
     }
 
-    private StatSheet setAbility(JsonNode node, int presetNo) {
-        return statSheetParser.parseNoPercentStat(abilityParser.getCurrentAbilityByPreset(node, presetNo), "ability");
+    private StatSheet setAbility(JsonNode node, int presetNo, StatSheet abilityPoint) {
+        return statSheetParser.parseNoPercentStat(
+                abilityParser.resolveApConversions(
+                        abilityParser.getCurrentAbilityByPreset(node, presetNo), abilityPoint),
+                "ability");
     }
 
     private StatSheet setHyperStat(JsonNode node, int presetNo) {
