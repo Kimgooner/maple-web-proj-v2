@@ -22,7 +22,8 @@ public record GameData(
         List<String> adventurePirateJobs,
         ConversionStarforce conversionStarforce,
         Map<String, String> equipmentJobGroupStat,
-        List<String> setJobGroupTokens
+        List<String> setJobGroupTokens,
+        Map<String, String> weaponJobGroupByStat
 ) {
     /** 직업의 주스탯 / 부스탯. 부스탯이 둘인 직업(섀도어·듀얼블레이더·카데나)이 있다. */
     public record JobStat(List<String> main, List<String> sub) {
@@ -50,6 +51,8 @@ public record GameData(
         equipmentJobGroupStat = equipmentJobGroupStat == null
                 ? Map.of() : Map.copyOf(equipmentJobGroupStat);
         setJobGroupTokens = setJobGroupTokens == null ? List.of() : List.copyOf(setJobGroupTokens);
+        weaponJobGroupByStat = weaponJobGroupByStat == null
+                ? Map.of() : Map.copyOf(weaponJobGroupByStat);
         conversionStarforce = conversionStarforce == null
                 ? new ConversionStarforce(List.of(), 0, 10, 0, List.of())
                 : conversionStarforce;
@@ -85,6 +88,16 @@ public record GameData(
             }
         }
         return null;
+    }
+
+    /**
+     * 무기의 기본 스탯으로 직업군을 가른다. 주스탯이 여럿인 직업(제논)의 무기는
+     * 이름에 직업군 토큰이 없고, 도적용은 운·해적용은 힘이 붙는다.
+     *
+     * @param statName 그 무기의 기본 스탯 중 가장 큰 것 (STR/DEX/INT/LUK)
+     */
+    public String weaponJobGroupOf(String statName) {
+        return weaponJobGroupByStat.get(statName);
     }
 
     /** 컨버전 스타포스를 가진 직업인가 (제논·데몬어벤져). */

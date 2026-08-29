@@ -29,15 +29,13 @@ public class SetEffectParser {
     public List<String> getSetEffectByPreset(JsonNode node, JsonNode presetItems, String characterClass) {
         List<String> effects = new ArrayList<>();
         JsonNode supportedSets = setEffectTable.path("supportedSets");
-        CharacterEquipmentSheet equipped = buildEquipped(presetItems);
+        CharacterEquipmentSheet equipped = buildEquipped(presetItems, characterClass);
 
         appendUnsupportedSetEffects(effects, node.path("set_effect"), supportedSets);
 
         JsonNode lucky = resolveActiveLuckyItem(equipped, supportedSets, characterClass);
         for (JsonNode supportedSet : supportedSets) {
-            for (int groupCount : countSetPiecesByJobGroup(equipped, supportedSet, characterClass)) {
-                int pieceCount =
-                        applyLuckyItemBonus(equipped, supportedSet, characterClass, groupCount, lucky);
+            for (int pieceCount : setPieceCountsByJobGroup(equipped, supportedSet, characterClass, lucky)) {
                 for (String effect : resolveOptions(
                         supportedSet.path("options"), pieceCount, characterClass, equipped, supportedSet)) {
                     EffectTextSplitter.addSplit(effects, effect);
@@ -50,7 +48,7 @@ public class SetEffectParser {
     public Map<String, Integer> getAppliedSetCounts(JsonNode node, JsonNode presetItems, String characterClass) {
         Map<String, Integer> appliedSets = new LinkedHashMap<>();
         JsonNode supportedSets = setEffectTable.path("supportedSets");
-        CharacterEquipmentSheet equipped = buildEquipped(presetItems);
+        CharacterEquipmentSheet equipped = buildEquipped(presetItems, characterClass);
 
         for (JsonNode setEffect : node.path("set_effect")) {
             String setName = Jsons.text(setEffect, "set_name");
@@ -85,12 +83,35 @@ public class SetEffectParser {
         }
     }
 
-    private CharacterEquipmentSheet buildEquipped(JsonNode presetItems) {
+    private CharacterEquipmentSheet buildEquipped(JsonNode presetItems, String characterClass) {
+        boolean multiMainStat = gameData.mainStats(characterClass).size() > 1;
         CharacterEquipmentSheet equipped = new CharacterEquipmentSheet();
         for (JsonNode item : presetItems) {
-            equipped.setItem(Jsons.text(item, "item_equipment_slot"), Jsons.text(item, "item_name"));
+            String slot = Jsons.text(item, "item_equipment_slot");
+            String name = Jsons.text(item, "item_name");
+            equipped.setItem(slot, name);
+            String group = gameData.setJobGroupOf(name);
+            if (group == null && multiMainStat && "무기".equals(slot)) {
+                group = gameData.weaponJobGroupOf(largestBaseStat(item));
+            }
+            equipped.setJobGroup(slot, group);
         }
         return equipped;
+    }
+
+    /** 무기 기본 옵션에서 가장 큰 스탯 이름. 도적용 무기는 운, 해적용은 힘이 붙는다. */
+    private String largestBaseStat(JsonNode item) {
+        JsonNode base = item.path("item_base_option");
+        String best = null;
+        int bestValue = 0;
+        for (String stat : List.of("STR", "DEX", "INT", "LUK")) {
+            int value = base.path(stat.toLowerCase()).asInt(0);
+            if (value > bestValue) {
+                bestValue = value;
+                best = stat;
+            }
+        }
+        return best;
     }
 
     private void appendUnsupportedSetEffects(List<String> effects, JsonNode setEffects, JsonNode supportedSets) {
@@ -181,41 +202,100 @@ public class SetEffectParser {
     }
 
     /**
-     * 세트 개수를 직업군별로 나눠 센다.
+     * 세트 개수를 직업군별로 나눠 세고 럭키 아이템까지 반영한다.
      *
      * <p>같은 세트라도 직업군이 다르면 게임은 별개 세트로 취급한다. 보통은 한 직업군
-     * 장비만 끼므로 그룹이 하나뿐이고 결과가 종전과 같지만, 제논은 도적용과 해적용을
-     * 함께 낄 수 있어 두 세트가 동시에 성립한다. 무기처럼 직업군 토큰이 없는 부위는
-     * 어느 쪽에도 쓸 수 있으므로 모든 그룹에 함께 센다.
+     * 장비만 끼므로 그룹이 하나뿐이라 결과가 종전과 같지만, 제논은 도적용과 해적용을
+     * 함께 낄 수 있어 두 세트가 동시에 성립한다.
      *
-     * <p>실측(에테르넬): 파이렛 3 + 시프 1 + 데스티니 무기 1 → API 가 해적 4 / 도적 2 로 준다.
+     * <p>럭키 아이템(제네시스·데스티니 무기)은 <b>세트 전체가 3개 이상</b>일 때 활성화되고,
+     * 그러면 무기 부위가 빈 <b>모든</b> 그룹을 하나씩 채운다. 무기는 자기 직업군 그룹에는
+     * 정식 부위로 들어가므로 그 그룹은 럭키를 다시 받지 않는다.
+     *
+     * <p>실측(에테르넬):
+     * <ul>
+     *   <li>파이렛3 + 시프1 + 해적무기 → 해적 4 / 도적 1+럭키 2 (전체 5)</li>
+     *   <li>시프1 + 해적무기 → 전체 2라 럭키가 없어 도적 1 / 해적 1 (세트 효과 없음)</li>
+     * </ul>
      *
      * @return 그룹별 세트 개수. 성립한 장비가 없으면 {@code [0]}.
      */
-    private List<Integer> countSetPiecesByJobGroup(
-            CharacterEquipmentSheet equipped, JsonNode supportedSet, String characterClass) {
+    private List<Integer> setPieceCountsByJobGroup(
+            CharacterEquipmentSheet equipped, JsonNode supportedSet,
+            String characterClass, JsonNode luckyItem) {
         Map<String, Integer> byGroup = new LinkedHashMap<>();
+        Map<String, Boolean> luckySlotFilled = new LinkedHashMap<>();
+        String luckySlot = luckyItem == null ? null : Jsons.text(luckyItem, "slot");
         int shared = 0;
+        boolean sharedFillsLuckySlot = false;
+
         for (JsonNode piece : supportedSet.path("pieces")) {
-            String matched = matchedItemName(equipped, piece, supportedSet, characterClass);
-            if (matched == null) {
+            String slot = Jsons.text(piece, "slot");
+            if (matchedItemName(equipped, piece, supportedSet, characterClass) == null) {
                 continue;
             }
-            String group = gameData.setJobGroupOf(matched);
+            String group = equipped.jobGroup(slot);
             if (group == null) {
                 shared++;
+                if (slot.equals(luckySlot)) {
+                    sharedFillsLuckySlot = true;
+                }
             } else {
                 byGroup.merge(group, 1, Integer::sum);
+                if (slot.equals(luckySlot)) {
+                    luckySlotFilled.put(group, true);
+                }
             }
         }
+        // 럭키 아이템은 3개 이상 성립한 묶음에만 붙는다. 묶음은 직업군별로 센다.
+        boolean luckyUsable = luckyItem != null
+                && setUsesSlot(supportedSet, luckySlot) && !sharedFillsLuckySlot;
+        int maxPieces = supportedSet.path("pieces").size();
+
+        // 직업군 토큰이 하나도 없는 세트(장신구 세트 등)는 종전처럼 하나로 센다.
         if (byGroup.isEmpty()) {
-            return List.of(shared);
+            return List.of(Math.min(luckyUsable && shared >= 3 ? shared + 1 : shared, maxPieces));
         }
+
         List<Integer> counts = new ArrayList<>();
-        for (int count : byGroup.values()) {
-            counts.add(count + shared);
+        for (Map.Entry<String, Integer> entry : byGroup.entrySet()) {
+            int count = entry.getValue() + shared;
+            if (luckyUsable && count >= 3 && !luckySlotFilled.getOrDefault(entry.getKey(), false)) {
+                count++;
+            }
+            counts.add(Math.min(count, maxPieces));
         }
         return counts;
+    }
+
+    /** 이 세트를 이루는 장비들의 직업군 집합. 직업군을 가리지 않는 부위는 빠진다. */
+    private java.util.Set<String> jobGroupsOf(
+            CharacterEquipmentSheet equipped, JsonNode supportedSet, String characterClass) {
+        java.util.Set<String> groups = new java.util.LinkedHashSet<>();
+        for (JsonNode piece : supportedSet.path("pieces")) {
+            String slot = Jsons.text(piece, "slot");
+            if (matchedItemName(equipped, piece, supportedSet, characterClass) == null) {
+                continue;
+            }
+            String group = equipped.jobGroup(slot);
+            if (group != null) {
+                groups.add(group);
+            }
+        }
+        return groups;
+    }
+
+    /** 이 세트가 그 부위를 쓰는가. */
+    private boolean setUsesSlot(JsonNode supportedSet, String slot) {
+        if (slot == null) {
+            return false;
+        }
+        for (JsonNode piece : supportedSet.path("pieces")) {
+            if (slot.equals(Jsons.text(piece, "slot"))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** 이 부위를 채운 장비 이름. 직업군을 못 가리는 휴리스틱 매치는 빈 문자열로 준다. */
@@ -339,8 +419,14 @@ public class SetEffectParser {
                 continue;
             }
             setUsesLuckySlot = true;
-            if (matchesSetPiece(equipped, piece, supportedSet, characterClass)) {
-                return false;   // 이미 그 부위를 정식으로 채우고 있다
+            if (!matchesSetPiece(equipped, piece, supportedSet, characterClass)) {
+                continue;
+            }
+            // 그 부위를 채운 장비가 특정 직업군의 것이고 이 세트에 다른 직업군 그룹도
+            // 있다면, 그쪽 그룹에는 여전히 빈 자리다(제논). 그 밖에는 이미 찬 것으로 본다.
+            if (equipped.jobGroup(luckySlot) == null
+                    || jobGroupsOf(equipped, supportedSet, characterClass).size() <= 1) {
+                return false;
             }
         }
         return setUsesLuckySlot;

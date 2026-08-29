@@ -5,6 +5,9 @@ import java.util.*;
 public class CharacterEquipmentSheet {
     private final Map<String, String> equipped = new HashMap<>();
 
+    /** 부위별 직업군. 이름에 토큰이 없고 가를 근거도 없으면 담기지 않는다. */
+    private final Map<String, String> jobGroups = new HashMap<>();
+
     private static final List<String> RING_SLOTS = List.of("반지1", "반지2", "반지3", "반지4");
     private static final List<String> PENDANT_SLOTS = List.of("펜던트", "펜던트2");
 
@@ -42,6 +45,19 @@ public class CharacterEquipmentSheet {
 
     public void setItem(String slot, String item) {
         equipped.put(slot, item);
+    }
+
+    /** 이 부위 장비의 직업군. 직업군을 가리지 않는 부위면 {@code null}. */
+    public String jobGroup(String slot) {
+        return jobGroups.get(slot);
+    }
+
+    public void setJobGroup(String slot, String group) {
+        if (group == null) {
+            jobGroups.remove(slot);
+        } else {
+            jobGroups.put(slot, group);
+        }
     }
 
     public boolean hasSlot(String slot) {
