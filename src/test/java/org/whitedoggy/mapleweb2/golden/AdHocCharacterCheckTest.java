@@ -135,10 +135,12 @@ class AdHocCharacterCheckTest {
         // 기계 판독용 한 줄. TSV.
         // 제논(주스탯 3개)·데몬어벤져(주스탯 HP)는 mainName 하나로는 역산이 안 된다.
         // 네 스탯의 계산값과 HP 성분을 뒤에 붙인다.
-        String extra = String.format("\t%.0f\t%.0f\t%.0f\t%.0f\t%d\t%d\t%d",
+        String extra = String.format("\t%.0f\t%.0f\t%.0f\t%.0f\t%d\t%d\t%d\t%.2f\t%.2f\t%.2f",
                 statValue("STR", sum, level(documents)), statValue("DEX", sum, level(documents)),
                 statValue("INT", sum, level(documents)), statValue("LUK", sum, level(documents)),
-                sum.getHP(), sum.getHP_PERCENT(), sum.getHP_NO_PERCENT());
+                sum.getHP(), sum.getHP_PERCENT(), sum.getHP_NO_PERCENT(),
+                // 제논은 세 스탯의 %가 서로 다를 수 있어 따로 남긴다.
+                pctOf("STR", sum), pctOf("DEX", sum), pctOf("LUK", sum));
 
         // 소스별 STR+DEX+LUK 합. 어느 소스가 덜 잡히는지 그룹 대조용.
         StringBuilder bySource = new StringBuilder();
