@@ -30,6 +30,9 @@ public class DataSheet {
     StatSheet unionOccupied;
     StatSheet unionRaider;
 
+    /** 컨버전 스타포스(제논·데몬어벤져). 장착 장비의 스타포스 합에서 오는 올스탯. */
+    StatSheet conversionStarforce;
+
     /** 파이렛 블레스가 힘·민첩을 바꾸지 않는 부위. 심볼과 펫 장비도 대상이 아니지만 여기 담기지 않는다. */
     private static final java.util.Set<String> PIRATE_BLESS_EXCLUDED_SLOTS = java.util.Set.of("무기", "보조무기");
 
@@ -96,6 +99,7 @@ public class DataSheet {
         this.unionChampion = other.unionChampion;
         this.unionOccupied = other.unionOccupied;
         this.unionRaider = other.unionRaider;
+        this.conversionStarforce = other.conversionStarforce;
 
         this.lucidTransformSuspected = other.lucidTransformSuspected;
         this.expiredArtifactCrystals = other.expiredArtifactCrystals;
@@ -138,6 +142,9 @@ public class DataSheet {
         sumSheet.merge(this.unionChampion);
         sumSheet.merge(this.unionOccupied);
         sumSheet.merge(this.unionRaider);
+        if (this.conversionStarforce != null) {
+            sumSheet.merge(this.conversionStarforce);
+        }
 
         for (Map.Entry<String, ItemSnapShot> m : petEquip.entrySet()){
             StatSheet sheet = m.getValue().getStatSheet();

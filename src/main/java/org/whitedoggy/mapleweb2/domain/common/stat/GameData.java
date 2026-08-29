@@ -19,10 +19,24 @@ public record GameData(
         List<String> magicClasses,
         Map<String, Integer> consumableAttack,
         List<String> magicWeaponParts,
-        List<String> adventurePirateJobs
+        List<String> adventurePirateJobs,
+        ConversionStarforce conversionStarforce
 ) {
     /** 직업의 주스탯 / 부스탯. 부스탯이 둘인 직업(섀도어·듀얼블레이더·카데나)이 있다. */
     public record JobStat(List<String> main, List<String> sub) {
+    }
+
+    /**
+     * 컨버전 스타포스. 장착 장비의 스타포스 합 {@code step}성당 올스탯이
+     * {@code statPerStep}씩 오른다. 합은 {@code maxStar}에서 잘리고,
+     * {@code excludedSlots}(훈장·칭호)의 스타포스는 세지 않는다.
+     */
+    public record ConversionStarforce(
+            List<String> jobs, int statPerStep, int step, int maxStar, List<String> excludedSlots) {
+        public ConversionStarforce {
+            jobs = jobs == null ? List.of() : List.copyOf(jobs);
+            excludedSlots = excludedSlots == null ? List.of() : List.copyOf(excludedSlots);
+        }
     }
 
     public GameData {
@@ -31,6 +45,28 @@ public record GameData(
         magicClasses = magicClasses == null ? List.of() : List.copyOf(magicClasses);
         magicWeaponParts = magicWeaponParts == null ? List.of() : List.copyOf(magicWeaponParts);
         adventurePirateJobs = adventurePirateJobs == null ? List.of() : List.copyOf(adventurePirateJobs);
+        conversionStarforce = conversionStarforce == null
+                ? new ConversionStarforce(List.of(), 0, 10, 0, List.of())
+                : conversionStarforce;
+    }
+
+    /** 컨버전 스타포스를 가진 직업인가 (제논·데몬어벤져). */
+    public boolean hasConversionStarforce(String characterClass) {
+        return conversionStarforce.jobs().contains(characterClass);
+    }
+
+    /** 컨버전 스타포스 대상이 아닌 부위인가 (훈장·칭호). */
+    public boolean isConversionExcludedSlot(String slot) {
+        return conversionStarforce.excludedSlots().contains(slot);
+    }
+
+    /** 스타포스 합에서 나오는 올스탯 증가량. 합은 상한에서 잘린다. */
+    public int conversionStarforceAllStat(int starSum) {
+        ConversionStarforce c = conversionStarforce;
+        if (c.step() <= 0) {
+            return 0;
+        }
+        return Math.min(starSum, c.maxStar()) / c.step() * c.statPerStep();
     }
 
     public List<String> mainStats(String characterClass) {

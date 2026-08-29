@@ -15,6 +15,12 @@ public class HexaParser {
 
     private final HexaStatData hexaStatData;
 
+    /**
+     * 주스탯이 여럿인 직업(제논)의 전용 표를 가리키는 접미사.
+     * {@code game-data.yml}의 {@code "[주력 스탯 증가(제논)]"}에 대응한다.
+     */
+    private static final String XENON_SUFFIX = "(제논)";
+
 
     private String applyMainStat(String name, Integer level, List<String> mainStats) {
         boolean optional_percent = false;
@@ -45,7 +51,9 @@ public class HexaParser {
                     //TODO : 데벤
                 }
                 else{
-                    //TODO : 제논
+                    // 제논은 주스탯이 셋이라 세 스탯에 같은 값이 각각 붙고, 수치도 전용 표를 쓴다.
+                    description = String.join(", ", mainStats);
+                    name = name + XENON_SUFFIX;
                 }
             }
         }
@@ -86,7 +94,8 @@ public class HexaParser {
                     description = mainStats.getFirst();
                 }
                 else{
-                    //TODO : 제논
+                    description = String.join(", ", mainStats);
+                    name = name + XENON_SUFFIX;
                 }
             }
         }

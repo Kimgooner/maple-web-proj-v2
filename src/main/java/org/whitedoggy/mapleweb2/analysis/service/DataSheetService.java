@@ -203,6 +203,7 @@ public class DataSheetService {
         result.setExpiredTitleOption(
                 result.getItemEquip().get("장비 - 칭호") != null
                         && result.getItemEquip().get("장비 - 칭호").getExpired() != null);
+        result.setConversionStarforce(setConversionStarforce(presetItems, characterClass));
         result.setSetEffect(setSetEffect(setEffect, presetItems, characterClass));
         result.setConsumableItem(setConsumableItem(characterClass));
         result.setAbility(setAbility(ability, preset.abilityPreset()));
@@ -415,6 +416,29 @@ public class DataSheetService {
         return statSheetParser.parseNoPercentStat(hyperStatParser.getStatIncreaseEffects(node, presetNo), "hyperStat");
     }
 
+
+    /**
+     * 컨버전 스타포스(제논·데몬어벤져). 장착 장비의 스타포스 합 10성당 올스탯 7이 붙는다.
+     *
+     * <p>합은 100성에서 자르고, 훈장·칭호의 스타포스는 세지 않는다. 길드 스킬로 올라간
+     * 스타포스도 대상이 아니지만 API가 장비 단위로만 주므로 구분할 수 없다.
+     * 해당 직업이 아니면 빈 시트를 준다.
+     */
+    private StatSheet setConversionStarforce(JsonNode presetItems, String characterClass) {
+        if (!gameData.hasConversionStarforce(characterClass)) {
+            return new StatSheet("conversionStarforce");
+        }
+        int starSum = 0;
+        for (JsonNode item : presetItems) {
+            if (gameData.isConversionExcludedSlot(Jsons.text(item, "item_equipment_slot"))) {
+                continue;
+            }
+            starSum += item.path("starforce").asInt(0);
+        }
+        int allStat = gameData.conversionStarforceAllStat(starSum);
+        return statSheetParser.parse(
+                allStat == 0 ? List.of() : List.of("올스탯 " + allStat), "conversionStarforce");
+    }
 
     /**
      * 챌린저스가 아닌 월드인데 공격대 데이터가 비어 있으면 유니온 정보가 없는 것이다.

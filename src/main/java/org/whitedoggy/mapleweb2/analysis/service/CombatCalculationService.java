@@ -53,6 +53,14 @@ public class CombatCalculationService {
         return 0;
     }
 
+    /**
+     * 제논의 스탯항 계수. 스탯항 = (STR + DEX + LUK) x 2.625 다.
+     *
+     * <p>랭킹 표본 233명에서 역산했다. 컨버전 스타포스와 헥사 주력 스탯을 넣고 나면
+     * 218명이 이 값의 ±0.02% 안에 들어오고, 200명이 ±0.005% 안이다.
+     */
+    private static final double XENON_STAT_FACTOR = 2.625;
+
     public long estimateCombatPower(DataSheet dataSheet, String characterClass, Integer characterLevel) {
         StatSheet sheet = dataSheet.getSumSheet();
         List<String> mainStats = gameData.mainStats(characterClass);
@@ -62,7 +70,13 @@ public class CombatCalculationService {
         if (characterClass.equals("데몬어벤져")) {
             //TODO 데벤
         } else if (characterClass.equals("제논")) {
-            //TODO 제논
+            // 제논은 주스탯이 셋이고 부스탯이 없다. 스탯항이 다른 직업의
+            // (주스탯x4 + 부스탯)이 아니라 세 스탯 합의 XENON_STAT_FACTOR 배다.
+            double sum = 0.0;
+            for (String stat : mainStats) {
+                sum += calculateStat(stat, sheet, characterLevel);
+            }
+            finalMainStat = sum * XENON_STAT_FACTOR / 4.0;
         } else {
             String main = mainStats.getFirst();
             finalMainStat = calculateStat(main, sheet, characterLevel);
