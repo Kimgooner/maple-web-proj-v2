@@ -20,7 +20,8 @@ public record GameData(
         Map<String, Integer> consumableAttack,
         List<String> magicWeaponParts,
         List<String> adventurePirateJobs,
-        ConversionStarforce conversionStarforce
+        ConversionStarforce conversionStarforce,
+        Map<String, String> equipmentJobGroupStat
 ) {
     /** 직업의 주스탯 / 부스탯. 부스탯이 둘인 직업(섀도어·듀얼블레이더·카데나)이 있다. */
     public record JobStat(List<String> main, List<String> sub) {
@@ -45,9 +46,27 @@ public record GameData(
         magicClasses = magicClasses == null ? List.of() : List.copyOf(magicClasses);
         magicWeaponParts = magicWeaponParts == null ? List.of() : List.copyOf(magicWeaponParts);
         adventurePirateJobs = adventurePirateJobs == null ? List.of() : List.copyOf(adventurePirateJobs);
+        equipmentJobGroupStat = equipmentJobGroupStat == null
+                ? Map.of() : Map.copyOf(equipmentJobGroupStat);
         conversionStarforce = conversionStarforce == null
                 ? new ConversionStarforce(List.of(), 0, 10, 0, List.of())
                 : conversionStarforce;
+    }
+
+    /**
+     * 장비 이름이 어느 직업군의 것인지로 세트 옵션 갈래를 고른다.
+     * 해당하는 키워드가 없으면 {@code null}.
+     */
+    public String jobGroupStatOf(String itemName) {
+        if (itemName == null) {
+            return null;
+        }
+        for (Map.Entry<String, String> entry : equipmentJobGroupStat.entrySet()) {
+            if (itemName.contains(entry.getKey())) {
+                return entry.getValue();
+            }
+        }
+        return null;
     }
 
     /** 컨버전 스타포스를 가진 직업인가 (제논·데몬어벤져). */

@@ -37,7 +37,8 @@ public class SetEffectParser {
         for (JsonNode supportedSet : supportedSets) {
             int pieceCount = countSetPieces(equipped, supportedSet, characterClass);
             pieceCount = applyLuckyItemBonus(equipped, supportedSet, characterClass, pieceCount, lucky);
-            for (String effect : resolveOptions(supportedSet.path("options"), pieceCount, characterClass)) {
+            for (String effect : resolveOptions(
+                    supportedSet.path("options"), pieceCount, characterClass, equipped, supportedSet)) {
                 EffectTextSplitter.addSplit(effects, effect);
             }
         }
@@ -370,19 +371,43 @@ public class SetEffectParser {
      * 그 외(STR+DEX)가 다르다. 표에 {@code {"INT": [...], "LUK": [...], "default": [...]}}
      * 형태로 두고 여기서 고른다. 배열이면 직업 분기가 없는 것이므로 그대로 쓴다.
      */
-    private JsonNode selectByMainStat(JsonNode option, String characterClass) {
+    private JsonNode selectByMainStat(JsonNode option, String characterClass,
+                                      CharacterEquipmentSheet equipped, JsonNode supportedSet) {
         if (!option.isObject()) {
             return option;
         }
         List<String> mains = gameData.mainStats(characterClass);
-        String main = mains.isEmpty() ? "" : mains.getFirst();
+        String main = mains.size() == 1
+                ? mains.getFirst()
+                : jobGroupStat(equipped, supportedSet, mains);
         if (option.has(main)) {
             return option.path(main);
         }
         return option.path("default");
     }
 
-    private List<String> resolveOptions(JsonNode options, int pieceCount, String characterClass) {
+    /**
+     * 주스탯이 여럿인 직업(제논)에서 갈래를 고른다.
+     *
+     * <p>제논은 STR/DEX/LUK이 모두 주스탯이라 직업으로는 정할 수 없다. 도적용(어새신)과
+     * 해적용(원더러) 장비를 모두 낄 수 있고 실제로 착용한 쪽의 직업군 옵션을 받으므로,
+     * 그 세트를 이루는 장비 이름으로 판단한다. 못 찾으면 첫 주스탯으로 되돌아간다.
+     */
+    private String jobGroupStat(CharacterEquipmentSheet equipped, JsonNode supportedSet,
+                                List<String> mains) {
+        for (JsonNode piece : supportedSet.path("pieces")) {
+            for (String itemName : equipped.itemsForSlot(Jsons.text(piece, "slot"))) {
+                String stat = gameData.jobGroupStatOf(itemName);
+                if (stat != null) {
+                    return stat;
+                }
+            }
+        }
+        return mains.isEmpty() ? "" : mains.getFirst();
+    }
+
+    private List<String> resolveOptions(JsonNode options, int pieceCount, String characterClass,
+                                        CharacterEquipmentSheet equipped, JsonNode supportedSet) {
         if (!(options instanceof ObjectNode objectNode) || pieceCount <= 0) {
             return List.of();
         }
@@ -403,7 +428,9 @@ public class SetEffectParser {
         thresholds.stream()
                 .sorted(Comparator.naturalOrder())
                 .forEach(threshold -> effects.addAll(
-                        readOptionTexts(selectByMainStat(options.path(String.valueOf(threshold)), characterClass))));
+                        readOptionTexts(selectByMainStat(
+                                options.path(String.valueOf(threshold)), characterClass,
+                                equipped, supportedSet))));
         return effects;
     }
 
