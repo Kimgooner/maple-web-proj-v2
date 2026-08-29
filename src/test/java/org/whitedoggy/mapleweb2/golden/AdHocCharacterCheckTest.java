@@ -175,6 +175,20 @@ class AdHocCharacterCheckTest {
                     + s.getSTR_NO_PERCENT() + s.getDEX_NO_PERCENT() + s.getLUK_NO_PERCENT()
                     + 3 * s.getALL_STAT_NO_PERCENT());
         }
+        // 소스별 공격력(+%)도 같은 순서로.
+        for (StatSheet s : List.of(sheet.getAbilityPoint(), sheet.getSymbol(), sheet.getSkill(),
+                sheet.getHexaStat(), sheet.getAbility(), sheet.getHyperStat(), sheet.getSetEffect(),
+                sheet.getOtherStat(), sheet.getUnionArtifact(), sheet.getUnionChampion(),
+                sheet.getUnionOccupied(), sheet.getUnionRaider(), sheet.getConsumableItem())) {
+            bySource.append('\t').append(s == null ? 0 : s.getATTACK_POWER());
+        }
+        int itemAttack = 0;
+        int petAttack = 0;
+        int cashAttack = 0;
+        for (ItemSnapShot i : sheet.getItemEquip().values()) itemAttack += i.getStatSheet().getATTACK_POWER();
+        for (ItemSnapShot i : sheet.getPetEquip().values()) petAttack += i.getStatSheet().getATTACK_POWER();
+        for (ItemSnapShot i : sheet.getCashEquip().values()) cashAttack += i.getStatSheet().getATTACK_POWER();
+        bySource.append('\t').append(itemAttack).append('\t').append(petAttack).append('\t').append(cashAttack);
         String sources = bySource.toString();
 
         System.out.printf("[TSV]\t%s\t%s\t%s\t%d\t%d\t%d\t%d\t%s\t%d\t%s\t%d\t%s\t%s\t%d\t%d"
