@@ -119,8 +119,12 @@ class AdHocCharacterCheckTest {
         // 유니온(공격대원+점령)을 빼고 다시 계산한다. 이 값이 API와 붙으면
         // 넥슨 쪽 stat 집계에서 유니온이 빠진 날의 데이터라는 뜻이다.
         long bare = withoutUnion(snapshot, documents);
-        System.out.printf("  유니온제외 %,d / 오차 %.4f%%%n",
-                bare, api == 0 ? 0.0 : Math.abs(bare - api) * 100.0 / api);
+        // 계산값은 어긋나는데 유니온을 뺀 값이 API와 정수까지 같으면, 우리가 틀린 게 아니라
+        // 넥슨 stat 집계에서 유니온이 빠진 것이다. 골든의 unionMissingFromApiValue와 같은 기준.
+        boolean unionMissingFromApi = api != 0 && bare == api && calc != api;
+        System.out.printf("  유니온제외 %,d / 오차 %.4f%%%s%n",
+                bare, api == 0 ? 0.0 : Math.abs(bare - api) * 100.0 / api,
+                unionMissingFromApi ? "  <<< API 전투력이 유니온을 빼고 집계됨" : "");
 
         // 공격력 항을 따로 본다. 오차가 이 항에만 있으면 Δ가 정수로 떨어진다.
         StatSheet sum = sheet.getSumSheet();

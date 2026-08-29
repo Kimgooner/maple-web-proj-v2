@@ -6,7 +6,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.whitedoggy.mapleweb2.analysis.data.CharacterSnapshot;
 import org.whitedoggy.mapleweb2.analysis.data.DataSheet;
 import org.whitedoggy.mapleweb2.analysis.data.PresetSelection;
+import org.whitedoggy.mapleweb2.analysis.service.CombatCalculationService;
 import org.whitedoggy.mapleweb2.analysis.service.DataSheetService;
+import org.whitedoggy.mapleweb2.domain.basic.BasicParser;
+import org.whitedoggy.mapleweb2.domain.common.stat.StatSheet;
 import org.whitedoggy.mapleweb2.domain.calculator.parser.StatParser;
 import org.whitedoggy.mapleweb2.domain.common.stat.GameData;
 import org.whitedoggy.mapleweb2.external.nexon.config.NexonEndpoint;
@@ -52,6 +55,12 @@ class CombatPowerGoldenTest {
     private StatParser statParser;
 
     @Autowired
+    private CombatCalculationService combatCalculationService;
+
+    @Autowired
+    private BasicParser basicParser;
+
+    @Autowired
     private GameData gameData;
 
     @Autowired
@@ -67,6 +76,7 @@ class CombatPowerGoldenTest {
             boolean lucidTransformSuspected,
             int expiredArtifactCrystals,
             boolean unionRaiderDataMissing,
+            boolean unionMissingFromApiValue,
             int expiredCashItems,
             boolean expiredTitleOption,
             int expiredPetEquipments,
@@ -194,6 +204,7 @@ class CombatPowerGoldenTest {
     private boolean hasStaleApiData(Result result) {
         return result.expiredArtifactCrystals() > 0
                 || result.unionRaiderDataMissing()
+                || result.unionMissingFromApiValue()
                 || result.expiredCashItems() > 0
                 || result.expiredTitleOption()
                 || result.expiredPetEquipments() > 0;
@@ -242,6 +253,7 @@ class CombatPowerGoldenTest {
                     sheet.isLucidTransformSuspected(),
                     sheet.getExpiredArtifactCrystals(),
                     sheet.isUnionRaiderDataMissing(),
+                    unionMissingFromApiValue(snapshot, sheet.getCombatPower(), apiCombatPower),
                     sheet.getExpiredCashItems(),
                     sheet.isExpiredTitleOption(),
                     sheet.getExpiredPetEquipments(),
@@ -261,6 +273,7 @@ class CombatPowerGoldenTest {
                     false,
                     0,
                     false,
+                    false,
                     0,
                     false,
                     0,
@@ -270,6 +283,36 @@ class CombatPowerGoldenTest {
                     exception.getClass().getSimpleName() + ": " + exception.getMessage()
             );
         }
+    }
+
+    /**
+     * 넥슨이 준 전투력 자체가 유니온을 빼고 집계된 경우.
+     *
+     * <p>공격대원·점령 효과를 빼고 다시 계산한 값이 API 전투력과 <b>정수까지</b> 같으면,
+     * 우리 계산이 틀린 것이 아니라 그날 넥슨 쪽 {@code stat} 집계에서 유니온이 빠진 것이다.
+     * 20~29% 과대로 나타난다.
+     *
+     * <p>{@code unionRaiderDataMissing}과는 다르다. 그쪽은 응답에 공격대 데이터가 아예
+     * 없는 경우고, 이쪽은 데이터는 멀쩡한데 전투력에만 안 들어간 경우다.
+     *
+     * <p>계산값이 이미 API와 같으면 세우지 않는다. 유니온 기여가 0인 캐릭터(챌린저스 월드
+     * 등)는 빼도 값이 그대로라 조건에 걸리는데, 그건 결함이 아니라 맞은 것이기 때문이다.
+     */
+    private boolean unionMissingFromApiValue(
+            CharacterSnapshot snapshot, Long combatPower, Long apiCombatPower) {
+        if (combatPower == null || apiCombatPower == null || apiCombatPower == 0L
+                || combatPower.equals(apiCombatPower)) {
+            return false;
+        }
+        DataSheet without = dataSheetService.getCurrentDataSheet(snapshot);
+        without.setUnionOccupied(new StatSheet("unionOccupied"));
+        without.setUnionRaider(new StatSheet("unionRaider"));
+        without.setSumSheet(new StatSheet("종합"));
+        without.buildSum();
+        JsonNode basic = snapshot.document(NexonEndpoint.BASIC);
+        long bare = combatCalculationService.estimateCombatPower(
+                without, basicParser.characterClass(basic), basicParser.characterLevel(basic));
+        return bare == apiCombatPower;
     }
 
     private Long apiCombatPower(CharacterSnapshot snapshot) {
@@ -387,6 +430,9 @@ class CombatPowerGoldenTest {
             }
             if (result.unionRaiderDataMissing()) {
                 reasons.add("유니온 공격대 미반영");
+            }
+            if (result.unionMissingFromApiValue()) {
+                reasons.add("API 전투력이 유니온을 빼고 집계됨");
             }
             if (result.expiredCashItems() > 0) {
                 reasons.add("캐시 만료 " + result.expiredCashItems() + "개");
