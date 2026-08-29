@@ -140,7 +140,13 @@ class AdHocCharacterCheckTest {
                 statValue("INT", sum, level(documents)), statValue("LUK", sum, level(documents)),
                 sum.getHP(), sum.getHP_PERCENT(), sum.getHP_NO_PERCENT(),
                 // 제논은 세 스탯의 %가 서로 다를 수 있어 따로 남긴다.
-                pctOf("STR", sum), pctOf("DEX", sum), pctOf("LUK", sum));
+                pctOf("STR", sum), pctOf("DEX", sum), pctOf("LUK", sum))
+                // calculateStat 의 세 성분을 스탯마다 그대로. 내림 지점을 오프라인에서 바꿔 볼 수 있게 한다.
+                + String.format("\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%d\t%d\t%d",
+                flatOf("STR", sum, level(documents)), noPctOf("STR", sum),
+                flatOf("DEX", sum, level(documents)), noPctOf("DEX", sum),
+                flatOf("LUK", sum, level(documents)), noPctOf("LUK", sum),
+                sum.getALL_STAT(), sum.getALL_STAT_PERCENT(), sum.getALL_STAT_NO_PERCENT());
 
         // 소스별 STR+DEX+LUK 합. 어느 소스가 덜 잡히는지 그룹 대조용.
         StringBuilder bySource = new StringBuilder();
