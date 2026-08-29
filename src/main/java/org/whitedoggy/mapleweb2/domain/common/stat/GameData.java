@@ -21,7 +21,8 @@ public record GameData(
         List<String> magicWeaponParts,
         List<String> adventurePirateJobs,
         ConversionStarforce conversionStarforce,
-        Map<String, String> equipmentJobGroupStat
+        Map<String, String> equipmentJobGroupStat,
+        List<String> setJobGroupTokens
 ) {
     /** 직업의 주스탯 / 부스탯. 부스탯이 둘인 직업(섀도어·듀얼블레이더·카데나)이 있다. */
     public record JobStat(List<String> main, List<String> sub) {
@@ -48,6 +49,7 @@ public record GameData(
         adventurePirateJobs = adventurePirateJobs == null ? List.of() : List.copyOf(adventurePirateJobs);
         equipmentJobGroupStat = equipmentJobGroupStat == null
                 ? Map.of() : Map.copyOf(equipmentJobGroupStat);
+        setJobGroupTokens = setJobGroupTokens == null ? List.of() : List.copyOf(setJobGroupTokens);
         conversionStarforce = conversionStarforce == null
                 ? new ConversionStarforce(List.of(), 0, 10, 0, List.of())
                 : conversionStarforce;
@@ -64,6 +66,22 @@ public record GameData(
         for (Map.Entry<String, String> entry : equipmentJobGroupStat.entrySet()) {
             if (itemName.contains(entry.getKey())) {
                 return entry.getValue();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 세트 장비 이름의 직업군 토큰. 없으면 {@code null} — 무기처럼 직업군을 가리지 않는
+     * 부위이므로 모든 직업군 세트에 함께 센다.
+     */
+    public String setJobGroupOf(String itemName) {
+        if (itemName == null) {
+            return null;
+        }
+        for (String token : setJobGroupTokens) {
+            if (itemName.contains(token)) {
+                return token;
             }
         }
         return null;

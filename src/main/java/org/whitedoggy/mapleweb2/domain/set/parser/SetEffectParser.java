@@ -35,11 +35,13 @@ public class SetEffectParser {
 
         JsonNode lucky = resolveActiveLuckyItem(equipped, supportedSets, characterClass);
         for (JsonNode supportedSet : supportedSets) {
-            int pieceCount = countSetPieces(equipped, supportedSet, characterClass);
-            pieceCount = applyLuckyItemBonus(equipped, supportedSet, characterClass, pieceCount, lucky);
-            for (String effect : resolveOptions(
-                    supportedSet.path("options"), pieceCount, characterClass, equipped, supportedSet)) {
-                EffectTextSplitter.addSplit(effects, effect);
+            for (int groupCount : countSetPiecesByJobGroup(equipped, supportedSet, characterClass)) {
+                int pieceCount =
+                        applyLuckyItemBonus(equipped, supportedSet, characterClass, groupCount, lucky);
+                for (String effect : resolveOptions(
+                        supportedSet.path("options"), pieceCount, characterClass, equipped, supportedSet)) {
+                    EffectTextSplitter.addSplit(effects, effect);
+                }
             }
         }
         return effects;
@@ -176,6 +178,59 @@ public class SetEffectParser {
             }
         }
         return false;
+    }
+
+    /**
+     * 세트 개수를 직업군별로 나눠 센다.
+     *
+     * <p>같은 세트라도 직업군이 다르면 게임은 별개 세트로 취급한다. 보통은 한 직업군
+     * 장비만 끼므로 그룹이 하나뿐이고 결과가 종전과 같지만, 제논은 도적용과 해적용을
+     * 함께 낄 수 있어 두 세트가 동시에 성립한다. 무기처럼 직업군 토큰이 없는 부위는
+     * 어느 쪽에도 쓸 수 있으므로 모든 그룹에 함께 센다.
+     *
+     * <p>실측(에테르넬): 파이렛 3 + 시프 1 + 데스티니 무기 1 → API 가 해적 4 / 도적 2 로 준다.
+     *
+     * @return 그룹별 세트 개수. 성립한 장비가 없으면 {@code [0]}.
+     */
+    private List<Integer> countSetPiecesByJobGroup(
+            CharacterEquipmentSheet equipped, JsonNode supportedSet, String characterClass) {
+        Map<String, Integer> byGroup = new LinkedHashMap<>();
+        int shared = 0;
+        for (JsonNode piece : supportedSet.path("pieces")) {
+            String matched = matchedItemName(equipped, piece, supportedSet, characterClass);
+            if (matched == null) {
+                continue;
+            }
+            String group = gameData.setJobGroupOf(matched);
+            if (group == null) {
+                shared++;
+            } else {
+                byGroup.merge(group, 1, Integer::sum);
+            }
+        }
+        if (byGroup.isEmpty()) {
+            return List.of(shared);
+        }
+        List<Integer> counts = new ArrayList<>();
+        for (int count : byGroup.values()) {
+            counts.add(count + shared);
+        }
+        return counts;
+    }
+
+    /** 이 부위를 채운 장비 이름. 직업군을 못 가리는 휴리스틱 매치는 빈 문자열로 준다. */
+    private String matchedItemName(CharacterEquipmentSheet equipped, JsonNode piece,
+                                   JsonNode supportedSet, String characterClass) {
+        String slot = Jsons.text(piece, "slot");
+        for (String itemName : equipped.itemsForSlot(slot)) {
+            if (matchesItemAliases(itemName, piece.path("aliases"))) {
+                return itemName;
+            }
+        }
+        if (isZeroRootAbyssWeaponHeuristic(slot, piece.path("aliases"), supportedSet, equipped, characterClass)) {
+            return "";
+        }
+        return null;
     }
 
     private int countSetPieces(CharacterEquipmentSheet equipped, JsonNode supportedSet, String characterClass) {
