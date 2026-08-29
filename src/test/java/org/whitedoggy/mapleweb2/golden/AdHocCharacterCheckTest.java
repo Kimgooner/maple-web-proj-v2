@@ -56,6 +56,8 @@ class AdHocCharacterCheckTest {
     @Autowired private GameData gameData;
     @Autowired private StatParser statParser;
     @Autowired private ObjectMapper mapper;
+    @Autowired private org.whitedoggy.mapleweb2.domain.set.parser.SetEffectParser setEffectParser;
+    @Autowired private org.whitedoggy.mapleweb2.domain.item.parser.ItemEquipmentParser itemEquipmentParser;
 
     @Test
     void check() throws Exception {
@@ -131,6 +133,15 @@ class AdHocCharacterCheckTest {
         List<String> subs = gameData.subStats(basicParser.characterClass(documents.get(NexonEndpoint.BASIC)));
         String mainName = mains.isEmpty() ? "" : mains.getFirst();
         String subName = subs.isEmpty() ? "" : subs.getFirst();
+
+        // 적용된 세트와 개수. API 의 set_effect 목록과 대조용.
+        var presetSelection = dataSheetService.getCurrentPresetSelection(snapshot);
+        var presetItems = itemEquipmentParser.getItemEquipmentByPreset(
+                documents.get(NexonEndpoint.ITEM_EQUIPMENT), presetSelection.itemPreset());
+        var appliedSets = setEffectParser.getAppliedSetCounts(
+                documents.get(NexonEndpoint.SET_EFFECT), presetItems,
+                basicParser.characterClass(documents.get(NexonEndpoint.BASIC)));
+        System.out.printf("[SETS]\t%s\t%s%n", payload.path("characterName").asText(), appliedSets);
 
         // 기계 판독용 한 줄. TSV.
         // 제논(주스탯 3개)·데몬어벤져(주스탯 HP)는 mainName 하나로는 역산이 안 된다.
