@@ -94,9 +94,14 @@ public record GameData(
      * 무기의 기본 스탯으로 직업군을 가른다. 주스탯이 여럿인 직업(제논)의 무기는
      * 이름에 직업군 토큰이 없고, 도적용은 운·해적용은 힘이 붙는다.
      *
-     * @param statName 그 무기의 기본 스탯 중 가장 큰 것 (STR/DEX/INT/LUK)
+     * @param statName 그 무기의 기본 스탯 중 가장 큰 것 (STR/DEX/INT/LUK).
+     *                 기본 스탯이 하나도 없는 무기면 {@code null}이 온다 —
+     *                 {@code Map.copyOf}가 만든 불변 맵은 null 조회에서 터지므로 먼저 거른다.
      */
     public String weaponJobGroupOf(String statName) {
+        if (statName == null) {
+            return null;
+        }
         return weaponJobGroupByStat.get(statName);
     }
 
