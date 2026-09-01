@@ -21,6 +21,7 @@ public record GameData(
         List<String> magicWeaponParts,
         List<String> adventurePirateJobs,
         ConversionStarforce conversionStarforce,
+        JobCorrection jobCorrection,
         Map<String, String> equipmentJobGroupStat,
         List<String> setJobGroupTokens,
         Map<String, String> weaponJobGroupByStat
@@ -42,6 +43,17 @@ public record GameData(
         }
     }
 
+    /**
+     * 직업 보정 상수. 주스탯 계산이 일반 직업과 다른 직업(제논·데몬어벤져)은
+     * 전투력에 이 상수가 한 번 더 곱해지고, 값은 보정 전 전투력에 따라 달라진다.
+     */
+    public record JobCorrection(
+            List<String> jobs, double threshold, double minConstant, double slope, int decimals) {
+        public JobCorrection {
+            jobs = jobs == null ? List.of() : List.copyOf(jobs);
+        }
+    }
+
     public GameData {
         jobStats = require(jobStats, "job-stats");
         consumableAttack = consumableAttack == null ? Map.of() : Map.copyOf(consumableAttack);
@@ -53,6 +65,9 @@ public record GameData(
         setJobGroupTokens = setJobGroupTokens == null ? List.of() : List.copyOf(setJobGroupTokens);
         weaponJobGroupByStat = weaponJobGroupByStat == null
                 ? Map.of() : Map.copyOf(weaponJobGroupByStat);
+        jobCorrection = jobCorrection == null
+                ? new JobCorrection(List.of(), 0, 1, 0, 6)
+                : jobCorrection;
         conversionStarforce = conversionStarforce == null
                 ? new ConversionStarforce(List.of(), 0, 10, 0, List.of())
                 : conversionStarforce;
@@ -103,6 +118,28 @@ public record GameData(
             return null;
         }
         return weaponJobGroupByStat.get(statName);
+    }
+
+    /** 직업 보정 상수가 곱해지는 직업인가. */
+    public boolean hasJobCorrection(String characterClass) {
+        return jobCorrection.jobs().contains(characterClass);
+    }
+
+    /**
+     * 보정 전 전투력에 대응하는 직업 보정 상수.
+     *
+     * <p>상한(threshold) 위에서는 하한값으로 고정이고, 그 아래에서는 로그로 커진다.
+     * 게임이 상수를 소수점 {@code decimals}자리로 반올림해 쓰므로 여기서도 맞춘다 —
+     * 반올림을 빼면 정수 일치가 230건에서 8건으로 떨어진다.
+     */
+    public double jobCorrectionOf(double base) {
+        JobCorrection c = jobCorrection;
+        if (base <= 0 || base >= c.threshold()) {
+            return c.minConstant();
+        }
+        double raw = c.minConstant() + c.slope() * Math.log10(c.threshold() / base);
+        double scale = Math.pow(10, c.decimals());
+        return Math.round(raw * scale) / scale;
     }
 
     /** 컨버전 스타포스를 가진 직업인가 (제논·데몬어벤져). */

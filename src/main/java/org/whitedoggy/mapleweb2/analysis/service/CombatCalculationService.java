@@ -54,12 +54,17 @@ public class CombatCalculationService {
     }
 
     /**
-     * 제논의 스탯항 계수. 스탯항 = (STR + DEX + LUK) x 2.625 다.
+     * 제논의 스탯항 계수. 스탯항 = (STR + DEX + LUK) x 3.5 다.
      *
-     * <p>랭킹 표본 233명에서 역산했다. 컨버전 스타포스와 헥사 주력 스탯을 넣고 나면
-     * 218명이 이 값의 ±0.02% 안에 들어오고, 200명이 ±0.005% 안이다.
+     * <p>3.5 = 4 x 0.875 이고 0.875는 제논 직업상수다. 제논은 STR/DEX/LUK이 모두
+     * 주스탯이고 부스탯이 없어 일반 직업의 (주스탯 x 4 + 부스탯) 자리에 이 값이 들어간다.
+     *
+     * <p>여기까지가 '보정 전 전투력'이고, 여기에 직업 보정 상수가 한 번 더 곱해진다
+     * ({@code game-data.yml}의 {@code job-correction}). 보정 전 전투력이 1억 이상이면
+     * 상수가 0.75로 고정이라 3.5 x 0.75 = 2.625가 되는데, 예전에 쓰던 2.625가 바로 이
+     * 구간의 값이었다. 그 아래에서는 상수가 커지므로 2.625 고정으로는 맞지 않는다.
      */
-    private static final double XENON_STAT_FACTOR = 2.625;
+    private static final double XENON_STAT_FACTOR = 3.5;
 
     public long estimateCombatPower(DataSheet dataSheet, String characterClass, Integer characterLevel) {
         StatSheet sheet = dataSheet.getSumSheet();
@@ -113,6 +118,11 @@ public class CombatCalculationService {
         System.out.println("최종 데미지: " + finalDamage);
         System.out.println("========================");
         */
-        return (long) Math.floor((finalStat * power * damage * critDamage * finalDamage) / 1_000_000.0);
+        double base = (finalStat * power * damage * critDamage * finalDamage) / 1_000_000.0;
+        if (gameData.hasJobCorrection(characterClass)) {
+            // 주스탯 계산이 다른 직업은 직업 간 비교를 위해 보정 상수가 한 번 더 곱해진다.
+            base *= gameData.jobCorrectionOf(base);
+        }
+        return (long) Math.floor(base);
     }
 }
