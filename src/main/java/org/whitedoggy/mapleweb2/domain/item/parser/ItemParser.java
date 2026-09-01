@@ -211,8 +211,13 @@ public class ItemParser {
         } else {
             addOption = Integer.parseInt(Jsons.text(item.path("item_add_option"), "attack_power"));
         }
+        // 작 보정은 작 횟수가 아니라 실제 작 공격력으로 잰다. 주문서 종류마다
+        // 1회당 공격력이 달라서 횟수만으로는 알 수 없다.
+        int scrollAttackValue = gameData.isMagicWeaponPart(itemPart)
+                ? Jsons.optionalInt(item.path("item_etc_option"), "magic_power").orElse(0)
+                : Jsons.optionalInt(item.path("item_etc_option"), "attack_power").orElse(0);
         var normalized = bowNormalization.normalize(
-                itemPart, itemName, starForce, addOption, scrollUpgrade(item));
+                itemPart, itemName, starForce, addOption, scrollAttackValue);
         effects.addAll(normalized.effects());
         snapShot.setWeaponNormalizationFailed(!normalized.stageResolved());
 
@@ -467,8 +472,11 @@ public class ItemParser {
                 }
                 String name = Jsons.text(item, "item_name");
                 Integer starForce = Integer.parseInt(Jsons.text(item, "starforce"));
+                int scrollAttackValue = gameData.isMagicWeaponPart(part)
+                        ? Jsons.optionalInt(item.path("item_etc_option"), "magic_power").orElse(0)
+                        : Jsons.optionalInt(item.path("item_etc_option"), "attack_power").orElse(0);
                 effects.addAll(bowNormalization.buildNormalizedBow(
-                        part, name, starForce, Integer.parseInt(addOption), scrollUpgrade(item)));
+                        part, name, starForce, Integer.parseInt(addOption), scrollAttackValue));
                 EffectTextSplitter.addSplit(effects, Jsons.text(item, "soul_option"));
             }
             else {

@@ -53,6 +53,15 @@ public record WeaponData(
      */
     private static final int ATTACK_PER_SCROLL = 12;
 
+    /** 주문서 1회가 올리는 기본 공격력. 표의 {@code assumed-scroll}이 전제하는 값이다. */
+    private static final int ATTACK_PER_SCROLL_BASE = 9;
+
+    /**
+     * 작 공격력 1당 무기 합계가 오르는 양. 주문서가 올린 공격력만큼 스타포스 옵션도
+     * 따라 오르기 때문에 1보다 크다(9 -> 12, 즉 4/3).
+     */
+    private static final double ATTACK_PER_SCROLL_ATTACK = 4.0 / 3.0;
+
     private static final String BOW_PART = "활";
 
     /** 제로의 라즐리·라피스 부위. 활 환산 대응이 다른 무기와 다르다. */
@@ -84,15 +93,30 @@ public record WeaponData(
     }
 
     /**
-     * 주문서 작이 더하는 공격력. 표가 전제한 작 횟수와의 차이만 보정한다.
+     * 주문서 작이 더하는 공격력. 표가 전제한 값과의 차이만 보정한다.
      *
-     * @param scrollUpgrade 아이템의 실제 작 횟수({@code scroll_upgrade})
+     * <p><b>작 횟수가 아니라 실제 작 공격력({@code item_etc_option})으로 잰다.</b>
+     * 주문서 종류에 따라 1회당 공격력이 달라서 횟수만으로는 알 수 없다 — 실측한
+     * 아케인셰이드 보우 15성 8작은 작 공격력이 72(8x9)가 아니라 56이었고, 그 활의
+     * 실제 합은 455였다(횟수 기준으로 계산하면 478이 나온다).
+     *
+     * <p>표는 {@code assumedScroll}회 완작(1회당 9)을 전제하므로 그 기준과의 차이에
+     * {@link #ATTACK_PER_SCROLL_ATTACK}을 곱한다. 주문서가 올린 공격력만큼 스타포스
+     * 옵션도 함께 오르기 때문에 1보다 크다.
+     *
+     * <p>실측 60건 기준으로 정확히 맞는 건수가 17건에서 29건으로 늘고 평균 오차가
+     * 30에서 9.8로 줄었다. 성마다 배율이 조금씩 달라(13성 1.29 ~ 18성 1.36) 아직
+     * 전부 맞지는 않는다.
+     *
+     * @param scrollAttackValue 아이템의 실제 작 공격력({@code item_etc_option}의 공격력/마력)
      */
-    public int scrollAttack(WeaponSet set, Integer scrollUpgrade) {
-        if (scrollUpgrade == null) {
+    public int scrollAttack(WeaponSet set, Integer scrollAttackValue) {
+        if (scrollAttackValue == null) {
             return set.scroll();
         }
-        return set.scroll() + ATTACK_PER_SCROLL * (scrollUpgrade - set.assumedScroll());
+        int assumed = set.assumedScroll() * ATTACK_PER_SCROLL_BASE;
+        return set.scroll()
+                + (int) Math.round((scrollAttackValue - assumed) * ATTACK_PER_SCROLL_ATTACK);
     }
 
     /** 세트·스타포스에 해당하는 공격력. 표를 벗어나면 마지막 값으로 고정한다. */

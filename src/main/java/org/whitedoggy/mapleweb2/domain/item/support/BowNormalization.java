@@ -40,12 +40,12 @@ public class BowNormalization {
     }
 
     public NormalizedWeapon normalize(String weaponPart, String weaponName,
-                                      Integer starForce, Integer addOption, Integer scrollUpgrade) {
+                                      Integer starForce, Integer addOption, Integer scrollAttackValue) {
         WeaponData.WeaponSet set = weaponData.resolveSet(weaponName);
 
         Integer stage = weaponData.findStage(set.name(), weaponPart, addOption);
         int attack = weaponData.starForceAttack(set.name(), safe(starForce))
-                + weaponData.scrollAttack(set, scrollUpgrade);
+                + weaponData.scrollAttack(set, scrollAttackValue);
 
         // 태도·대검(제로)은 "같은 단계의 활 값" 대응이 성립하지 않아 전용 표를 쓴다.
         int add;
@@ -77,8 +77,8 @@ public class BowNormalization {
     }
 
     public List<String> buildNormalizedBow(String weaponPart, String weaponName,
-                                           Integer starForce, Integer addOption, Integer scrollUpgrade) {
-        return normalize(weaponPart, weaponName, starForce, addOption, scrollUpgrade).effects();
+                                           Integer starForce, Integer addOption, Integer scrollAttackValue) {
+        return normalize(weaponPart, weaponName, starForce, addOption, scrollAttackValue).effects();
     }
 
     private int safe(Integer value) {
