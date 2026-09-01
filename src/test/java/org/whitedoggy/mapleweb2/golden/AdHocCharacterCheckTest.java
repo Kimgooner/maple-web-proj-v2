@@ -130,6 +130,16 @@ class AdHocCharacterCheckTest {
                 unionVariant(snapshot, documents, true, true, false, false),
                 unionVariant(snapshot, documents, true, true, true, true));
 
+        // 소스를 하나씩 빼 본다. API와 정확히 맞는 게 있으면 그 소스가 원인이다.
+        String[] srcNames = {"abilityPoint", "symbol", "skill", "hexaStat", "ability",
+                "hyperStat", "otherStat", "setEffect", "consumableItem", "conversionStarforce"};
+        StringBuilder srcLine = new StringBuilder();
+        for (String src : srcNames) {
+            srcLine.append('\t').append(withoutSource(snapshot, documents, src));
+        }
+        System.out.printf("[SRC]\t%s\t%d\t%d%s%n",
+                payload.path("characterName").asText(), api, calc, srcLine);
+
         long bare = withoutUnion(snapshot, documents);
         // 계산값은 어긋나는데 유니온을 뺀 값이 API와 정수까지 같으면, 우리가 틀린 게 아니라
         // 넥슨 stat 집계에서 유니온이 빠진 것이다. 골든의 unionMissingFromApiValue와 같은 기준.
@@ -291,6 +301,30 @@ class AdHocCharacterCheckTest {
         if (dropOccupied) sheet.setUnionOccupied(new StatSheet("unionOccupied"));
         if (dropArtifact) sheet.setUnionArtifact(new StatSheet("unionArtifact"));
         if (dropChampion) sheet.setUnionChampion(new StatSheet("unionChampion"));
+        sheet.setSumSheet(new StatSheet("종합"));
+        sheet.buildSum();
+        JsonNode basic = documents.get(NexonEndpoint.BASIC);
+        return combatCalculationService.estimateCombatPower(
+                sheet, basicParser.characterClass(basic), basicParser.characterLevel(basic));
+    }
+
+    /** 소스 하나를 비우고 다시 계산한다. */
+    private long withoutSource(CharacterSnapshot snapshot, Map<NexonEndpoint, JsonNode> documents,
+                               String source) {
+        DataSheet sheet = dataSheetService.getCurrentDataSheet(snapshot);
+        switch (source) {
+            case "abilityPoint" -> sheet.setAbilityPoint(new StatSheet(source));
+            case "symbol" -> sheet.setSymbol(new StatSheet(source));
+            case "skill" -> sheet.setSkill(new StatSheet(source));
+            case "hexaStat" -> sheet.setHexaStat(new StatSheet(source));
+            case "ability" -> sheet.setAbility(new StatSheet(source));
+            case "hyperStat" -> sheet.setHyperStat(new StatSheet(source));
+            case "otherStat" -> sheet.setOtherStat(new StatSheet(source));
+            case "setEffect" -> sheet.setSetEffect(new StatSheet(source));
+            case "consumableItem" -> sheet.setConsumableItem(new StatSheet(source));
+            case "conversionStarforce" -> sheet.setConversionStarforce(new StatSheet(source));
+            default -> throw new IllegalArgumentException(source);
+        }
         sheet.setSumSheet(new StatSheet("종합"));
         sheet.buildSum();
         JsonNode basic = documents.get(NexonEndpoint.BASIC);
