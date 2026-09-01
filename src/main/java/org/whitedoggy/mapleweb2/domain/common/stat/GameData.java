@@ -20,6 +20,7 @@ public record GameData(
         Map<String, Integer> consumableAttack,
         List<String> magicWeaponParts,
         List<String> adventurePirateJobs,
+        Integer minSupportedLevel,
         ConversionStarforce conversionStarforce,
         JobCorrection jobCorrection,
         Map<String, String> equipmentJobGroupStat,
@@ -118,6 +119,15 @@ public record GameData(
             return null;
         }
         return weaponJobGroupByStat.get(statName);
+    }
+
+    /**
+     * 전투력 계산이 뜻을 갖는 레벨인가. 이 아래는 API가 주는 전투력 자체가
+     * 장비와 맞지 않는 경우가 대부분이라 정확도 집계에서 뺀다.
+     */
+    public boolean isSupportedLevel(Integer characterLevel) {
+        return minSupportedLevel == null || characterLevel == null
+                || characterLevel >= minSupportedLevel;
     }
 
     /** 직업 보정 상수가 곱해지는 직업인가. */

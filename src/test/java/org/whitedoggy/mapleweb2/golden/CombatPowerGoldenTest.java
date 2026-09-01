@@ -77,6 +77,7 @@ class CombatPowerGoldenTest {
             int expiredArtifactCrystals,
             boolean unionRaiderDataMissing,
             boolean unionMissingFromApiValue,
+            boolean belowSupportedLevel,
             int expiredCashItems,
             boolean expiredTitleOption,
             int expiredPetEquipments,
@@ -205,6 +206,7 @@ class CombatPowerGoldenTest {
         return result.expiredArtifactCrystals() > 0
                 || result.unionRaiderDataMissing()
                 || result.unionMissingFromApiValue()
+                || result.belowSupportedLevel()
                 || result.expiredCashItems() > 0
                 || result.expiredTitleOption()
                 || result.expiredPetEquipments() > 0;
@@ -254,6 +256,8 @@ class CombatPowerGoldenTest {
                     sheet.getExpiredArtifactCrystals(),
                     sheet.isUnionRaiderDataMissing(),
                     unionMissingFromApiValue(snapshot, sheet.getCombatPower(), apiCombatPower),
+                    !gameData.isSupportedLevel(
+                            basicParser.characterLevel(snapshot.document(NexonEndpoint.BASIC))),
                     sheet.getExpiredCashItems(),
                     sheet.isExpiredTitleOption(),
                     sheet.getExpiredPetEquipments(),
@@ -272,6 +276,7 @@ class CombatPowerGoldenTest {
                     apiCombatPower,
                     false,
                     0,
+                    false,
                     false,
                     false,
                     0,
@@ -433,6 +438,9 @@ class CombatPowerGoldenTest {
             }
             if (result.unionMissingFromApiValue()) {
                 reasons.add("API 전투력이 유니온을 빼고 집계됨");
+            }
+            if (result.belowSupportedLevel()) {
+                reasons.add("지원 최소 레벨 미만");
             }
             if (result.expiredCashItems() > 0) {
                 reasons.add("캐시 만료 " + result.expiredCashItems() + "개");
