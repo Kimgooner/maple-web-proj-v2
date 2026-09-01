@@ -160,7 +160,8 @@ public class StatSheetComparisonService {
         sheets.put("skill0", statSheetParser.parse(skillParseResult.effects(), "0차 스킬"));
         sheets.put("hexaStat", statSheetParser.parseNoPercentStat(hexaParser.getCurrentHexa(snapshot.document(NexonEndpoint.HEXA_MATRIX_STAT), mainStats), "헥사 스텟"));
         sheets.put("unionArtifact", statSheetParser.parse(artifactParser.getArtifactEffects(snapshot.document(NexonEndpoint.UNION_ARTIFACT)), "유니온 아티팩트"));
-        sheets.put("unionChampion", statSheetParser.parse(championParser.getChampionStats(snapshot.document(NexonEndpoint.UNION_CHAMPION)), "유니온 챔피언"));
+        sheets.put("unionChampion", statSheetParser.parse(championParser.getChampionStats(snapshot.document(NexonEndpoint.UNION_CHAMPION),
+                basicParser.characterName(snapshot.document(NexonEndpoint.BASIC))), "유니온 챔피언"));
         return new CommonStatSheetView(sheets, sumSheets(sheets));
     }
 

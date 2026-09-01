@@ -169,7 +169,8 @@ public class DataSheetService {
         dataSheet.setUnionArtifact(statSheetParser.parse(artifactResult.effects(), "unionArtifact"));
         dataSheet.setExpiredArtifactCrystals(artifactResult.expiredCrystals());
         dataSheet.setUnionRaiderDataMissing(isUnionRaiderDataMissing(unionRaider, worldName));
-        dataSheet.setUnionChampion(setUnionChampion(unionChampion));
+        dataSheet.setUnionChampion(setUnionChampion(unionChampion,
+                basicParser.characterName(documents.get(NexonEndpoint.BASIC))));
 
         JsonNode presetItems = itemEquipmentParser.getItemEquipmentByPreset(itemEquip, presetSelection.itemPreset());
         return buildDataSheet(presetItems, itemEquip, setEffect, ability, hyper, unionRaider, characterClass, presetSelection, dataSheet, referenceDate);
@@ -459,8 +460,9 @@ public class DataSheetService {
         return (int) items.values().stream().filter(item -> item.getExpired() != null).count();
     }
 
-    private StatSheet setUnionChampion(JsonNode node) {
-        return statSheetParser.parse(championParser.getChampionStats(node), "unionChampion");
+    private StatSheet setUnionChampion(JsonNode node, String characterName) {
+        return statSheetParser.parse(
+                championParser.getChampionStats(node, characterName), "unionChampion");
     }
 
     private StatSheet setUnionOccupied(JsonNode node, int presetNo) {

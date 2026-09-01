@@ -118,6 +118,18 @@ class AdHocCharacterCheckTest {
 
         // 유니온(공격대원+점령)을 빼고 다시 계산한다. 이 값이 API와 붙으면
         // 넥슨 쪽 stat 집계에서 유니온이 빠진 날의 데이터라는 뜻이다.
+        // 유니온 구성요소를 하나씩 빼 본다. API와 정확히 맞는 조합이 있으면
+        // 넥슨이 그 항목을 빼고 집계했다는 뜻이다.
+        System.out.printf("[UNION]\t%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d%n",
+                payload.path("characterName").asText(), api,
+                unionVariant(snapshot, documents, false, false, false, false),
+                unionVariant(snapshot, documents, true, false, false, false),
+                unionVariant(snapshot, documents, false, true, false, false),
+                unionVariant(snapshot, documents, false, false, true, false),
+                unionVariant(snapshot, documents, false, false, false, true),
+                unionVariant(snapshot, documents, true, true, false, false),
+                unionVariant(snapshot, documents, true, true, true, true));
+
         long bare = withoutUnion(snapshot, documents);
         // 계산값은 어긋나는데 유니온을 뺀 값이 API와 정수까지 같으면, 우리가 틀린 게 아니라
         // 넥슨 stat 집계에서 유니온이 빠진 것이다. 골든의 unionMissingFromApiValue와 같은 기준.
@@ -268,6 +280,22 @@ class AdHocCharacterCheckTest {
                             t.path("luk").asText("0"), t.path("attack_power").asText("0"),
                             Jsons.text(r, "item_name")));
         }
+    }
+
+    /** 유니온 항목을 골라 빼고 다시 계산한다. */
+    private long unionVariant(CharacterSnapshot snapshot, Map<NexonEndpoint, JsonNode> documents,
+                              boolean dropRaider, boolean dropOccupied,
+                              boolean dropArtifact, boolean dropChampion) {
+        DataSheet sheet = dataSheetService.getCurrentDataSheet(snapshot);
+        if (dropRaider) sheet.setUnionRaider(new StatSheet("unionRaider"));
+        if (dropOccupied) sheet.setUnionOccupied(new StatSheet("unionOccupied"));
+        if (dropArtifact) sheet.setUnionArtifact(new StatSheet("unionArtifact"));
+        if (dropChampion) sheet.setUnionChampion(new StatSheet("unionChampion"));
+        sheet.setSumSheet(new StatSheet("종합"));
+        sheet.buildSum();
+        JsonNode basic = documents.get(NexonEndpoint.BASIC);
+        return combatCalculationService.estimateCombatPower(
+                sheet, basicParser.characterClass(basic), basicParser.characterLevel(basic));
     }
 
     private long withoutUnion(CharacterSnapshot snapshot, Map<NexonEndpoint, JsonNode> documents) {
