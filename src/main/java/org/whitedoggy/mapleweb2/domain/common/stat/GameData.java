@@ -19,6 +19,7 @@ public record GameData(
         List<String> magicClasses,
         Map<String, Integer> consumableAttack,
         List<String> magicWeaponParts,
+        Map<String, Double> itemFinalDamage,
         List<String> adventurePirateJobs,
         Integer minSupportedLevel,
         Map<String, Double> jobStatFactor,
@@ -28,6 +29,14 @@ public record GameData(
         List<String> setJobGroupTokens,
         Map<String, String> weaponJobGroupByStat
 ) {
+    /**
+     * 이 장비가 주는 최종 데미지(%). 설명문에만 적혀 있어 옵션 필드로는 못 읽는
+     * 장비를 위한 것이다. 해당 없으면 {@code null}.
+     */
+    public Double itemFinalDamageOf(String itemName) {
+        return itemName == null ? null : itemFinalDamage.get(itemName);
+    }
+
     /** 직업의 주스탯 / 부스탯. 부스탯이 둘인 직업(섀도어·듀얼블레이더·카데나)이 있다. */
     public record JobStat(List<String> main, List<String> sub) {
     }
@@ -62,6 +71,7 @@ public record GameData(
         consumableAttack = consumableAttack == null ? Map.of() : Map.copyOf(consumableAttack);
         magicClasses = magicClasses == null ? List.of() : List.copyOf(magicClasses);
         magicWeaponParts = magicWeaponParts == null ? List.of() : List.copyOf(magicWeaponParts);
+        itemFinalDamage = itemFinalDamage == null ? Map.of() : Map.copyOf(itemFinalDamage);
         adventurePirateJobs = adventurePirateJobs == null ? List.of() : List.copyOf(adventurePirateJobs);
         equipmentJobGroupStat = equipmentJobGroupStat == null
                 ? Map.of() : Map.copyOf(equipmentJobGroupStat);

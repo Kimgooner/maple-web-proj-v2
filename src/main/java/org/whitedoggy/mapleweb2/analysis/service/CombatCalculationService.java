@@ -95,6 +95,14 @@ public class CombatCalculationService {
         double damage = 100.0 + sheet.getDAMAGE() + sheet.getBOSS_DAMAGE();
         double critDamage = 135.0 + sheet.getCRITICAL_DAMAGE();
         double finalDamage = 100.0 + sheet.getFINAL_DAMAGE();
+        // 최종 데미지가 설명문에만 적힌 장비(루인 포스실드)를 더한다. 최종 데미지는
+        // 곱연산이라 더하지 않고 곱한다 - 해방 스킬 10%와 겹치면 121%가 된다.
+        for (var item : dataSheet.getItemEquip().values()) {
+            Double percent = gameData.itemFinalDamageOf(item.getItemName());
+            if (percent != null) {
+                finalDamage *= (100.0 + percent) / 100.0;
+            }
+        }
         /*
         System.out.println("전투력 계산 ==============");
         System.out.println("최종 주스탯: " + finalMainStat);
