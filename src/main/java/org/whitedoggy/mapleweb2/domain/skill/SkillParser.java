@@ -20,7 +20,11 @@ public class SkillParser {
     private static final Pattern NUMBER_PATTERN = Pattern.compile("([+-]?\\d+(?:\\.\\d+)?)");
     // 펫 세트 스킬은 "아이스 스노우 Lv.1"처럼 뒤에 붙기도 하고
     // "Lv.1 궁디팡팡 멍뭉이"처럼 앞에 붙기도 한다. 끝에만 맞추면 후자를 놓친다.
-    private static final Pattern PET_SET_SKILL_PATTERN = Pattern.compile("Lv\\.[123](?:\\s|$)");
+    //
+    // 점은 없을 수도 있다 — "눈여우는 뽀송뽀송 Lv1"은 넥슨이 점 없이 준다. 점을
+    // 필수로 두면 이 세트만 통째로 빠진다. 표본 4,541명에서 점 없는 Lv 로 새로
+    // 걸리는 스킬은 눈여우 3단계뿐이라 다른 스킬을 잘못 끌어오지 않는다.
+    private static final Pattern PET_SET_SKILL_PATTERN = Pattern.compile("Lv\\.?[123](?:\\s|$)");
 
     /**
      * @param worldName 캐릭터의 월드. 챌린저스 계열이면 월드 전용 버프를 함께 반영한다.
