@@ -116,6 +116,10 @@ maple:
       min-constant: 0.75
       slope: 0.1
       decimals: 6
+      # 상한. 로그 공식이 base 1천만에서 갖는 값이라 하한(1억에서 0.75)과 대칭이다.
+      # 실측 892명에서 817 -> 826, base 2천만 미만만 보면 21 -> 30이 된다.
+      # 0.84는 813, 0.86 이상은 817로 개선이 없다.
+      max-constant: 0.85
 
     conversion-starforce:
       jobs:

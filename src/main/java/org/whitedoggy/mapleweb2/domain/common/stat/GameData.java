@@ -49,7 +49,8 @@ public record GameData(
      * 전투력에 이 상수가 한 번 더 곱해지고, 값은 보정 전 전투력에 따라 달라진다.
      */
     public record JobCorrection(
-            List<String> jobs, double threshold, double minConstant, double slope, int decimals) {
+            List<String> jobs, double threshold, double minConstant, double slope, int decimals,
+            Double maxConstant) {
         public JobCorrection {
             jobs = jobs == null ? List.of() : List.copyOf(jobs);
         }
@@ -67,7 +68,7 @@ public record GameData(
         weaponJobGroupByStat = weaponJobGroupByStat == null
                 ? Map.of() : Map.copyOf(weaponJobGroupByStat);
         jobCorrection = jobCorrection == null
-                ? new JobCorrection(List.of(), 0, 1, 0, 6)
+                ? new JobCorrection(List.of(), 0, 1, 0, 6, null)
                 : jobCorrection;
         conversionStarforce = conversionStarforce == null
                 ? new ConversionStarforce(List.of(), 0, 10, 0, List.of())
@@ -149,7 +150,8 @@ public record GameData(
         }
         double raw = c.minConstant() + c.slope() * Math.log10(c.threshold() / base);
         double scale = Math.pow(10, c.decimals());
-        return Math.round(raw * scale) / scale;
+        double rounded = Math.round(raw * scale) / scale;
+        return c.maxConstant() == null ? rounded : Math.min(rounded, c.maxConstant());
     }
 
     /** 컨버전 스타포스를 가진 직업인가 (제논·데몬어벤져). */
