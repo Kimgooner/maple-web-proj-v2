@@ -44,8 +44,14 @@ public class BowNormalization {
         WeaponData.WeaponSet set = weaponData.resolveSet(weaponName);
 
         Integer stage = weaponData.findStage(set.name(), weaponPart, addOption);
-        int attack = weaponData.starForceAttack(set.name(), safe(starForce))
-                + weaponData.scrollAttack(set, scrollAttackValue);
+        // 스타포스 규칙으로 직접 계산한다. 등록 안 된 세트나 표에 없는 성이면
+        // 종전 표 방식으로 떨어뜨리고 정규화 실패로 둔다.
+        Integer computed = weaponData.bowAttack(
+                set.name(), safe(starForce), safe(scrollAttackValue));
+        int attack = computed != null
+                ? computed
+                : weaponData.starForceAttack(set.name(), safe(starForce))
+                        + weaponData.scrollAttack(set, scrollAttackValue);
 
         // 태도·대검(제로)은 "같은 단계의 활 값" 대응이 성립하지 않아 전용 표를 쓴다.
         int add;
@@ -65,7 +71,7 @@ public class BowNormalization {
         }
 
         // 그 세트에 없는 스타포스면 표값이 무엇이든 근거가 없다(해방 전 제네시스 등).
-        if (!weaponData.starForceInRange(set, starForce)) {
+        if (!weaponData.starForceInRange(set, starForce) || computed == null) {
             resolved = false;
         }
 

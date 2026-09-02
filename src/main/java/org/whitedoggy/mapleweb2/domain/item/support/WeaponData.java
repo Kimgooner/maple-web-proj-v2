@@ -23,6 +23,9 @@ public record WeaponData(
         String defaultSet,
         List<WeaponSet> sets,
         Map<String, List<Integer>> starForce,
+        Map<String, Integer> bowBaseAttack,
+        Map<String, Integer> bowItemLevel,
+        Map<String, List<Integer>> starForce16plus,
         Map<String, Map<String, List<Integer>>> addOption,
         Map<String, List<Integer>> zeroBowAddOption,
         Map<String, Integer> zeroBaseAttack
@@ -70,6 +73,9 @@ public record WeaponData(
     public WeaponData {
         sets = sets == null ? List.of() : List.copyOf(sets);
         starForce = starForce == null ? Map.of() : Map.copyOf(starForce);
+        bowBaseAttack = bowBaseAttack == null ? Map.of() : Map.copyOf(bowBaseAttack);
+        bowItemLevel = bowItemLevel == null ? Map.of() : Map.copyOf(bowItemLevel);
+        starForce16plus = starForce16plus == null ? Map.of() : Map.copyOf(starForce16plus);
         addOption = addOption == null ? Map.of() : Map.copyOf(addOption);
         zeroBowAddOption = zeroBowAddOption == null ? Map.of() : Map.copyOf(zeroBowAddOption);
         zeroBaseAttack = zeroBaseAttack == null ? Map.of() : Map.copyOf(zeroBaseAttack);
@@ -117,6 +123,41 @@ public record WeaponData(
         int assumed = set.assumedScroll() * ATTACK_PER_SCROLL_BASE;
         return set.scroll()
                 + (int) Math.round((scrollAttackValue - assumed) * ATTACK_PER_SCROLL_ATTACK);
+    }
+
+    /**
+     * 활의 총 공격력. 스타포스 규칙으로 직접 계산한다.
+     *
+     * <p>기본 공격력에 주문서 작 공격력을 더한 값에서 시작해, 1~15성은 성마다
+     * {@code (현재 공격력 / 50) + 1}을 더하고(내림, 누적 반영), 16성 이상은 아이템
+     * 레벨별 누적치를 더한다.
+     *
+     * <p>표를 쓰던 방식은 작이 기준(9작 81)과 다르면 어긋났다. 주문서 종류마다
+     * 1회당 공격력이 9/7/5/3으로 달라 작 횟수로는 알 수 없고, 스타포스 증가량 자체가
+     * 작 공격력에 비례하기 때문이다. 실측 58건이 이 규칙과 100% 일치한다.
+     *
+     * @param scrollAttackValue 아이템의 실제 작 공격력({@code item_etc_option})
+     * @return 계산할 수 없으면 {@code null}(등록 안 된 세트, 표에 없는 스타포스)
+     */
+    public Integer bowAttack(String setName, int starForce, int scrollAttackValue) {
+        Integer base = bowBaseAttack.get(setName);
+        Integer level = bowItemLevel.get(setName);
+        if (base == null || level == null) {
+            return null;
+        }
+        int attack = base + Math.max(0, scrollAttackValue);
+        for (int star = 1; star <= Math.min(starForce, 15); star++) {
+            attack += attack / 50 + 1;
+        }
+        if (starForce <= 15) {
+            return attack;
+        }
+        List<Integer> plus = starForce16plus.get(String.valueOf(level));
+        int index = starForce - 16;
+        if (plus == null || index >= plus.size()) {
+            return null;
+        }
+        return attack + plus.get(index);
     }
 
     /** 세트·스타포스에 해당하는 공격력. 표를 벗어나면 마지막 값으로 고정한다. */
