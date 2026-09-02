@@ -233,11 +233,15 @@ public class SetEffectParser {
         String luckySlot = luckyItem == null ? null : Jsons.text(luckyItem, "slot");
         int shared = 0;
         boolean sharedFillsLuckySlot = false;
+        boolean weaponPieceMatched = false;
 
         for (JsonNode piece : supportedSet.path("pieces")) {
             String slot = Jsons.text(piece, "slot");
             if (matchedItemName(equipped, piece, supportedSet, characterClass) == null) {
                 continue;
+            }
+            if ("무기".equals(slot)) {
+                weaponPieceMatched = true;
             }
             String group = equipped.jobGroup(slot);
             if (group == null) {
@@ -255,22 +259,53 @@ public class SetEffectParser {
         // 럭키 아이템은 3개 이상 성립한 묶음에만 붙는다. 묶음은 직업군별로 센다.
         boolean luckyUsable = luckyItem != null
                 && setUsesSlot(supportedSet, luckySlot) && !sharedFillsLuckySlot;
+        boolean zeroWeaponFiller = zeroRootAbyssWeaponFills(supportedSet, equipped, characterClass)
+                && !weaponPieceMatched;
         int maxPieces = supportedSet.path("pieces").size();
 
         // 직업군 토큰이 하나도 없는 세트(장신구 세트 등)는 종전처럼 하나로 센다.
         if (byGroup.isEmpty()) {
-            return List.of(Math.min(luckyUsable && shared >= 3 ? shared + 1 : shared, maxPieces));
+            boolean fill = shared >= 3 && (luckyUsable || zeroWeaponFiller);
+            return List.of(Math.min(fill ? shared + 1 : shared, maxPieces));
         }
 
         List<Integer> counts = new ArrayList<>();
         for (Map.Entry<String, Integer> entry : byGroup.entrySet()) {
             int count = entry.getValue() + shared;
-            if (luckyUsable && count >= 3 && !luckySlotFilled.getOrDefault(entry.getKey(), false)) {
+            boolean luckyFits = luckyUsable
+                    && !luckySlotFilled.getOrDefault(entry.getKey(), false);
+            // 무기 부위를 채우는 두 경로는 같은 자리를 두고 겹치므로 하나만 센다.
+            if (count >= 3 && (luckyFits || zeroWeaponFiller)) {
                 count++;
             }
             counts.add(Math.min(count, maxPieces));
         }
         return counts;
+    }
+
+    /**
+     * 제로의 루타비스 무기 부위가 채워지는가.
+     *
+     * <p>제로는 루타비스 무기를 끼지 않아도 이글아이 상의와 트릭스터 하의를 갖추면
+     * API가 무기 부위를 채운 개수를 준다. <b>단, 럭키 아이템과 같이 세트가 3개 이상
+     * 성립했을 때만이다.</b> 실측(제로 638명):
+     * <ul>
+     *   <li>모자·상의·하의 3개 + 무기 없음 → API 4 (corona4836, 노이쿤)</li>
+     *   <li>상의·하의 2개만 → API 2 (바다N, 제로은). 임계값을 빼면 4가 되어 +9~11% 과대</li>
+     * </ul>
+     */
+    private boolean zeroRootAbyssWeaponFills(
+            JsonNode supportedSet, CharacterEquipmentSheet equipped, String characterClass) {
+        if (!"제로".equals(characterClass)
+                || !matchesSetAliases("루타비스", supportedSet.path("aliases"))) {
+            return false;
+        }
+        return matchesAnyItemAlias(equipped.itemsForSlot("상의"), textAliases("이글아이"))
+                && matchesAnyItemAlias(equipped.itemsForSlot("하의"), textAliases("트릭스터"));
+    }
+
+    private JsonNode textAliases(String alias) {
+        return OBJECT_MAPPER.createArrayNode().add(alias);
     }
 
     /** 이 세트를 이루는 장비들의 직업군 집합. 직업군을 가리지 않는 부위는 빠진다. */
@@ -312,9 +347,6 @@ public class SetEffectParser {
                 return itemName;
             }
         }
-        if (isZeroRootAbyssWeaponHeuristic(slot, piece.path("aliases"), supportedSet, equipped, characterClass)) {
-            return "";
-        }
         return null;
     }
 
@@ -333,32 +365,10 @@ public class SetEffectParser {
         if (matchesAnyItemAlias(equipped.itemsForSlot(slot), piece.path("aliases"))) {
             return true;
         }
-        return isZeroRootAbyssWeaponHeuristic(slot, piece.path("aliases"), supportedSet, equipped, characterClass);
+        return false;
     }
 
-    private boolean isZeroRootAbyssWeaponHeuristic(
-            String slot,
-            JsonNode aliases,
-            JsonNode supportedSet,
-            CharacterEquipmentSheet equipped,
-            String characterClass
-    ) {
-        if (!"제로".equals(characterClass) || !"무기".equals(slot)) {
-            return false;
-        }
-        if (!matchesSetAliases(Jsons.text(supportedSet, "name"), supportedSet.path("aliases"))
-                || !matchesSetAliases("루타비스", supportedSet.path("aliases"))) {
-            return false;
-        }
 
-        boolean hasTop = matchesAnyItemAlias(equipped.itemsForSlot("상의"), textAliases("이글아이"));
-        boolean hasBottom = matchesAnyItemAlias(equipped.itemsForSlot("하의"), textAliases("트릭스터"));
-        return hasTop && hasBottom && matchesItemAliases("파프니르", aliases);
-    }
-
-    private JsonNode textAliases(String alias) {
-        return OBJECT_MAPPER.createArrayNode().add(alias);
-    }
 
     /**
      * 이번 캐릭터에서 실제로 효력을 갖는 럭키 아이템 하나를 고른다.
