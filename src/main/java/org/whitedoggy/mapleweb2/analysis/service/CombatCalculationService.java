@@ -53,19 +53,6 @@ public class CombatCalculationService {
         return 0;
     }
 
-    /**
-     * 제논의 스탯항 계수. 스탯항 = (STR + DEX + LUK) x 3.5 다.
-     *
-     * <p>3.5 = 4 x 0.875 이고 0.875는 제논 직업상수다. 제논은 STR/DEX/LUK이 모두
-     * 주스탯이고 부스탯이 없어 일반 직업의 (주스탯 x 4 + 부스탯) 자리에 이 값이 들어간다.
-     *
-     * <p>여기까지가 '보정 전 전투력'이고, 여기에 직업 보정 상수가 한 번 더 곱해진다
-     * ({@code game-data.yml}의 {@code job-correction}). 보정 전 전투력이 1억 이상이면
-     * 상수가 0.75로 고정이라 3.5 x 0.75 = 2.625가 되는데, 예전에 쓰던 2.625가 바로 이
-     * 구간의 값이었다. 그 아래에서는 상수가 커지므로 2.625 고정으로는 맞지 않는다.
-     */
-    private static final double XENON_STAT_FACTOR = 3.5;
-
     public long estimateCombatPower(DataSheet dataSheet, String characterClass, Integer characterLevel) {
         StatSheet sheet = dataSheet.getSumSheet();
         List<String> mainStats = gameData.mainStats(characterClass);
@@ -74,14 +61,15 @@ public class CombatCalculationService {
         double finalSubStat = 0.0;
         if (characterClass.equals("데몬어벤져")) {
             //TODO 데벤
-        } else if (characterClass.equals("제논")) {
+        } else if (gameData.jobStatFactorOf(characterClass) != null) {
             // 제논은 주스탯이 셋이고 부스탯이 없다. 스탯항이 다른 직업의
-            // (주스탯x4 + 부스탯)이 아니라 세 스탯 합의 XENON_STAT_FACTOR 배다.
+            // (주스탯x4 + 부스탯)이 아니라 세 스탯 합에 직업별 계수를 곱한 값이다.
+            // 계수는 game-data.yml 의 job-stat-factor 에 있다.
             double sum = 0.0;
             for (String stat : mainStats) {
                 sum += calculateStat(stat, sheet, characterLevel);
             }
-            finalMainStat = sum * XENON_STAT_FACTOR / 4.0;
+            finalMainStat = sum * gameData.jobStatFactorOf(characterClass) / 4.0;
         } else {
             String main = mainStats.getFirst();
             finalMainStat = calculateStat(main, sheet, characterLevel);

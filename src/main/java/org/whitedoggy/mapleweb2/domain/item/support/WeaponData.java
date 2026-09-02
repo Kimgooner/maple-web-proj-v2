@@ -26,6 +26,7 @@ public record WeaponData(
         Map<String, Integer> bowBaseAttack,
         Map<String, Integer> bowItemLevel,
         Map<String, List<Integer>> starForce16plus,
+        StarForceFormula starForceFormula,
         Map<String, Map<String, List<Integer>>> addOption,
         Map<String, List<Integer>> zeroBowAddOption,
         Map<String, Integer> zeroBaseAttack
@@ -41,20 +42,18 @@ public record WeaponData(
                             Integer minStar) {
     }
 
+    /**
+     * 1~15성 스타포스 공격력 계산 상수. 성마다
+     * {@code (현재 공격력 / divisor) + bonus}를 더한다(내림).
+     */
+    public record StarForceFormula(int divisor, int bonus, int baseMaxStar) {
+    }
+
     /** 이 세트에 존재할 수 있는 스타포스인가. 표에 값이 있다고 믿을 수 있는지를 뜻한다. */
     public boolean starForceInRange(WeaponSet set, Integer starForce) {
         return set.minStar() == null
                 || (starForce == null ? 0 : starForce) >= set.minStar();
     }
-
-    /**
-     * 주문서 작 1회가 무기 공격력에 더하는 값. 주문서 자체가 9, 그만큼 올라간 기본
-     * 공격력 때문에 스타포스 옵션이 다시 3 오른다.
-     *
-     * <p>실측(데스티니 스태프 22성): 8작 base 445 / sf 310 / etc 72,
-     * 9작 base 445 / sf 313 / etc 81.
-     */
-    private static final int ATTACK_PER_SCROLL = 12;
 
     /** 주문서 1회가 올리는 기본 공격력. 표의 {@code assumed-scroll}이 전제하는 값이다. */
     private static final int ATTACK_PER_SCROLL_BASE = 9;
@@ -76,6 +75,8 @@ public record WeaponData(
         bowBaseAttack = bowBaseAttack == null ? Map.of() : Map.copyOf(bowBaseAttack);
         bowItemLevel = bowItemLevel == null ? Map.of() : Map.copyOf(bowItemLevel);
         starForce16plus = starForce16plus == null ? Map.of() : Map.copyOf(starForce16plus);
+        starForceFormula = starForceFormula == null
+                ? new StarForceFormula(50, 1, 15) : starForceFormula;
         addOption = addOption == null ? Map.of() : Map.copyOf(addOption);
         zeroBowAddOption = zeroBowAddOption == null ? Map.of() : Map.copyOf(zeroBowAddOption);
         zeroBaseAttack = zeroBaseAttack == null ? Map.of() : Map.copyOf(zeroBaseAttack);
@@ -145,15 +146,16 @@ public record WeaponData(
         if (base == null || level == null) {
             return null;
         }
+        StarForceFormula formula = starForceFormula;
         int attack = base + Math.max(0, scrollAttackValue);
-        for (int star = 1; star <= Math.min(starForce, 15); star++) {
-            attack += attack / 50 + 1;
+        for (int star = 1; star <= Math.min(starForce, formula.baseMaxStar()); star++) {
+            attack += attack / formula.divisor() + formula.bonus();
         }
-        if (starForce <= 15) {
+        if (starForce <= formula.baseMaxStar()) {
             return attack;
         }
         List<Integer> plus = starForce16plus.get(String.valueOf(level));
-        int index = starForce - 16;
+        int index = starForce - formula.baseMaxStar() - 1;
         if (plus == null || index >= plus.size()) {
             return null;
         }

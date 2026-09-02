@@ -21,6 +21,7 @@ public record GameData(
         List<String> magicWeaponParts,
         List<String> adventurePirateJobs,
         Integer minSupportedLevel,
+        Map<String, Double> jobStatFactor,
         ConversionStarforce conversionStarforce,
         JobCorrection jobCorrection,
         Map<String, String> equipmentJobGroupStat,
@@ -67,6 +68,7 @@ public record GameData(
         setJobGroupTokens = setJobGroupTokens == null ? List.of() : List.copyOf(setJobGroupTokens);
         weaponJobGroupByStat = weaponJobGroupByStat == null
                 ? Map.of() : Map.copyOf(weaponJobGroupByStat);
+        jobStatFactor = jobStatFactor == null ? Map.of() : Map.copyOf(jobStatFactor);
         jobCorrection = jobCorrection == null
                 ? new JobCorrection(List.of(), 0, 1, 0, 6, null)
                 : jobCorrection;
@@ -129,6 +131,15 @@ public record GameData(
     public boolean isSupportedLevel(Integer characterLevel) {
         return minSupportedLevel == null || characterLevel == null
                 || characterLevel >= minSupportedLevel;
+    }
+
+    /**
+     * 주스탯 계산이 일반 직업과 다른 직업의 스탯항 계수.
+     * 일반 직업의 (주스탯 x 4 + 부스탯) 자리에 (주스탯 합 x 이 값)이 들어간다.
+     * 해당 없으면 {@code null}.
+     */
+    public Double jobStatFactorOf(String characterClass) {
+        return characterClass == null ? null : jobStatFactor.get(characterClass);
     }
 
     /** 직업 보정 상수가 곱해지는 직업인가. */
