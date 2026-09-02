@@ -71,7 +71,10 @@ public class BowNormalization {
         }
 
         // 그 세트에 없는 스타포스면 표값이 무엇이든 근거가 없다(해방 전 제네시스 등).
-        if (!weaponData.starForceInRange(set, starForce) || computed == null) {
+        // 세트 자체가 등록 안 된 무기도 마찬가지다. default-set으로 떨어뜨린 값은
+        // 그 무기의 활 환산이 아니라 기본값일 뿐이다.
+        if (!weaponData.starForceInRange(set, starForce) || computed == null
+                || !weaponData.isRegisteredWeapon(weaponName)) {
             resolved = false;
         }
 

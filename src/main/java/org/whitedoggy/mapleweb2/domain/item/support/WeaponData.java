@@ -100,6 +100,25 @@ public record WeaponData(
     }
 
     /**
+     * 이름이 등록된 세트 중 하나에 맞는가.
+     *
+     * <p>맞지 않으면 {@link #resolveSet}이 {@code default-set}으로 떨어뜨리는데, 그 값은
+     * "모르겠다"는 뜻이지 "그 세트다"라는 뜻이 아니다. 저티어 무기를 제네시스로 환산하면
+     * 공격력이 몇 배로 부풀거나 꺼진다 — 실측에서 미등록 무기 4명이 +28~+74%,
+     * 무기 미착용 4명이 -80~-95%로 전부 틀렸고 맞은 사람은 없었다.
+     */
+    public boolean isRegisteredWeapon(String weaponName) {
+        for (WeaponSet set : sets) {
+            for (String keyword : set.keywords()) {
+                if (weaponName != null && weaponName.contains(keyword)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
      * 주문서 작이 더하는 공격력. 표가 전제한 값과의 차이만 보정한다.
      *
      * <p><b>작 횟수가 아니라 실제 작 공격력({@code item_etc_option})으로 잰다.</b>

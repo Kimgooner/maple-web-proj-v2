@@ -199,8 +199,12 @@ public class DataSheetService {
                 characterClass,
                 referenceDate
         ));
+        // 무기를 안 낀 프리셋은 활 환산할 대상이 없다. 무기 공격력이 통째로 빠진
+        // 값이 나오므로(실측 4명 -80~-95%) 정규화 실패와 같이 다룬다.
         result.setWeaponNormalizationFailed(
-                result.getItemEquip().values().stream().anyMatch(ItemSnapShot::isWeaponNormalizationFailed));
+                result.getItemEquip().get("장비 - 무기") == null
+                        || result.getItemEquip().values().stream()
+                                .anyMatch(ItemSnapShot::isWeaponNormalizationFailed));
         result.setExpiredTitleOption(
                 result.getItemEquip().get("장비 - 칭호") != null
                         && result.getItemEquip().get("장비 - 칭호").getExpired() != null);
