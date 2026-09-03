@@ -82,6 +82,8 @@ class CombatPowerGoldenTest {
             boolean expiredTitleOption,
             int expiredPetEquipments,
             boolean weaponNormalizationFailed,
+            boolean weaponMissing,
+            boolean unknownWeapon,
             boolean consumableItemMismatch,
             boolean pirateBlessApplied,
             String error
@@ -262,6 +264,8 @@ class CombatPowerGoldenTest {
                     sheet.isExpiredTitleOption(),
                     sheet.getExpiredPetEquipments(),
                     sheet.isWeaponNormalizationFailed(),
+                    sheet.isWeaponMissing(),
+                    sheet.isUnknownWeapon(),
                     consumableItemMismatch(fixture.job(), sheet.getCombatPower(), apiCombatPower),
                     sheet.isPirateBlessApplied(),
                     null
@@ -282,6 +286,8 @@ class CombatPowerGoldenTest {
                     0,
                     false,
                     0,
+                    false,
+                    false,
                     false,
                     false,
                     false,
@@ -451,7 +457,11 @@ class CombatPowerGoldenTest {
             if (result.expiredPetEquipments() > 0) {
                 reasons.add("펫 장비 만료 " + result.expiredPetEquipments() + "개");
             }
-            if (result.weaponNormalizationFailed()) {
+            if (result.weaponMissing()) {
+                reasons.add("무기 미착용");
+            } else if (result.unknownWeapon()) {
+                reasons.add("등록 안 된 무기");
+            } else if (result.weaponNormalizationFailed()) {
                 reasons.add("무기 정규화 실패");
             }
             report.append(String.format("   %-10s %-11s 오차 %6.2f%%  %s%n",

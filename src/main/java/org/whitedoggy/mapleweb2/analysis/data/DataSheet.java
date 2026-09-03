@@ -79,6 +79,22 @@ public class DataSheet {
      */
     boolean weaponNormalizationFailed;
 
+    /**
+     * 무기를 아예 끼지 않은 상태. 게임에서는 이러면 전투력이 0이고,
+     * API도 대개 0을 준다(표본 335명 중 266명). 활 환산할 대상이 없다.
+     *
+     * <p>API 는 프리셋 1의 무기를 프리셋 2·3에도 그대로 내려주므로,
+     * 무기가 비어 있다는 건 프리셋 1에 무기가 없다는 뜻이다.
+     */
+    boolean weaponMissing;
+
+    /**
+     * 이름이 어느 세트 키워드에도 맞지 않는 무기. 활 기준 공격력을 모른다.
+     * 표본 8,785명 중 461명이고, 레이븐혼(여제 장비군)처럼 활 자체가 없는
+     * 무기군도 있어 원리적으로 환산할 수 없는 것이 섞여 있다.
+     */
+    boolean unknownWeapon;
+
     public void copy(DataSheet other) {
         this.abilityPoint = other.abilityPoint;
         this.symbol = other.symbol;
@@ -108,6 +124,8 @@ public class DataSheet {
         this.expiredPetEquipments = other.expiredPetEquipments;
         this.unionRaiderDataMissing = other.unionRaiderDataMissing;
         this.weaponNormalizationFailed = other.weaponNormalizationFailed;
+        this.weaponMissing = other.weaponMissing;
+        this.unknownWeapon = other.unknownWeapon;
     }
 
     public void buildSum(){

@@ -16,6 +16,7 @@ import org.whitedoggy.mapleweb2.domain.hexa.HexaParser;
 import org.whitedoggy.mapleweb2.domain.hyper.HyperStatParser;
 import org.whitedoggy.mapleweb2.domain.item.data.ItemRecord;
 import org.whitedoggy.mapleweb2.domain.item.data.ItemSnapShot;
+import org.whitedoggy.mapleweb2.domain.item.support.WeaponData;
 import org.whitedoggy.mapleweb2.domain.item.parser.ItemEquipmentParser;
 import org.whitedoggy.mapleweb2.domain.item.parser.ItemParser;
 import org.whitedoggy.mapleweb2.domain.otherstat.OtherStatParser;
@@ -59,6 +60,7 @@ public class DataSheetService {
     private final ChallengersBuffs challengersBuffs;
     private final ArtifactParser artifactParser;
     private final ChampionParser championParser;
+    private final WeaponData weaponData;
     private final SetEffectParser setEffectParser;
     private final StatSheetParser statSheetParser;
     private final HexaParser hexaParser;
@@ -201,8 +203,13 @@ public class DataSheetService {
         ));
         // 무기를 안 낀 프리셋은 활 환산할 대상이 없다. 무기 공격력이 통째로 빠진
         // 값이 나오므로(실측 4명 -80~-95%) 정규화 실패와 같이 다룬다.
+        // 왜 실패했는지는 따로 남긴다 - 미착용·미등록·표 결손은 성격이 다르다.
+        ItemSnapShot weapon = result.getItemEquip().get("장비 - 무기");
+        result.setWeaponMissing(weapon == null);
+        result.setUnknownWeapon(
+                weapon != null && !weaponData.isRegisteredWeapon(weapon.getItemName()));
         result.setWeaponNormalizationFailed(
-                result.getItemEquip().get("장비 - 무기") == null
+                weapon == null
                         || result.getItemEquip().values().stream()
                                 .anyMatch(ItemSnapShot::isWeaponNormalizationFailed));
         result.setExpiredTitleOption(
