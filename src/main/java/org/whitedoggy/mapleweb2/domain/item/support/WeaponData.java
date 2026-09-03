@@ -181,6 +181,12 @@ public record WeaponData(
         return attack + plus.get(index);
     }
 
+    /** 종전 스타포스 표가 있는 세트인가. 없으면 표 방식으로 떨어뜨릴 수 없다. */
+    public boolean hasStarForceTable(String setName) {
+        List<Integer> table = starForce.get(setName);
+        return table != null && !table.isEmpty();
+    }
+
     /** 세트·스타포스에 해당하는 공격력. 표를 벗어나면 마지막 값으로 고정한다. */
     public int starForceAttack(String setName, int starForce) {
         List<Integer> table = this.starForce.get(setName);

@@ -48,10 +48,18 @@ public class BowNormalization {
         // 종전 표 방식으로 떨어뜨리고 정규화 실패로 둔다.
         Integer computed = weaponData.bowAttack(
                 set.name(), safe(starForce), safe(scrollAttackValue));
-        int attack = computed != null
-                ? computed
-                : weaponData.starForceAttack(set.name(), safe(starForce))
-                        + weaponData.scrollAttack(set, scrollAttackValue);
+        // 규칙으로 못 구하면(16성 이상 표가 없는 저티어 등) 종전 표 방식으로 떨어뜨린다.
+        // 표조차 없는 세트면 0으로 두고 아래에서 정규화 실패로 만든다 - 예외를 던지면
+        // 픽스처 한 건이 실행 전체를 중단시킨다.
+        int attack;
+        if (computed != null) {
+            attack = computed;
+        } else if (weaponData.hasStarForceTable(set.name())) {
+            attack = weaponData.starForceAttack(set.name(), safe(starForce))
+                    + weaponData.scrollAttack(set, scrollAttackValue);
+        } else {
+            attack = 0;
+        }
 
         // 태도·대검(제로)은 "같은 단계의 활 값" 대응이 성립하지 않아 전용 표를 쓴다.
         int add;
