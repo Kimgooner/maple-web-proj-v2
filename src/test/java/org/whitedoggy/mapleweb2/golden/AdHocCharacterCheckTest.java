@@ -160,8 +160,10 @@ class AdHocCharacterCheckTest {
         String mainName = mains.isEmpty() ? "" : mains.getFirst();
         String subName = subs.isEmpty() ? "" : subs.getFirst();
 
-        // -Dadhoc.detail=이름 이면 그 캐릭터의 부위별 파싱 결과를 원본과 나란히 찍는다.
-        if (payload.path("characterName").asText().equals(System.getProperty("adhoc.detail"))) {
+        // -Dadhoc.detail=이름[,이름...] 이면 그 캐릭터들의 부위별 파싱 결과를 원본과 나란히 찍는다.
+        String detailNames = System.getProperty("adhoc.detail", "");
+        if (!detailNames.isBlank()
+                && List.of(detailNames.split(",")).contains(payload.path("characterName").asText())) {
             dumpItemDetail(sheet, documents.get(NexonEndpoint.ITEM_EQUIPMENT));
             dumpTermsBySource(sheet);
         }
