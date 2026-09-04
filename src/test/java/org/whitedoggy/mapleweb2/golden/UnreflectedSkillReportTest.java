@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.whitedoggy.mapleweb2.domain.skill.ChallengersBuffs;
-import org.whitedoggy.mapleweb2.domain.skill.PetBuffSkills;
 import org.whitedoggy.mapleweb2.domain.skill.SkillRules;
 import org.whitedoggy.mapleweb2.external.nexon.config.NexonEndpoint;
 import tools.jackson.databind.JsonNode;
@@ -34,6 +33,9 @@ class UnreflectedSkillReportTest {
 
     private static final Path REPORT = Path.of("build/reports/golden/unreflected-skills.txt");
     private static final Pattern PET_SET = Pattern.compile("Lv\\.[123](?:\\s|$)");
+    // SkillParser 와 같은 규칙. 펫 버프는 효과가 "공격력 N, 마력 N증가" 한 줄뿐이다.
+    private static final Pattern PET_BUFF_EFFECT =
+            Pattern.compile("\\s*공격력\\s*(\\d+)\\s*,\\s*마력\\s*\\1\\s*증가\\s*");
 
     /** 전투 스탯 낱말. 하나라도 있으면 후보로 본다. */
     private static final Set<String> COMBAT = Set.of(
@@ -55,7 +57,6 @@ class UnreflectedSkillReportTest {
 
     @Autowired private SkillRules rules;
     @Autowired private ChallengersBuffs challengersBuffs;
-    @Autowired private PetBuffSkills petBuffSkills;
     @Autowired private ObjectMapper mapper;
 
     @Test
@@ -68,7 +69,7 @@ class UnreflectedSkillReportTest {
             for (JsonNode skill : skills) {
                 String name = skill.path("skill_name").asText("");
                 String effect = skill.path("skill_effect").asText("").replace('\n', ' ').trim();
-                if (isReflected(name) || REVIEWED.containsKey(name)) {
+                if (isReflected(name, effect) || REVIEWED.containsKey(name)) {
                     continue;
                 }
                 if (COMBAT.stream().noneMatch(effect::contains)) {
@@ -82,7 +83,7 @@ class UnreflectedSkillReportTest {
         StringBuilder out = new StringBuilder();
         out.append("반영하지 않은 0차 스킬 중 전투 스탯 문구가 있는 것\n");
         out.append("확인 후 제외한 ").append(REVIEWED.size()).append("종은 목록에서 뺐다.\n");
-        out.append("펫 버프가 새로 보이면 pet-buff-skills.yml 에, 이벤트 버프면 event-buffs.yml 에 추가한다.\n\n");
+        out.append("펫 버프는 효과 모양으로 자동 반영된다. 여기 남는 것은 이벤트 버프이므로 event-buffs.yml 에 추가한다.\n\n");
         counts.entrySet().stream()
                 .sorted((a, b) -> Integer.compare(b.getValue()[0], a.getValue()[0]))
                 .forEach(entry -> out.append(String.format("%5d명  %-26s %s%n",
@@ -95,10 +96,10 @@ class UnreflectedSkillReportTest {
         System.out.println("[diagnostic] " + REPORT.toAbsolutePath());
     }
 
-    private boolean isReflected(String name) {
+    private boolean isReflected(String name, String effect) {
         return rules.directSkills().contains(name)
                 || rules.blessingSkills().contains(name)
-                || petBuffSkills.names().contains(name)
+                || PET_BUFF_EFFECT.matcher(effect).matches()
                 || challengersBuffs.effectsOf(name).size() > 0
                 || PET_SET.matcher(name).find();
     }

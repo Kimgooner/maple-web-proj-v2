@@ -7,7 +7,6 @@ spring:
       - classpath:event-buffs.yml
       - classpath:game-data.yml
       - classpath:challengers-buffs.yml
-      - classpath:pet-buff-skills.yml
 
   profiles:
     active: local

@@ -15,7 +15,6 @@ import java.util.regex.Pattern;
 public class SkillParser {
     private final SkillRules rules;
     private final ChallengersBuffs challengersBuffs;
-    private final PetBuffSkills petBuffSkills;
 
     private static final Pattern NUMBER_PATTERN = Pattern.compile("([+-]?\\d+(?:\\.\\d+)?)");
     // 펫 세트 스킬은 "아이스 스노우 Lv.1"처럼 뒤에 붙기도 하고
@@ -25,6 +24,19 @@ public class SkillParser {
     // 필수로 두면 이 세트만 통째로 빠진다. 표본 4,541명에서 점 없는 Lv 로 새로
     // 걸리는 스킬은 눈여우 3단계뿐이라 다른 스킬을 잘못 끌어오지 않는다.
     private static final Pattern PET_SET_SKILL_PATTERN = Pattern.compile("Lv\\.?[123](?:\\s|$)");
+
+    // 펫 버프는 이름이 아니라 효과 문구의 모양으로 잡는다. 세트 버프든 단일 펫 고유
+    // 버프든 skill_effect 가 "공격력 N, 마력 N증가" 한 줄뿐이고, 다른 절이 붙지 않는다.
+    //
+    // 이름으로 잡으려 하면 두 번 진다. 옛 펫은 Lv.N 이 안 붙어 이름을 하나씩 등록해야
+    // 하고(데블 펫의 버프·쁘띠 랑의 가호·메이플M 팬텀이 그렇게 빠져 있었다), 새 펫은
+    // 이벤트마다 이름이 바뀐다. 모양으로 잡으면 등록 자체가 필요 없다.
+    //
+    // 표본 9,997명 검증: 이 모양인 스킬 264종 중 256종이 Lv.N 이름이라 종전 패턴과
+    // 정확히 겹치고, 나머지 8종은 축복 2종(위에서 먼저 처리)·루나 파워업(direct 등록)·
+    // 단일 펫 5종이다. 공격력과 마력 값이 다른 경우는 0종이라 역참조로 묶어 둔다.
+    private static final Pattern PET_BUFF_EFFECT_PATTERN =
+            Pattern.compile("\\s*공격력\\s*(\\d+)\\s*,\\s*마력\\s*\\1\\s*증가\\s*");
 
     /**
      * @param worldName 캐릭터의 월드. 챌린저스 계열이면 월드 전용 버프를 함께 반영한다.
@@ -92,10 +104,11 @@ public class SkillParser {
         if (rules.directSkills().contains(name)) {
             return true;
         }
-        // 단일 펫 고유 버프는 단계가 없어 이름에 Lv.N 이 없다. 이름으로 등록해 둔 것만 반영한다.
-        if (petBuffSkills.names().contains(name)) {
+        if (PET_BUFF_EFFECT_PATTERN.matcher(effect).matches()) {
             return true;
         }
+        // 모양 규칙이 지금 표본에서는 아래 패턴을 완전히 포함하지만, 문구가 조금 다른
+        // 펫 세트 스킬이 있을 수 있어 종전 이름 패턴도 남겨 둔다.
         return PET_SET_SKILL_PATTERN.matcher(name).find() && containsCombatStat(effect);
     }
 
