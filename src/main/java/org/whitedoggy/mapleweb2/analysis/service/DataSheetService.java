@@ -171,6 +171,7 @@ public class DataSheetService {
         dataSheet.setUnionArtifact(statSheetParser.parse(artifactResult.effects(), "unionArtifact"));
         dataSheet.setExpiredArtifactCrystals(artifactResult.expiredCrystals());
         dataSheet.setUnionRaiderDataMissing(isUnionRaiderDataMissing(unionRaider, worldName));
+        dataSheet.setInactiveCharacter(basicParser.isInactive(documents.get(NexonEndpoint.BASIC)));
         dataSheet.setUnionChampion(setUnionChampion(unionChampion,
                 basicParser.characterName(documents.get(NexonEndpoint.BASIC))));
 

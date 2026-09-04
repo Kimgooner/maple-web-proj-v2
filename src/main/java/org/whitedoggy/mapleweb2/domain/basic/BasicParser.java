@@ -21,6 +21,17 @@ public class BasicParser {
     public Integer characterLevel(JsonNode basic) {
         return Jsons.optionalInt(basic, "character_level").orElse(0);
     }
+    /**
+     * 최근 7일간 접속하지 않은 캐릭터인가.
+     *
+     * <p>미접속이면 넥슨의 stat 스냅샷이 마지막 접속 시점에 멈춰 있을 수 있다.
+     * 그동안 유니온처럼 계정 단위로 자라는 요소는 계속 반영되므로 계산만 앞서간다.
+     * 실측: 미접속 189명 중 8명 어긋남(4.23%), 접속 4,918명 중 13명(0.26%).
+     */
+    public boolean isInactive(JsonNode basic) {
+        return "false".equals(Jsons.text(basic, "access_flag"));
+    }
+
     public String characterImage(JsonNode basic) {
         return Jsons.text(basic, "character_image");
     }

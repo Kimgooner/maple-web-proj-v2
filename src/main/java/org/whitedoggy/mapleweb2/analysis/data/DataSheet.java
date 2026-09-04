@@ -95,6 +95,12 @@ public class DataSheet {
      */
     boolean unknownWeapon;
 
+    /**
+     * 최근 7일간 접속하지 않은 캐릭터. API 의 stat 문서가 마지막 접속 시점에 멈춰
+     * 있을 수 있어 우리 계산과 어긋난다 — 재조회해도 수렴하지 않는다.
+     */
+    boolean inactiveCharacter;
+
     public void copy(DataSheet other) {
         this.abilityPoint = other.abilityPoint;
         this.symbol = other.symbol;
@@ -126,6 +132,7 @@ public class DataSheet {
         this.weaponNormalizationFailed = other.weaponNormalizationFailed;
         this.weaponMissing = other.weaponMissing;
         this.unknownWeapon = other.unknownWeapon;
+        this.inactiveCharacter = other.inactiveCharacter;
     }
 
     public void buildSum(){

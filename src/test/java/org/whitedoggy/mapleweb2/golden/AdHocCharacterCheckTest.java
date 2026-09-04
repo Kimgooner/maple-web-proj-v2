@@ -95,7 +95,7 @@ class AdHocCharacterCheckTest {
                 payload.path("level").asText());
         System.out.printf("  계산 %,d / API %,d / 오차 %.4f%%%n",
                 calc, api, api == 0 ? 0.0 : Math.abs(calc - api) * 100.0 / api);
-        System.out.printf("  플래그 아티팩트만료=%d 유니온미반영=%s 캐시만료=%d 칭호만료=%s 펫장비만료=%d 루시드=%s 무기정규화실패=%s%n",
+        System.out.printf("  플래그 미접속=%s 아티팩트만료=%d 유니온미반영=%s 캐시만료=%d 칭호만료=%s 펫장비만료=%d 루시드=%s 무기정규화실패=%s%n",
                 sheet.getExpiredArtifactCrystals(), sheet.isUnionRaiderDataMissing(),
                 sheet.getExpiredCashItems(), sheet.isExpiredTitleOption(),
                 sheet.getExpiredPetEquipments(), sheet.isLucidTransformSuspected(),
@@ -218,6 +218,8 @@ class AdHocCharacterCheckTest {
         for (ItemSnapShot i : sheet.getPetEquip().values()) petAttack += i.getStatSheet().getATTACK_POWER();
         for (ItemSnapShot i : sheet.getCashEquip().values()) cashAttack += i.getStatSheet().getATTACK_POWER();
         bySource.append('\t').append(itemAttack).append('\t').append(petAttack).append('\t').append(cashAttack);
+        // 맨 끝에 붙인다. 앞 필드 번호가 밀리면 분석 스크립트가 통째로 어긋난다.
+        bySource.append('\t').append(sheet.isInactiveCharacter());
         String sources = bySource.toString();
 
         System.out.printf("[TSV]\t%s\t%s\t%s\t%d\t%d\t%d\t%d\t%s\t%d\t%s\t%d\t%s\t%s\t%d\t%d"

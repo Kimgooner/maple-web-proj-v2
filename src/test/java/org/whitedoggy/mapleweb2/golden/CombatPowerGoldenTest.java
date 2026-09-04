@@ -84,6 +84,7 @@ class CombatPowerGoldenTest {
             boolean weaponNormalizationFailed,
             boolean weaponMissing,
             boolean unknownWeapon,
+            boolean inactiveCharacter,
             boolean consumableItemMismatch,
             boolean pirateBlessApplied,
             String error
@@ -211,7 +212,8 @@ class CombatPowerGoldenTest {
                 || result.belowSupportedLevel()
                 || result.expiredCashItems() > 0
                 || result.expiredTitleOption()
-                || result.expiredPetEquipments() > 0;
+                || result.expiredPetEquipments() > 0
+                || result.inactiveCharacter();
     }
 
     /**
@@ -266,6 +268,7 @@ class CombatPowerGoldenTest {
                     sheet.isWeaponNormalizationFailed(),
                     sheet.isWeaponMissing(),
                     sheet.isUnknownWeapon(),
+                    sheet.isInactiveCharacter(),
                     consumableItemMismatch(fixture.job(), sheet.getCombatPower(), apiCombatPower),
                     sheet.isPirateBlessApplied(),
                     null
@@ -286,6 +289,7 @@ class CombatPowerGoldenTest {
                     0,
                     false,
                     0,
+                    false,
                     false,
                     false,
                     false,
@@ -456,6 +460,9 @@ class CombatPowerGoldenTest {
             }
             if (result.expiredPetEquipments() > 0) {
                 reasons.add("펫 장비 만료 " + result.expiredPetEquipments() + "개");
+            }
+            if (result.inactiveCharacter()) {
+                reasons.add("최근 7일 미접속");
             }
             if (result.weaponMissing()) {
                 reasons.add("무기 미착용");
