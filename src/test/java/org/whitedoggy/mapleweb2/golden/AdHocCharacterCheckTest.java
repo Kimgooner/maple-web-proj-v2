@@ -96,6 +96,7 @@ class AdHocCharacterCheckTest {
         System.out.printf("  계산 %,d / API %,d / 오차 %.4f%%%n",
                 calc, api, api == 0 ? 0.0 : Math.abs(calc - api) * 100.0 / api);
         System.out.printf("  플래그 미접속=%s 아티팩트만료=%d 유니온미반영=%s 캐시만료=%d 칭호만료=%s 펫장비만료=%d 루시드=%s 무기정규화실패=%s%n",
+                sheet.isInactiveCharacter(),
                 sheet.getExpiredArtifactCrystals(), sheet.isUnionRaiderDataMissing(),
                 sheet.getExpiredCashItems(), sheet.isExpiredTitleOption(),
                 sheet.getExpiredPetEquipments(), sheet.isLucidTransformSuspected(),
