@@ -2,23 +2,33 @@ package org.whitedoggy.mapleweb2.analysis.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.codec.ServerSentEvent;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.whitedoggy.mapleweb2.analysis.dto.AnalysisResponse;
 import org.whitedoggy.mapleweb2.analysis.dto.CombatPowerDetailResponse;
 import org.whitedoggy.mapleweb2.analysis.dto.CurrentCombatPowerDebugResponse;
+import org.whitedoggy.mapleweb2.analysis.history.CombatPowerHistoryResponse;
+import org.whitedoggy.mapleweb2.analysis.history.CombatPowerHistoryService;
+import org.whitedoggy.mapleweb2.analysis.history.HistoryRange;
 import org.whitedoggy.mapleweb2.analysis.service.AnalysisService;
 import org.whitedoggy.mapleweb2.validation.CurrentCombatPowerDebugService;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.LocalDate;
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
 public class AnalysisController {
     private final AnalysisService analysisService;
     private final CurrentCombatPowerDebugService currentCombatPowerDebugService;
+    private final CombatPowerHistoryService combatPowerHistoryService;
 
     @GetMapping("/api/analysis/combat-power")
     public Mono<AnalysisResponse> getCombatPower(
@@ -38,6 +48,29 @@ public class AnalysisController {
         return analysisService.getYearlyCombatPowers(characterName);
     }
 
+    /**
+     * 전투력 추이. {@code range=daily} 는 오늘 포함 30일, {@code range=monthly} 는
+     * 이번 달 포함 12개월(각 달 1일)이다. 캐릭터 생성 이전 구간은 잘라내고
+     * {@code truncated} 로 알린다.
+     */
+    @GetMapping("/api/analysis/combat-power/history")
+    public Mono<CombatPowerHistoryResponse> getCombatPowerHistory(
+            @RequestParam String characterName,
+            @RequestParam(defaultValue = "daily") String range
+    ) {
+        return combatPowerHistoryService.getHistory(characterName, HistoryRange.from(range));
+    }
+
+    /** 위와 같은 조회를 진행 상황과 함께 흘려보낸다. 이벤트: meta → point... → done (실패 시 error). */
+    @GetMapping(value = "/api/analysis/combat-power/history/stream",
+            produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<ServerSentEvent<Object>> streamCombatPowerHistory(
+            @RequestParam String characterName,
+            @RequestParam(defaultValue = "daily") String range
+    ) {
+        return combatPowerHistoryService.streamHistory(characterName, HistoryRange.from(range));
+    }
+
     @GetMapping("/api/analysis/combat-power/detail")
     public Mono<CombatPowerDetailResponse> getCombatPowerDetail(
             @RequestParam String ocid,
@@ -50,5 +83,14 @@ public class AnalysisController {
     @GetMapping("/api/analysis/combat-power/current-debug")
     public Mono<CurrentCombatPowerDebugResponse> getCurrentCombatPowerDebug(@RequestParam String characterName) {
         return currentCombatPowerDebugService.getCurrentDebug(characterName);
+    }
+
+    /**
+     * 잘못된 쿼리 파라미터(예: range=weekly)나 없는 캐릭터는 400 이다.
+     * 이 컨트롤러에만 건다 - 다른 컨트롤러의 동작은 그대로 둔다.
+     */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, String>> handleBadRequest(IllegalArgumentException error) {
+        return ResponseEntity.badRequest().body(Map.of("message", String.valueOf(error.getMessage())));
     }
 }

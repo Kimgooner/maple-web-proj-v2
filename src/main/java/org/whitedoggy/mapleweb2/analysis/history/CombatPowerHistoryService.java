@@ -1,0 +1,226 @@
+package org.whitedoggy.mapleweb2.analysis.history;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.codec.ServerSentEvent;
+import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
+import org.whitedoggy.mapleweb2.analysis.data.CharacterSnapshot;
+import org.whitedoggy.mapleweb2.analysis.data.DataSheet;
+import org.whitedoggy.mapleweb2.analysis.dto.CharacterInfo;
+import org.whitedoggy.mapleweb2.analysis.service.DataSheetService;
+import org.whitedoggy.mapleweb2.analysis.service.OcidService;
+import org.whitedoggy.mapleweb2.analysis.service.SnapshotService;
+import org.whitedoggy.mapleweb2.domain.basic.BasicParser;
+import org.whitedoggy.mapleweb2.domain.calculator.parser.StatParser;
+import org.whitedoggy.mapleweb2.external.nexon.config.NexonEndpoint;
+import org.whitedoggy.mapleweb2.global.Jsons;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import tools.jackson.databind.JsonNode;
+
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.Comparator;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+
+/**
+ * 전투력 추이 조회. 일간 30개 / 월간 12개를 최신에서 과거로 훑는다.
+ *
+ * <p><b>캐릭터가 없는 시점은 미리 잘라낸다.</b> 생성 이전 날짜를 조회하면 API 가 200 을
+ * 주면서 모든 필드를 null 로 채우는데, 그 응답만으로는 "전일치가 아직 안 열린 것"과
+ * 구분되지 않는다(전일치는 다음날 02:00 KST 부터). 그래서 현재 스냅샷의
+ * {@code character_date_create} 로 구간을 먼저 자른다. 그래도 빈 응답이 나오면
+ * 그 지점에서 멈춘다.
+ */
+@Service
+@RequiredArgsConstructor
+public class CombatPowerHistoryService {
+
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
+
+    /** 넥슨 API 가 값을 주기 시작하는 첫 날. 이보다 이전은 전 필드 null 로 온다. */
+    private static final LocalDate API_FIRST_DATE = LocalDate.of(2023, 12, 21);
+
+    /** 동시에 진행할 날짜 수. flatMapSequential 이라 순서는 그대로다. */
+    private static final int CONCURRENCY = 4;
+
+    private final OcidService ocidService;
+    private final SnapshotService snapshotService;
+    private final DataSheetService dataSheetService;
+    private final BasicParser basicParser;
+    private final StatParser statParser;
+
+    /** 한 번에 다 받는 형태. 차트만 그릴 때 쓴다. */
+    public Mono<CombatPowerHistoryResponse> getHistory(String characterName, HistoryRange range) {
+        return plan(characterName, range).flatMap(plan -> points(plan)
+                .collectList()
+                .map(points -> new CombatPowerHistoryResponse(
+                        plan.ocid(),
+                        range.name().toLowerCase(),
+                        plan.characterInfo(),
+                        range.count(),
+                        points.size(),
+                        plan.truncated(),
+                        plan.truncatedFrom(),
+                        points.stream()
+                                .sorted(Comparator.comparing(CombatPowerHistoryPoint::date))
+                                .toList()
+                )));
+    }
+
+    /**
+     * 진행 상황을 곁들여 흘려보내는 형태.
+     *
+     * <p>이벤트 순서: {@code meta} 한 번 → {@code point} 여러 번(최신부터) → {@code done}.
+     * 도중에 실패하면 {@code error} 하나를 보내고 정상 종료한다 — 브라우저의
+     * EventSource 는 스트림이 에러로 끊기면 자동 재연결을 시도하므로, 실패를
+     * 이벤트로 알리고 닫는 편이 재조회 폭주를 막는다.
+     */
+    public Flux<ServerSentEvent<Object>> streamHistory(String characterName, HistoryRange range) {
+        return plan(characterName, range)
+                .flatMapMany(plan -> {
+                    AtomicInteger index = new AtomicInteger();
+                    int total = plan.dates().size();
+
+                    ServerSentEvent<Object> meta = event("meta", new HistoryEvents.Meta(
+                            plan.ocid(),
+                            range.name().toLowerCase(),
+                            plan.characterInfo(),
+                            range.count(),
+                            total,
+                            plan.truncated(),
+                            plan.truncatedFrom(),
+                            plan.dates()
+                    ));
+
+                    Flux<ServerSentEvent<Object>> points = points(plan)
+                            .map(point -> event("point",
+                                    new HistoryEvents.Point(index.incrementAndGet(), total, point)));
+
+                    Flux<ServerSentEvent<Object>> done = Flux.defer(() -> Flux.just(event("done",
+                            new HistoryEvents.Done(index.get(), plan.truncated(), plan.truncatedFrom()))));
+
+                    return Flux.concat(Flux.just(meta), points, done);
+                })
+                .onErrorResume(error -> Flux.just(event("error",
+                        new HistoryEvents.Error(message(error)))));
+    }
+
+    /** 최신 → 과거 순으로 지점을 만든다. 빈 응답을 만나면 그 앞까지만 내보낸다. */
+    private Flux<CombatPowerHistoryPoint> points(Plan plan) {
+        return Flux.fromIterable(plan.dates())
+                .flatMapSequential(date -> loadPoint(plan, date), CONCURRENCY)
+                .takeWhile(Loaded::exists)
+                .map(Loaded::point);
+    }
+
+    private Mono<Loaded> loadPoint(Plan plan, LocalDate date) {
+        // 오늘은 date 파라미터를 붙이면 API 가 거절한다(OPENAPI00004). 계획을 세울 때
+        // 이미 받아 둔 현재 스냅샷을 그대로 쓴다.
+        Mono<CharacterSnapshot> snapshot = date.equals(plan.today())
+                ? Mono.just(plan.current())
+                : snapshotService.getSnapshotByOcid(plan.ocid(), date);
+        return snapshot.map(loaded -> toPoint(loaded, date));
+    }
+
+    private Loaded toPoint(CharacterSnapshot snapshot, LocalDate date) {
+        JsonNode basic = snapshot.document(NexonEndpoint.BASIC);
+        if (basicParser.characterName(basic).isBlank()) {
+            return Loaded.missing();
+        }
+        return new Loaded(true, new CombatPowerHistoryPoint(
+                date,
+                basicParser.characterLevel(basic),
+                combatPower(snapshot),
+                apiCombatPower(snapshot)
+        ));
+    }
+
+    /**
+     * 우리가 다시 계산한 전투력. 스냅샷 일부가 깨져 계산이 터지면 그 지점만 null 로 두고
+     * 추이 전체를 잃지 않는다.
+     */
+    private Long combatPower(CharacterSnapshot snapshot) {
+        try {
+            DataSheet dataSheet = dataSheetService.getCombatDataSheet(snapshot);
+            return dataSheet.getCombatPower();
+        } catch (RuntimeException ignored) {
+            return null;
+        }
+    }
+
+    private Long apiCombatPower(CharacterSnapshot snapshot) {
+        String raw = statParser.currentCombatPower(snapshot.document(NexonEndpoint.STAT));
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        return (long) Math.floor(Jsons.parseDouble(raw));
+    }
+
+    /** ocid 와 현재 스냅샷을 받아 조회할 날짜를 확정한다. */
+    private Mono<Plan> plan(String characterName, HistoryRange range) {
+        LocalDate today = LocalDate.now(KST);
+        return ocidService.getOcid(characterName)
+                // 없는 이름이면 넥슨이 400 을 준다. 업스트림 URL 이 그대로 새어 나가지 않게 바꾼다.
+                .onErrorMap(CombatPowerHistoryService::unknownCharacter,
+                        error -> new IllegalArgumentException("캐릭터를 찾을 수 없습니다: " + characterName))
+                .flatMap(ocid -> snapshotService.getCurrentSnapshotByOcid(ocid, today)
+                        .map(current -> buildPlan(ocid, range, today, current)));
+    }
+
+    private static boolean unknownCharacter(Throwable error) {
+        return error instanceof WebClientResponseException response
+                && response.getStatusCode().value() == 400;
+    }
+
+    private Plan buildPlan(String ocid, HistoryRange range, LocalDate today, CharacterSnapshot current) {
+        JsonNode basic = current.document(NexonEndpoint.BASIC);
+        LocalDate created = basicParser.characterCreatedAt(basic);
+        LocalDate floor = created == null || created.isBefore(API_FIRST_DATE) ? API_FIRST_DATE : created;
+
+        List<LocalDate> all = range.dates(today);
+        List<LocalDate> kept = all.stream().filter(date -> !date.isBefore(floor)).toList();
+        boolean truncated = kept.size() < all.size();
+        LocalDate truncatedFrom = truncated ? all.get(kept.size()) : null;
+
+        return new Plan(ocid, today, current, characterInfo(basic), kept, truncated, truncatedFrom);
+    }
+
+    private CharacterInfo characterInfo(JsonNode basic) {
+        return new CharacterInfo(
+                basicParser.characterName(basic),
+                basicParser.characterClass(basic),
+                basicParser.characterLevel(basic),
+                basicParser.characterGuild(basic),
+                basicParser.characterWorld(basic),
+                basicParser.characterImage(basic)
+        );
+    }
+
+    private String message(Throwable error) {
+        return error.getMessage() == null ? error.getClass().getSimpleName() : error.getMessage();
+    }
+
+    private ServerSentEvent<Object> event(String name, Object payload) {
+        return ServerSentEvent.builder().event(name).data(payload).build();
+    }
+
+    private record Plan(
+            String ocid,
+            LocalDate today,
+            CharacterSnapshot current,
+            CharacterInfo characterInfo,
+            List<LocalDate> dates,
+            boolean truncated,
+            LocalDate truncatedFrom
+    ) {
+    }
+
+    /** 지점 하나. {@code exists} 가 false 면 캐릭터가 없던 시점이라 여기서 끊는다. */
+    private record Loaded(boolean exists, CombatPowerHistoryPoint point) {
+        static Loaded missing() {
+            return new Loaded(false, null);
+        }
+    }
+}
