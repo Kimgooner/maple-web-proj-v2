@@ -85,6 +85,11 @@ def collect(meta, date, out):
     payload = {k: v for k, v in meta.items() if k != "__file__"}
     payload["documents"] = docs
     payload["collectedAt"] = date
+    # 랭킹의 world_name 은 시즌 당시 월드다. 챌린저스 시즌이 끝나 일반 월드로
+    # 이관된 캐릭터는 랭킹과 현재 월드가 다르므로 basic 을 현재 월드로 삼는다.
+    basic = docs.get("basic") or {}
+    if basic.get("world_name"):
+        payload["world"] = basic["world_name"]
     with gzip.open(os.path.join(out, meta["__file__"]), "wt", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False)
     with lock:
