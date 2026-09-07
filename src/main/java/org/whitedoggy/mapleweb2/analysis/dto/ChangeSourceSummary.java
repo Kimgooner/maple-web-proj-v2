@@ -4,6 +4,7 @@ import java.util.List;
 
 public record ChangeSourceSummary(
         String source,
-        List<StatDeltaSummary> deltas
+        List<StatDeltaSummary> deltas,
+        List<EntryChangeSummary> entries
 ) {
 }

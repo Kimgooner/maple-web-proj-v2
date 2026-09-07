@@ -1,4 +1,4 @@
-import type { DetailResponse, HistoryPoint, SlotChange } from '../api/types';
+import type { DetailResponse, EntryChange, HistoryPoint, SlotChange } from '../api/types';
 import { formatLongDate, formatNumber, formatPercentChange, formatSigned } from '../lib/format';
 import { sourceLabel } from '../lib/labels';
 import type { Interval } from '../lib/selection';
@@ -12,6 +12,28 @@ interface Props {
   detail: DetailResponse | null;
   loading: boolean;
   error: string | null;
+  hint: string;
+}
+
+function EntryList({ entries }: { entries: EntryChange[] }) {
+  if (entries.length === 0) return null;
+  return (
+    <ul className="entry-list">
+      {entries.map((e) => {
+        const kind = e.previous == null ? 'added' : e.current == null ? 'removed' : 'changed';
+        return (
+          <li className={`entry entry-${kind}`} key={e.name}>
+            <span className="entry-name">{e.name}</span>
+            <span className="entry-value mono">
+              {kind === 'added' && <><span className="up">새로 적용</span> {e.current}</>}
+              {kind === 'removed' && <><span className="down">빠짐</span> {e.previous}</>}
+              {kind === 'changed' && <><span className="muted">{e.previous}</span> → {e.current}</>}
+            </span>
+          </li>
+        );
+      })}
+    </ul>
+  );
 }
 
 function SlotGroup({ title, changes }: { title: string; changes: SlotChange[] }) {
@@ -28,9 +50,9 @@ function SlotGroup({ title, changes }: { title: string; changes: SlotChange[] })
   );
 }
 
-export function DeltaPanel({ interval, points, detail, loading, error }: Props) {
+export function DeltaPanel({ interval, points, detail, loading, error, hint }: Props) {
   if (!interval) {
-    return <div className="card empty">비교할 두 지점이 아직 없습니다. 추이가 다 불러와지면 마지막으로 변한 구간을 자동으로 고릅니다.</div>;
+    return <div className="card empty">{hint}</div>;
   }
 
   const prev = points.find((p) => p.date === interval.previousDate);
@@ -52,7 +74,7 @@ export function DeltaPanel({ interval, points, detail, loading, error }: Props) 
             <span className="mono">{formatLongDate(interval.previousDate)}</span>
             <ArrowRight />
             <span className="mono" style={{ color: 'var(--text)' }}>{formatLongDate(interval.currentDate)}</span>
-            <span className="hint">구간 바꾸기: 차트에서 두 점 선택</span>
+            <span className="hint">{hint}</span>
           </div>
           <div className="summary-values">
             <span className="summary-prev mono">{prev?.combatPower != null ? formatNumber(prev.combatPower) : '—'}</span>
@@ -85,8 +107,11 @@ export function DeltaPanel({ interval, points, detail, loading, error }: Props) 
               <div className="group-title">핵심<small className="mono">{summary.coreChanges.length}</small></div>
               {summary.coreChanges.map((c) => (
                 <div className="card source-row" key={c.source}>
-                  <span className="source-name">{sourceLabel(c.source)}</span>
-                  <StatChips deltas={c.deltas} />
+                  <div className="source-head">
+                    <span className="source-name">{sourceLabel(c.source)}</span>
+                    <StatChips deltas={c.deltas} />
+                  </div>
+                  <EntryList entries={c.entries ?? []} />
                 </div>
               ))}
             </>

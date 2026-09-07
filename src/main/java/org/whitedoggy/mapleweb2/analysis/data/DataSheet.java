@@ -33,6 +33,12 @@ public class DataSheet {
     /** 컨버전 스타포스(제논·데몬어벤져). 장착 장비의 스타포스 합에서 오는 올스탯. */
     StatSheet conversionStarforce;
 
+    /**
+     * 핵심 소스별 "이름 있는 항목" (시트 이름 → 항목 이름 → 값). 스킬명·심볼명·세트명처럼
+     * 두 시점을 비교할 때 무엇이 바뀌었는지 이름으로 말하기 위한 것이다. 계산에는 쓰지 않는다.
+     */
+    Map<String, Map<String, String>> sourceEntries = Map.of();
+
     /** 파이렛 블레스가 힘·민첩을 바꾸지 않는 부위. 심볼과 펫 장비도 대상이 아니지만 여기 담기지 않는다. */
     private static final java.util.Set<String> PIRATE_BLESS_EXCLUDED_SLOTS = java.util.Set.of("무기", "보조무기");
 
@@ -122,6 +128,7 @@ public class DataSheet {
         this.unionOccupied = other.unionOccupied;
         this.unionRaider = other.unionRaider;
         this.conversionStarforce = other.conversionStarforce;
+        this.sourceEntries = other.sourceEntries;
 
         this.lucidTransformSuspected = other.lucidTransformSuspected;
         this.expiredArtifactCrystals = other.expiredArtifactCrystals;

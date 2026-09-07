@@ -57,9 +57,17 @@ export interface StatDelta {
   delta: number;
 }
 
+/** 이름 있는 항목(스킬·심볼·세트…) 하나의 변화. 생긴 것은 previous 가 null, 사라진 것은 current 가 null */
+export interface EntryChange {
+  name: string;
+  previous: string | null;
+  current: string | null;
+}
+
 export interface SourceChange {
   source: string;
   deltas: StatDelta[];
+  entries: EntryChange[];
 }
 
 export type ChangeType = 'ADDED' | 'REMOVED' | 'REPLACED' | 'STAT_CHANGED';

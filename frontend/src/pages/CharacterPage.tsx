@@ -5,19 +5,22 @@ import { openHistoryStream } from '../api/historyStream';
 import type { DetailResponse, HistoryRange } from '../api/types';
 import { CharacterHeader } from '../components/CharacterHeader';
 import { DeltaPanel } from '../components/DeltaPanel';
+import { LoadingPanel } from '../components/LoadingPanel';
 import { NexonNotice } from '../components/NexonNotice';
 import { TopBar } from '../components/TopBar';
-import { TrendChart } from '../components/TrendChart';
+import { TrendChart, type SelectMode } from '../components/TrendChart';
 import { formatLongDate } from '../lib/format';
 import { applyHistoryEvent, latestLoadedPoint, loadingHistoryState } from '../lib/history';
 import { pushRecent } from '../lib/recent';
-import { defaultInterval, intervalEndingAt, pickPoint, type Interval } from '../lib/selection';
+import { changedDates, defaultInterval, intervalEndingAt, pickPoint, type Interval } from '../lib/selection';
 
 const RANGE_LABEL: Record<HistoryRange, string> = { daily: '일간 30일', monthly: '월간 12개월' };
+const MODE_LABEL: Record<SelectMode, string> = { pin: '변화 지점', range: '구간 비교' };
 
 export function CharacterPage() {
   const { name = '' } = useParams();
   const [range, setRange] = useState<HistoryRange>('daily');
+  const [mode, setMode] = useState<SelectMode>('pin');
   const [showApi, setShowApi] = useState(true);
   const [retry, setRetry] = useState(0);
   const [history, dispatch] = useReducer(applyHistoryEvent, undefined, loadingHistoryState);
@@ -40,7 +43,7 @@ export function CharacterPage() {
     return close;
   }, [name, range, retry]);
 
-  // 로드가 끝나면 기본 구간을 고른다.
+  // 로드가 끝나면 기본 구간(마지막으로 변한 지점과 직전 지점)을 고른다.
   useEffect(() => {
     if (history.status === 'done' && interval === null) {
       setInterval(defaultInterval(history.points));
@@ -74,17 +77,38 @@ export function CharacterPage() {
     const next = intervalEndingAt(history.points, date);
     if (next) setInterval(next);
   };
+  const switchMode = (next: SelectMode) => {
+    setMode(next);
+    setAnchor(null);
+  };
 
   const info = history.meta?.characterInfo ?? null;
   const latest = latestLoadedPoint(history.points);
   const failed = history.status === 'error' && history.error;
+  const loading = !failed && history.status !== 'done';
   const loaded = history.points.filter((p) => p.combatPower != null || p.apiCombatPower != null).length;
+  const pinCount = changedDates(history.points).length;
+  const hint = mode === 'pin'
+    ? pinCount > 0
+      ? '차트의 변화 지점을 누르면 직전 지점과 비교합니다'
+      : '이 구간에는 전투력이 변한 지점이 없습니다'
+    : anchor
+      ? `${formatLongDate(anchor)} 을 시작점으로 잡았습니다. 끝점을 고르세요`
+      : '차트에서 두 점을 차례로 고르면 그 사이를 비교합니다';
+
+  const rangeToggle = (
+    <div className="toggle">
+      {(['daily', 'monthly'] as HistoryRange[]).map((r) => (
+        <button type="button" key={r} className={range === r ? 'on' : ''} onClick={() => setRange(r)}>{RANGE_LABEL[r]}</button>
+      ))}
+    </div>
+  );
 
   return (
     <div>
       <TopBar withSearch />
       <div className="page">
-        {failed ? (
+        {failed && (
           <div className="card error-box">
             <span>{history.error}</span>
             <div style={{ display: 'flex', gap: 10 }}>
@@ -92,58 +116,57 @@ export function CharacterPage() {
               <Link to="/" className="chip-btn">다른 캐릭터</Link>
             </div>
           </div>
-        ) : info ? (
-          <CharacterHeader info={info} latest={latest} />
-        ) : (
-          <div className="skeleton" style={{ height: 134 }} />
         )}
 
-        {!failed && (
-          <div className="card">
-            <div className="section-head">
-              <div className="section-title">
-                전투력 추이
-                <small>변화 핀을 누르면 그 구간의 변경 내역을 봅니다</small>
-              </div>
-              <div className="controls">
-                <div className="legend">
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span className="swatch" />계산값</span>
-                  <button type="button" className={showApi ? '' : 'off'} onClick={() => setShowApi((v) => !v)}><span className="swatch-dash" />넥슨 값</button>
-                </div>
-                <div className="toggle">
-                  {(['daily', 'monthly'] as HistoryRange[]).map((r) => (
-                    <button type="button" key={r} className={range === r ? 'on' : ''} onClick={() => setRange(r)}>{RANGE_LABEL[r]}</button>
-                  ))}
-                </div>
-              </div>
-            </div>
+        {loading && (
+          <>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>{rangeToggle}</div>
+            <LoadingPanel name={name} range={range} meta={history.meta} points={history.points} received={history.received} total={history.total} />
+          </>
+        )}
 
-            {history.status === 'done' && loaded === 0 ? (
-              <div className="empty">이 구간에는 캐릭터 데이터가 없습니다.</div>
-            ) : (
-              <TrendChart points={history.points} range={range} showApi={showApi} interval={interval} anchor={anchor} onPick={onPick} onPin={onPin} />
-            )}
+        {!failed && !loading && info && (
+          <>
+            <CharacterHeader info={info} latest={latest} />
 
-            <div className="chart-foot">
-              <span>
-                {anchor
-                  ? `${formatLongDate(anchor)} 을 시작점으로 잡았습니다. 끝점을 고르세요.`
-                  : history.meta?.truncated && history.meta.truncatedFrom
+            <div className="card">
+              <div className="section-head">
+                <div className="section-title">
+                  전투력 추이
+                  <small>{hint}</small>
+                </div>
+                <div className="controls">
+                  <div className="legend">
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span className="swatch" />계산값</span>
+                    <button type="button" className={showApi ? '' : 'off'} onClick={() => setShowApi((v) => !v)}><span className="swatch-dash" />넥슨 값</button>
+                  </div>
+                  <div className="toggle">
+                    {(['pin', 'range'] as SelectMode[]).map((m) => (
+                      <button type="button" key={m} className={mode === m ? 'on' : ''} onClick={() => switchMode(m)}>{MODE_LABEL[m]}</button>
+                    ))}
+                  </div>
+                  {rangeToggle}
+                </div>
+              </div>
+
+              {loaded === 0 ? (
+                <div className="empty">이 구간에는 캐릭터 데이터가 없습니다.</div>
+              ) : (
+                <TrendChart points={history.points} range={range} showApi={showApi} mode={mode} interval={interval} anchor={anchor} onPick={onPick} onPin={onPin} />
+              )}
+
+              <div className="chart-foot">
+                <span>
+                  {history.meta?.truncated && history.meta.truncatedFrom
                     ? `${formatLongDate(history.meta.truncatedFrom)} 이전은 캐릭터가 없어 잘렸습니다.`
                     : ' '}
-              </span>
-              {history.status === 'loading' && (
-                <span className="progress">
-                  <span className="mono">{history.received}/{history.total || '?'}</span>
-                  <span className="progress-bar"><span style={{ width: history.total ? `${(history.received / history.total) * 100}%` : '0%' }} /></span>
                 </span>
-              )}
+                <span className="mono">변화 지점 {pinCount}개</span>
+              </div>
             </div>
-          </div>
-        )}
 
-        {!failed && (
-          <DeltaPanel interval={interval} points={history.points} detail={detail} loading={detailLoading} error={detailError} />
+            <DeltaPanel interval={interval} points={history.points} detail={detail} loading={detailLoading} error={detailError} hint={hint} />
+          </>
         )}
       </div>
       <NexonNotice />

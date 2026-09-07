@@ -6,6 +6,7 @@ import org.whitedoggy.mapleweb2.analysis.data.CharacterSnapshot;
 import org.whitedoggy.mapleweb2.analysis.data.DataSheet;
 import org.whitedoggy.mapleweb2.analysis.data.PresetSelection;
 import org.whitedoggy.mapleweb2.analysis.support.PresetSelector;
+import org.whitedoggy.mapleweb2.analysis.support.SourceEntryExtractor;
 import org.whitedoggy.mapleweb2.domain.ability.AbilityParser;
 import org.whitedoggy.mapleweb2.domain.basic.BasicParser;
 import org.whitedoggy.mapleweb2.domain.cash.CashItemParser;
@@ -67,6 +68,7 @@ public class DataSheetService {
     private final OtherStatParser otherStatParser;
     private final CashItemParser cashItemParser;
     private final PresetSelector presetSelector;
+    private final SourceEntryExtractor sourceEntryExtractor;
     private final CombatCalculationService combatCalculationService;
     private final MapleCache cache;
     private final GameData gameData;
@@ -176,7 +178,9 @@ public class DataSheetService {
                 basicParser.characterName(documents.get(NexonEndpoint.BASIC))));
 
         JsonNode presetItems = itemEquipmentParser.getItemEquipmentByPreset(itemEquip, presetSelection.itemPreset());
-        return buildDataSheet(presetItems, itemEquip, setEffect, ability, hyper, unionRaider, characterClass, presetSelection, dataSheet, referenceDate);
+        DataSheet result = buildDataSheet(presetItems, itemEquip, setEffect, ability, hyper, unionRaider, characterClass, presetSelection, dataSheet, referenceDate);
+        result.setSourceEntries(sourceEntryExtractor.extract(documents, presetItems, presetSelection, characterClass, worldName));
+        return result;
     }
 
     private DataSheet buildDataSheet(
@@ -486,7 +490,7 @@ public class DataSheetService {
     }
 
     private String dataSheetCacheKey(String ocid, LocalDate date) {
-        return "maple:datasheet:v3:" + normalizeOcid(ocid) + ":" + date;
+        return "maple:datasheet:v4:" + normalizeOcid(ocid) + ":" + date;
     }
 
     private String normalizeOcid(String ocid) {

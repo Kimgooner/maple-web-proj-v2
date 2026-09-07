@@ -89,6 +89,20 @@ public class SkillParser {
         return new SkillParseResult(effects, lucidTransformSuspected);
     }
 
+    /**
+     * 이 스킬이 전투력 계산에 들어가는가. {@link #getCombatRelevantSkillEffects} 와 같은 기준이다.
+     * 항목 이름을 뽑는 쪽({@code SourceEntryExtractor})이 같은 스킬 집합을 보게 하려고 공개한다.
+     */
+    public boolean isCombatRelevant(String name, String effect, String worldName) {
+        if (challengersBuffs.appliesTo(worldName) && !challengersBuffs.effectsOf(name).isEmpty()) {
+            return true;
+        }
+        if (!rules.fixedEffectsOf(name).isEmpty()) {
+            return true;
+        }
+        return isBlessingSkill(name) || isCombatRelevantSkill(name, effect);
+    }
+
     private boolean isLucidTransformSuspiciousSkill(String name, int level) {
         if (level != 0) {
             return false;

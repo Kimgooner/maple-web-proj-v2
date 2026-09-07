@@ -3,13 +3,18 @@ import { formatAxisDate, formatCompact, formatLongDate, formatNumber } from '../
 import { isPending } from '../lib/history';
 import { changedDates, type Interval } from '../lib/selection';
 
+export type SelectMode = 'pin' | 'range';
+
 interface Props {
   points: HistoryPoint[];
   range: HistoryRange;
   showApi: boolean;
+  mode: SelectMode;
   interval: Interval | null;
   anchor: string | null;
+  /** 구간 모드에서 점 하나를 고를 때 */
   onPick: (date: string) => void;
+  /** 변화 지점 모드에서 핀을 누를 때 */
   onPin: (date: string) => void;
 }
 
@@ -20,7 +25,7 @@ const PR = 20;
 const PT = 20;
 const PB = 40;
 
-export function TrendChart({ points, range, showApi, interval, anchor, onPick, onPin }: Props) {
+export function TrendChart({ points, range, showApi, mode, interval, anchor, onPick, onPin }: Props) {
   const n = points.length;
   const x = (i: number) => (n <= 1 ? (PL + W - PR) / 2 : PL + ((W - PL - PR) * i) / (n - 1));
 
@@ -81,11 +86,23 @@ export function TrendChart({ points, range, showApi, interval, anchor, onPick, o
                 <circle cx={x(i)} cy={cy} r="4.5" fill="var(--bg)" stroke="var(--accent)" strokeWidth="2" style={{ cursor: 'pointer' }} onClick={() => onPin(p.date)} />
               )}
               {selected && <circle cx={x(i)} cy={cy} r="6" fill="var(--accent)" stroke="var(--bg)" strokeWidth="2" />}
-              {isAnchor && <circle cx={x(i)} cy={cy} r="8" fill="none" stroke="var(--accent)" strokeWidth="1.5" strokeDasharray="3 2" />}
+              {mode === 'range' && isAnchor && <circle cx={x(i)} cy={cy} r="8" fill="none" stroke="var(--accent)" strokeWidth="1.5" strokeDasharray="3 2" />}
               {i % labelEvery === labelEvery - 1 && (
                 <text x={x(i)} y={H - 12} textAnchor="middle" fontSize="11" fill="var(--muted)" fontFamily="var(--mono)">{formatAxisDate(p.date, range)}</text>
               )}
-              <rect className="hit" x={x(i) - half} y={PT} width={half * 2} height={H - PT - PB} onClick={() => !pending && onPick(p.date)}>
+              <rect
+                className="hit"
+                x={x(i) - half}
+                y={PT}
+                width={half * 2}
+                height={H - PT - PB}
+                style={{ cursor: pending ? 'default' : mode === 'range' || pins.has(p.date) ? 'pointer' : 'default' }}
+                onClick={() => {
+                  if (pending) return;
+                  if (mode === 'range') onPick(p.date);
+                  else if (pins.has(p.date)) onPin(p.date);
+                }}
+              >
                 <title>
                   {formatLongDate(p.date)}
                   {pending ? ' · 불러오는 중' : p.combatPower == null ? ' · 계산 실패 (02시 이후 다시 시도)' : ` · 계산 ${formatNumber(p.combatPower)}`}

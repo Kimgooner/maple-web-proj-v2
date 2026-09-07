@@ -85,17 +85,17 @@ public class DataSheetCompareService {
 
     private List<ChangeSummary> summarizeCoreSheets(DataSheet previous, DataSheet current, int limit) {
         List<ChangeSummary> summaries = new ArrayList<>();
-        addSheetSummary(summaries, "abilityPoint", previous.getAbilityPoint(), current.getAbilityPoint());
-        addSheetSummary(summaries, "symbol", previous.getSymbol(), current.getSymbol());
-        addSheetSummary(summaries, "skill", previous.getSkill(), current.getSkill());
-        addSheetSummary(summaries, "hexaStat", previous.getHexaStat(), current.getHexaStat());
-        addSheetSummary(summaries, "ability", previous.getAbility(), current.getAbility());
-        addSheetSummary(summaries, "hyperStat", previous.getHyperStat(), current.getHyperStat());
-        addSheetSummary(summaries, "setEffect", previous.getSetEffect(), current.getSetEffect());
-        addSheetSummary(summaries, "unionOccupied", previous.getUnionOccupied(), current.getUnionOccupied());
-        addSheetSummary(summaries, "unionRaider", previous.getUnionRaider(), current.getUnionRaider());
-        addSheetSummary(summaries, "unionArtifact", previous.getUnionArtifact(), current.getUnionArtifact());
-        addSheetSummary(summaries, "unionChampion", previous.getUnionChampion(), current.getUnionChampion());
+        addSheetSummary(summaries, "abilityPoint", previous.getAbilityPoint(), current.getAbilityPoint(), previous, current);
+        addSheetSummary(summaries, "symbol", previous.getSymbol(), current.getSymbol(), previous, current);
+        addSheetSummary(summaries, "skill", previous.getSkill(), current.getSkill(), previous, current);
+        addSheetSummary(summaries, "hexaStat", previous.getHexaStat(), current.getHexaStat(), previous, current);
+        addSheetSummary(summaries, "ability", previous.getAbility(), current.getAbility(), previous, current);
+        addSheetSummary(summaries, "hyperStat", previous.getHyperStat(), current.getHyperStat(), previous, current);
+        addSheetSummary(summaries, "setEffect", previous.getSetEffect(), current.getSetEffect(), previous, current);
+        addSheetSummary(summaries, "unionOccupied", previous.getUnionOccupied(), current.getUnionOccupied(), previous, current);
+        addSheetSummary(summaries, "unionRaider", previous.getUnionRaider(), current.getUnionRaider(), previous, current);
+        addSheetSummary(summaries, "unionArtifact", previous.getUnionArtifact(), current.getUnionArtifact(), previous, current);
+        addSheetSummary(summaries, "unionChampion", previous.getUnionChampion(), current.getUnionChampion(), previous, current);
 
         return summaries.stream()
                 .sorted((left, right) -> Integer.compare(right.weight(), left.weight()))
@@ -103,7 +103,8 @@ public class DataSheetCompareService {
                 .toList();
     }
 
-    private void addSheetSummary(List<ChangeSummary> summaries, String label, StatSheet before, StatSheet after) {
+    private void addSheetSummary(List<ChangeSummary> summaries, String label, StatSheet before, StatSheet after,
+                                 DataSheet previous, DataSheet current) {
         if (before == null || after == null) {
             return;
         }
@@ -114,7 +115,33 @@ public class DataSheetCompareService {
         }
 
         List<StatDelta> statDeltas = summarizeStatDelta(delta, 3);
-        summaries.add(new ChangeSummary(label, statDeltas, weight(statDeltas)));
+        summaries.add(new ChangeSummary(label, statDeltas, entryChanges(label, previous, current), weight(statDeltas)));
+    }
+
+    /** 이름 있는 항목의 변화 목록. 생김·사라짐·값 변경만 남기고, 같은 것은 뺀다. */
+    List<EntryChange> entryChanges(String source, DataSheet previous, DataSheet current) {
+        Map<String, String> before = entriesOf(previous, source);
+        Map<String, String> after = entriesOf(current, source);
+        List<EntryChange> changes = new ArrayList<>();
+        for (Map.Entry<String, String> entry : after.entrySet()) {
+            String old = before.get(entry.getKey());
+            if (!entry.getValue().equals(old)) {
+                changes.add(new EntryChange(entry.getKey(), old, entry.getValue()));
+            }
+        }
+        for (Map.Entry<String, String> entry : before.entrySet()) {
+            if (!after.containsKey(entry.getKey())) {
+                changes.add(new EntryChange(entry.getKey(), entry.getValue(), null));
+            }
+        }
+        return changes;
+    }
+
+    private static Map<String, String> entriesOf(DataSheet sheet, String source) {
+        if (sheet == null || sheet.getSourceEntries() == null) {
+            return Map.of();
+        }
+        return sheet.getSourceEntries().getOrDefault(source, Map.of());
     }
 
     private List<SlotChangeSummary> summarizeItemChanges(Map<String, ItemSnapShot> before, Map<String, ItemSnapShot> after, int limit) {
@@ -376,7 +403,16 @@ public class DataSheetCompareService {
     public record ChangeSummary(
             String source,
             List<StatDelta> deltas,
+            List<EntryChange> entries,
             int weight
+    ) {
+    }
+
+    /** 이름 있는 항목 하나의 변화. 없던 것은 previous 가 null, 사라진 것은 current 가 null. */
+    public record EntryChange(
+            String name,
+            String previous,
+            String current
     ) {
     }
 

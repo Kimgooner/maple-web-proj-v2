@@ -177,3 +177,24 @@ input { font: inherit; color: inherit; }
   .header-cp { font-size: 28px; }
   .source-name { width: 100%; }
 }
+
+/* 조회 진행 창 */
+.loading-card { display: flex; flex-direction: column; gap: 18px; padding: 24px 26px; }
+.loading-head { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; flex-wrap: wrap; }
+.loading-title { font-size: 17px; font-weight: 600; }
+.loading-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 6px 18px; margin: 0; padding: 0; list-style: none; }
+.loading-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; border-radius: 6px; font-size: 13px; }
+.loading-row.done { color: var(--text); }
+.loading-row.failed { color: var(--down); }
+.loading-row.active { background: var(--surface-2); color: var(--accent); }
+.loading-row.waiting { color: var(--muted); opacity: 0.6; }
+.dots::after { content: ''; animation: dots 1.2s steps(4, end) infinite; }
+@keyframes dots { 0% { content: ''; } 25% { content: '.'; } 50% { content: '..'; } 75% { content: '...'; } }
+
+/* 핵심 항목 이름 목록 */
+.source-row { flex-direction: column; align-items: stretch; gap: 10px; }
+.source-head { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.entry-list { margin: 0; padding: 0 0 0 4px; list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.entry { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; padding: 4px 8px; border-radius: 6px; background: var(--bg); }
+.entry-name { color: var(--text); }
+.entry-value { color: var(--text); white-space: nowrap; }

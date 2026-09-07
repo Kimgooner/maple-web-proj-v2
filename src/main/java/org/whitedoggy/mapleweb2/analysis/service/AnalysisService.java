@@ -9,6 +9,7 @@ import org.whitedoggy.mapleweb2.analysis.dto.AnalysisCombatPowerResponse;
 import org.whitedoggy.mapleweb2.analysis.dto.AnalysisResponse;
 import org.whitedoggy.mapleweb2.analysis.dto.ChangeSlotSummary;
 import org.whitedoggy.mapleweb2.analysis.dto.ChangeSourceSummary;
+import org.whitedoggy.mapleweb2.analysis.dto.EntryChangeSummary;
 import org.whitedoggy.mapleweb2.analysis.dto.CharacterInfo;
 import org.whitedoggy.mapleweb2.analysis.dto.CombatPowerChangeSummary;
 import org.whitedoggy.mapleweb2.analysis.dto.CombatPowerDetailResponse;
@@ -231,7 +232,10 @@ public class AnalysisService {
     private ChangeSourceSummary toSourceSummary(DataSheetCompareService.ChangeSummary changeSummary) {
         return new ChangeSourceSummary(
                 changeSummary.source(),
-                changeSummary.deltas().stream().map(this::toStatDeltaSummary).toList()
+                changeSummary.deltas().stream().map(this::toStatDeltaSummary).toList(),
+                changeSummary.entries().stream()
+                        .map(e -> new EntryChangeSummary(e.name(), e.previous(), e.current()))
+                        .toList()
         );
     }
 
