@@ -34,5 +34,5 @@ export const CHANGE_TYPE_LABELS: Record<ChangeType, string> = {
   STAT_CHANGED: '옵션 변경',
 };
 
-/** 계산이 아직 안 끝난 직업. project.md "아직 안 끝난 직업" 표 */
-export const INCOMPLETE_CLASSES = new Set(['데몬어벤져', '제논', '제로']);
+/** 계산이 아직 안 끝난 직업. HP 기반 계산식이라 주/부스탯 경로를 그대로 못 쓴다 */
+export const INCOMPLETE_CLASSES = new Set(['데몬어벤져']);
