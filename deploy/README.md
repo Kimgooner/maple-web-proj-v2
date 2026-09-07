@@ -12,7 +12,8 @@
 - GitHub 시크릿: `OCI_HOST`, `OCI_USER`, `OCI_SSH_KEY` (배포 전용 ed25519 키)
 - 서버 GHCR 로그인은 배포 순간에만 워크플로 토큰으로 한다. 상시 로그인 없음.
 - 되돌리기: 서버 `.env` 의 `APP_TAG` 를 `sha-xxxxxxx` 로 바꾸고 `docker compose up -d`
-- 도메인 연결: `.env` 의 `SITE_ADDRESS` 를 도메인으로 바꾸고 `docker compose up -d caddy`. Caddy 가 인증서를 받는다.
+- 도메인: `mapledelta.kr` (www 포함). `Caddyfile` 에 http/https 를 둘 다 적어 두어 80 만 열려 있어도
+  인증서를 미리 받고, 443 이 열리면 HTTPS 가 바로 된다. 443 확인 뒤 http 블록에 https 리다이렉트를 넣는다.
 - 로그: `docker compose logs -f app`
 
 서버 쪽 전제: 80/443 이 firewalld 와 OCI 보안 목록(VCN) 양쪽에서 열려 있어야 한다.

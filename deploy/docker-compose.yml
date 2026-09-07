@@ -24,9 +24,6 @@ services:
       - "80:80"
       - "443:443"
       - "443:443/udp"
-    environment:
-      # 도메인이 없으면 ":80" (HTTP). 도메인을 붙이면 "mapledelta.kr" 처럼 바꾸면 자동 HTTPS.
-      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data

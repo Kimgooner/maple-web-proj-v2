@@ -1,4 +1,8 @@
-{$SITE_ADDRESS} {
+# mapledelta.kr — HTTP 와 HTTPS 를 둘 다 명시한다.
+# https 블록이 있으면 Caddy 가 80 번의 HTTP-01 챌린지로 인증서를 미리 받아 두므로,
+# 443 이 열리는 순간 HTTPS 가 바로 된다. 443 이 확인되면 http 쪽에 redir 를 넣는다.
+http://mapledelta.kr, http://www.mapledelta.kr, http://140.245.77.108,
+https://mapledelta.kr, https://www.mapledelta.kr {
 	encode zstd gzip
 
 	# 루트로 오면 앱 진입점으로

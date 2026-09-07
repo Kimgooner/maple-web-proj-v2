@@ -1,20 +1,20 @@
-import { useEffect, useReducer, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { fetchDetail } from '../api/detail';
-import { openHistoryStream } from '../api/historyStream';
 import type { DetailResponse, HistoryRange } from '../api/types';
 import { CharacterHeader } from '../components/CharacterHeader';
 import { DeltaPanel } from '../components/DeltaPanel';
-import { LoadingPanel } from '../components/LoadingPanel';
+import { LoadingOverlay } from '../components/LoadingOverlay';
 import { NexonNotice } from '../components/NexonNotice';
 import { TopBar } from '../components/TopBar';
 import { TrendChart, type SelectMode } from '../components/TrendChart';
 import { formatLongDate } from '../lib/format';
-import { applyHistoryEvent, latestLoadedPoint, loadingHistoryState } from '../lib/history';
+import { latestLoadedPoint } from '../lib/history';
 import { pushRecent } from '../lib/recent';
+import { useHistory } from '../lib/useHistory';
 import { changedDates, defaultInterval, intervalEndingAt, pickPoint, type Interval } from '../lib/selection';
 
-const RANGE_LABEL: Record<HistoryRange, string> = { daily: '일간 30일', monthly: '월간 12개월' };
+const RANGE_LABEL: Record<HistoryRange, string> = { daily: '월간 (30일)', monthly: '연간 (12개월)' };
 const MODE_LABEL: Record<SelectMode, string> = { pin: '변화 지점', range: '구간 비교' };
 
 export function CharacterPage() {
@@ -23,24 +23,26 @@ export function CharacterPage() {
   const [mode, setMode] = useState<SelectMode>('pin');
   const [showApi, setShowApi] = useState(true);
   const [retry, setRetry] = useState(0);
-  const [history, dispatch] = useReducer(applyHistoryEvent, undefined, loadingHistoryState);
+  // 두 구간을 한 번에 조회해 두고 토글은 보기만 바꾼다.
+  const daily = useHistory(name, 'daily', retry);
+  const monthly = useHistory(name, 'monthly', retry);
+  const history = range === 'daily' ? daily : monthly;
   const [anchor, setAnchor] = useState<string | null>(null);
   const [interval, setInterval] = useState<Interval | null>(null);
   const [detail, setDetail] = useState<DetailResponse | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
 
-  // 추이 스트림. 이름·구간이 바뀌면 새로 연다.
   useEffect(() => {
-    if (!name) return;
-    pushRecent(name);
+    if (name) pushRecent(name);
+  }, [name]);
+
+  // 이름·구간·재시도가 바뀌면 선택과 변경 내역을 비운다.
+  useEffect(() => {
     setAnchor(null);
     setInterval(null);
     setDetail(null);
     setDetailError(null);
-    dispatch({ type: 'error', data: { message: '' } }); // 이전 오류 지우기용. 바로 아래 meta 가 덮어쓴다
-    const close = openHistoryStream(name, range, dispatch);
-    return close;
   }, [name, range, retry]);
 
   // 로드가 끝나면 기본 구간(마지막으로 변한 지점과 직전 지점)을 고른다.
@@ -85,6 +87,7 @@ export function CharacterPage() {
   const info = history.meta?.characterInfo ?? null;
   const latest = latestLoadedPoint(history.points);
   const failed = history.status === 'error' && history.error;
+  const anyLoading = daily.status === 'loading' || monthly.status === 'loading';
   const loading = !failed && history.status !== 'done';
   const loaded = history.points.filter((p) => p.combatPower != null || p.apiCombatPower != null).length;
   const pinCount = changedDates(history.points).length;
@@ -118,11 +121,12 @@ export function CharacterPage() {
           </div>
         )}
 
-        {loading && (
-          <>
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>{rangeToggle}</div>
-            <LoadingPanel name={name} range={range} meta={history.meta} points={history.points} received={history.received} total={history.total} />
-          </>
+        {anyLoading && (
+          <LoadingOverlay name={name} states={{ daily, monthly }} labels={RANGE_LABEL} />
+        )}
+
+        {loading && !anyLoading && (
+          <div className="skeleton" style={{ height: 134 }} />
         )}
 
         {!failed && !loading && info && (
