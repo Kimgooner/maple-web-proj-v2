@@ -197,4 +197,4 @@ input { font: inherit; color: inherit; }
 .entry-list { margin: 0; padding: 0 0 0 4px; list-style: none; display: flex; flex-direction: column; gap: 4px; }
 .entry { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; padding: 4px 8px; border-radius: 6px; background: var(--bg); }
 .entry-name { color: var(--text); }
-.entry-value { color: var(--text); white-space: nowrap; }
+.entry-value { color: var(--text); text-align: right; word-break: keep-all; overflow-wrap: anywhere; }
