@@ -1,0 +1,11 @@
+{$SITE_ADDRESS} {
+	encode zstd gzip
+
+	# 루트로 오면 앱 진입점으로
+	redir / /app/ 302
+
+	# SSE 는 버퍼링 없이 흘려보낸다
+	reverse_proxy app:8080 {
+		flush_interval -1
+	}
+}

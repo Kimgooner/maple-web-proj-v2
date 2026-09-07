@@ -1,0 +1,119 @@
+name: deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+env:
+  # GHCR 이미지 이름은 소문자여야 한다 (github.repository 는 Kimgooner 로 시작)
+  IMAGE: ghcr.io/kimgooner/maple-web-proj-v2
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Frontend test and build
+        working-directory: frontend
+        run: |
+          npm ci
+          npm test
+          npm run build
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # 골든 테스트(org.whitedoggy.mapleweb2.golden.*)는 픽스처가 로컬 전용이라 CI 에서 뺀다.
+      - name: Backend test and jar
+        run: |
+          ./gradlew --no-daemon test \
+            --tests 'org.whitedoggy.mapleweb2.Mapleweb2ApplicationTests' \
+            --tests 'org.whitedoggy.mapleweb2.global.*'
+          ./gradlew --no-daemon bootJar
+          cp "$(ls build/libs/*.jar | grep -v -- '-plain.jar')" build/app.jar
+
+      - id: meta
+        run: echo "tag=sha-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/arm64
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ steps.meta.outputs.tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.OCI_SSH_KEY }}" > ~/.ssh/deploy
+          chmod 600 ~/.ssh/deploy
+          ssh-keyscan -H "${{ secrets.OCI_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Copy compose files
+        run: |
+          scp -i ~/.ssh/deploy deploy/docker-compose.yml deploy/Caddyfile \
+            "${{ secrets.OCI_USER }}@${{ secrets.OCI_HOST }}:/opt/mapledelta/"
+
+      # 서버는 GHCR 에 상시 로그인하지 않는다. 배포 순간에만 이 워크플로의 토큰으로 pull 한다.
+      - name: Pull and restart
+        run: |
+          ssh -i ~/.ssh/deploy "${{ secrets.OCI_USER }}@${{ secrets.OCI_HOST }}" bash -s <<'REMOTE'
+          set -euo pipefail
+          cd /opt/mapledelta
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          docker compose pull --quiet app
+          docker compose up -d --remove-orphans
+          docker logout ghcr.io >/dev/null
+          for i in $(seq 1 30); do
+            if docker compose exec -T app bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080' 2>/dev/null; then
+              echo "app is listening (after ${i}x2s)"; break
+            fi
+            if [ "$i" = 30 ]; then echo "app did not come up"; docker compose logs --tail 50 app; exit 1; fi
+            sleep 2
+          done
+          curl -sf -o /dev/null http://127.0.0.1/app/index.html && echo "caddy -> app ok"
+          docker image prune -f >/dev/null
+          REMOTE
