@@ -90,6 +90,32 @@ public class SkillParser {
     }
 
     /**
+     * 스킬 하나가 계산에 넣는 효과 문구 목록. {@link #getCombatRelevantSkillEffects} 가 스킬마다 하는
+     * 일과 같지만, 축복은 여러 스킬 중 최댓값만 반영하는 규칙을 여기서는 적용하지 않고 그 스킬의
+     * 값을 그대로 준다. 계산에 들어가지 않는 스킬은 빈 목록.
+     */
+    public List<String> parsedEffectsOf(String name, String effect, String worldName) {
+        if (challengersBuffs.appliesTo(worldName)) {
+            List<String> tierEffects = challengersBuffs.effectsOf(name);
+            if (!tierEffects.isEmpty()) {
+                return tierEffects;
+            }
+        }
+        List<String> fixed = rules.fixedEffectsOf(name);
+        if (!fixed.isEmpty()) {
+            return fixed;
+        }
+        if (isBlessingSkill(name)) {
+            int value = (int) Math.floor(extractLastNumber(effect));
+            return value > 0 ? List.of("공격력 " + value, "마력 " + value) : List.of();
+        }
+        if (!isCombatRelevantSkill(name, effect)) {
+            return List.of();
+        }
+        return EffectTextSplitter.split(effect);
+    }
+
+    /**
      * 이 스킬이 전투력 계산에 들어가는가. {@link #getCombatRelevantSkillEffects} 와 같은 기준이다.
      * 항목 이름을 뽑는 쪽({@code SourceEntryExtractor})이 같은 스킬 집합을 보게 하려고 공개한다.
      */

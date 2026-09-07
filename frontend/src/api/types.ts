@@ -62,6 +62,8 @@ export interface EntryChange {
   name: string;
   previous: string | null;
   current: string | null;
+  /** 넥슨 아이콘 URL. 스킬·심볼만 있다 */
+  icon: string | null;
 }
 
 export interface SourceChange {

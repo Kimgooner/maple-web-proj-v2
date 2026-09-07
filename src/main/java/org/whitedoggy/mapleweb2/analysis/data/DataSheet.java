@@ -37,7 +37,7 @@ public class DataSheet {
      * 핵심 소스별 "이름 있는 항목" (시트 이름 → 항목 이름 → 값). 스킬명·심볼명·세트명처럼
      * 두 시점을 비교할 때 무엇이 바뀌었는지 이름으로 말하기 위한 것이다. 계산에는 쓰지 않는다.
      */
-    Map<String, Map<String, String>> sourceEntries = Map.of();
+    Map<String, Map<String, SourceEntry>> sourceEntries = Map.of();
 
     /** 파이렛 블레스가 힘·민첩을 바꾸지 않는 부위. 심볼과 펫 장비도 대상이 아니지만 여기 담기지 않는다. */
     private static final java.util.Set<String> PIRATE_BLESS_EXCLUDED_SLOTS = java.util.Set.of("무기", "보조무기");

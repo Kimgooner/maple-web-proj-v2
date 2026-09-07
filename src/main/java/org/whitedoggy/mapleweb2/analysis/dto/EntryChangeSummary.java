@@ -4,6 +4,8 @@ package org.whitedoggy.mapleweb2.analysis.dto;
 public record EntryChangeSummary(
         String name,
         String previous,
-        String current
+        String current,
+        /** 넥슨 아이콘 URL. 스킬·심볼만 있고 나머지는 null */
+        String icon
 ) {
 }

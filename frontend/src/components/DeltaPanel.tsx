@@ -23,7 +23,10 @@ function EntryList({ entries }: { entries: EntryChange[] }) {
         const kind = e.previous == null ? 'added' : e.current == null ? 'removed' : 'changed';
         return (
           <li className={`entry entry-${kind}`} key={e.name}>
-            <span className="entry-name">{e.name}</span>
+            <span className="entry-name">
+              {e.icon && <img className="entry-icon" src={e.icon} alt="" />}
+              {e.name}
+            </span>
             <span className="entry-value mono">
               {kind === 'added' && <><span className="up">새로 적용</span> {e.current}</>}
               {kind === 'removed' && <><span className="down">빠짐</span> {e.previous}</>}

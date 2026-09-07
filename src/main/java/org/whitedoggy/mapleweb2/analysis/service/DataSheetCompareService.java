@@ -2,6 +2,7 @@ package org.whitedoggy.mapleweb2.analysis.service;
 
 import org.springframework.stereotype.Service;
 import org.whitedoggy.mapleweb2.analysis.data.DataSheet;
+import org.whitedoggy.mapleweb2.analysis.data.SourceEntry;
 import org.whitedoggy.mapleweb2.domain.common.stat.StatSheet;
 import org.whitedoggy.mapleweb2.domain.item.data.ItemSnapShot;
 
@@ -120,24 +121,25 @@ public class DataSheetCompareService {
 
     /** 이름 있는 항목의 변화 목록. 생김·사라짐·값 변경만 남기고, 같은 것은 뺀다. */
     List<EntryChange> entryChanges(String source, DataSheet previous, DataSheet current) {
-        Map<String, String> before = entriesOf(previous, source);
-        Map<String, String> after = entriesOf(current, source);
+        Map<String, SourceEntry> before = entriesOf(previous, source);
+        Map<String, SourceEntry> after = entriesOf(current, source);
         List<EntryChange> changes = new ArrayList<>();
-        for (Map.Entry<String, String> entry : after.entrySet()) {
-            String old = before.get(entry.getKey());
-            if (!entry.getValue().equals(old)) {
-                changes.add(new EntryChange(entry.getKey(), old, entry.getValue()));
+        for (Map.Entry<String, SourceEntry> entry : after.entrySet()) {
+            SourceEntry old = before.get(entry.getKey());
+            String oldValue = old == null ? null : old.value();
+            if (!entry.getValue().value().equals(oldValue)) {
+                changes.add(new EntryChange(entry.getKey(), oldValue, entry.getValue().value(), entry.getValue().icon()));
             }
         }
-        for (Map.Entry<String, String> entry : before.entrySet()) {
+        for (Map.Entry<String, SourceEntry> entry : before.entrySet()) {
             if (!after.containsKey(entry.getKey())) {
-                changes.add(new EntryChange(entry.getKey(), entry.getValue(), null));
+                changes.add(new EntryChange(entry.getKey(), entry.getValue().value(), null, entry.getValue().icon()));
             }
         }
         return changes;
     }
 
-    private static Map<String, String> entriesOf(DataSheet sheet, String source) {
+    private static Map<String, SourceEntry> entriesOf(DataSheet sheet, String source) {
         if (sheet == null || sheet.getSourceEntries() == null) {
             return Map.of();
         }
@@ -412,7 +414,8 @@ public class DataSheetCompareService {
     public record EntryChange(
             String name,
             String previous,
-            String current
+            String current,
+            String icon
     ) {
     }
 
