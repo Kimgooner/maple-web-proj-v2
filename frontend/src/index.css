@@ -8,7 +8,12 @@
  */
 
 :root {
-  font-family:Pretendard,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  /*
+   * CDN 이 정의하는 패밀리 이름은 'Pretendard Variable' 이다. Pretendard 만 적으면
+   * 어디에도 안 맞아 OS 기본 글꼴로 떨어지고, 그러면 맥과 윈도우가 서로 다르게 보인다.
+   * 뒤의 Pretendard 는 로컬에 정적 버전을 깔아 둔 사람 몫이다.
+   */
+  font-family:"Pretendard Variable",Pretendard,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
   color:#202735;
   background:#f7f8fa;
   font-synthesis:none;

@@ -51,7 +51,7 @@ export function ChangesPanel({ interval, info, summary, loading, error, onRetry 
   return (
     <section className="changes panel" aria-labelledby="changes-title">
       <div className="section-heading">
-        <h2 id="changes-title">무엇이 바뀌었나요?</h2>
+        <h2 id="changes-title">변경 사항</h2>
         <span className="muted number">
           {interval ? `${dateLabel(interval.previousDate)} → ${dateLabel(interval.currentDate)}` : ''}
         </span>
