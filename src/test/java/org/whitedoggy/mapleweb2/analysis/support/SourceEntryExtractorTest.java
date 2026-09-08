@@ -10,6 +10,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -59,6 +60,41 @@ class SourceEntryExtractorTest {
         // 값은 설명문이 아니라 파서가 스탯으로 바꾼 결과다.
         assertThat(entries.get("skill")).containsOnly(
                 Map.entry("Lv.2 궁디팡팡 멍뭉이", new SourceEntry("공격력 +20 · 마력 +20", "https://x/skill.png")));
+    }
+
+    /**
+     * 유니온 공격대는 같은 효과를 여러 줄로 준다. 늘어놓지 않고 합쳐야 읽을 수 있다.
+     * (실측: 한 캐릭터의 union_raider_stat 에 "INT 100 증가"가 셋, "INT 80 증가"가 하나)
+     */
+    @Test
+    void sameUnionEffectIsSummed() {
+        assertThat(SourceEntryExtractor.lines(List.of(
+                "INT 100 증가", "INT 100 증가", "INT 100 증가", "INT 80 증가")))
+                .containsExactly(Map.entry("INT 증가", SourceEntry.of("380")));
+    }
+
+    @Test
+    void percentEffectsKeepTheirSign() {
+        assertThat(SourceEntryExtractor.lines(List.of("크리티컬 데미지 6% 증가", "크리티컬 데미지 3.5% 증가")))
+                .containsExactly(Map.entry("크리티컬 데미지 증가", SourceEntry.of("9.5%")));
+    }
+
+    /** 한 줄에 숫자가 둘이면 무엇을 더할지 알 수 없다. 그대로 늘어놓는다. */
+    @Test
+    void multiNumberLinesAreListedAsIs() {
+        assertThat(SourceEntryExtractor.lines(List.of(
+                "공격 시 20%의 확률로 데미지 20% 증가", "공격 시 10%의 확률로 데미지 30% 증가")))
+                .containsExactly(Map.entry("공격 시 의 확률로 데미지 증가", SourceEntry.of("20% 20%, 10% 30%")));
+    }
+
+    /**
+     * %와 고정값은 숫자를 지우면 이름이 같아지지만 더하면 거짓말이 된다. 따로 더해 나눠 적는다.
+     * (실측: "최대 HP 5% 증가" 하나에 "최대 HP 2000 증가"가 둘 오는 캐릭터가 있다)
+     */
+    @Test
+    void percentAndFlatAreSummedSeparately() {
+        assertThat(SourceEntryExtractor.lines(List.of("최대 HP 5% 증가", "최대 HP 2000 증가", "최대 HP 2000 증가")))
+                .containsExactly(Map.entry("최대 HP 증가", SourceEntry.of("5%, 4000")));
     }
 
     private static JsonNode json(String text) {

@@ -14,6 +14,7 @@ import org.whitedoggy.mapleweb2.global.Jsons;
 import tools.jackson.databind.JsonNode;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -204,16 +205,65 @@ public class SourceEntryExtractor {
         target.put("코어" + coreNo + " " + role + " " + name, SourceEntry.of("Lv." + level));
     }
 
-    /** "LUK 100 증가" 같은 효과 문구를 이름("LUK 증가")과 값("100")으로 나눠 담는다. */
+    /**
+     * "LUK 100 증가" 같은 효과 문구를 이름("LUK 증가")과 값("100")으로 나눠 담는다.
+     *
+     * <p>유니온 공격대는 같은 효과가 여러 번 온다 — 한 캐릭터에서 "INT 100 증가"가 셋,
+     * "INT 80 증가"가 하나 오는 식이다. 그대로 늘어놓으면 읽을 수 없어 합친다.
+     */
     static Map<String, SourceEntry> lines(List<String> texts) {
-        Map<String, String> values = new LinkedHashMap<>();
+        Map<String, List<String>> grouped = new LinkedHashMap<>();
         for (String text : texts) {
             String[] split = splitNumber(text);
-            values.merge(split[0], split[1], (a, b) -> a + ", " + b);
+            grouped.computeIfAbsent(split[0], name -> new ArrayList<>()).add(split[1]);
         }
         Map<String, SourceEntry> result = new LinkedHashMap<>();
-        values.forEach((name, value) -> result.put(name, SourceEntry.of(value)));
+        grouped.forEach((name, values) -> result.put(name, SourceEntry.of(combine(values))));
         return result;
+    }
+
+    /**
+     * 같은 이름으로 묶인 값들을 하나로. 더할 수 있는 것끼리 더한다.
+     *
+     * <p>%와 고정값은 따로 더한다 — "최대 HP 5% 증가"와 "최대 HP 2000 증가"는 숫자를
+     * 지우면 이름이 같아지지만 더하면 거짓말이 되므로 {@code "5%, 4000"} 처럼 나눠 적는다.
+     * 한 줄에 숫자가 둘 이상인 문구("공격 시 20%의 확률로 데미지 20% 증가")는 무엇을
+     * 더할지 알 수 없어 손대지 않고 그대로 늘어놓는다.
+     */
+    private static String combine(List<String> values) {
+        if (values.size() == 1) {
+            return values.get(0);
+        }
+        List<String> order = new ArrayList<>();
+        Map<Boolean, Double> sums = new LinkedHashMap<>();
+        for (String value : values) {
+            if (value.isBlank() || value.contains(" ")) {
+                return String.join(", ", values);
+            }
+            boolean percent = value.endsWith("%");
+            double number;
+            try {
+                number = Double.parseDouble(percent ? value.substring(0, value.length() - 1) : value);
+            } catch (NumberFormatException ignored) {
+                return String.join(", ", values);
+            }
+            String kind = percent ? "%" : "";
+            if (!order.contains(kind)) order.add(kind);
+            sums.merge(percent, number, Double::sum);
+        }
+        StringBuilder combined = new StringBuilder();
+        for (String kind : order) {
+            if (!combined.isEmpty()) combined.append(", ");
+            combined.append(trimZero(sums.get("%".equals(kind)))).append(kind);
+        }
+        return combined.toString();
+    }
+
+    /** 정수면 소수점을 붙이지 않는다. 유니온은 대개 정수다. */
+    private static String trimZero(double value) {
+        return value == Math.rint(value) && !Double.isInfinite(value)
+                ? String.valueOf((long) value)
+                : String.valueOf(value);
     }
 
     static String[] splitNumber(String text) {
