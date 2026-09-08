@@ -183,8 +183,21 @@ public class CombatPowerHistoryService {
                 basicParser.characterLevel(basic),
                 dataSheet == null ? null : dataSheet.getCombatPower(),
                 apiCombatPower(snapshot),
-                hexaCoreParser.solErdaFragments(hexaMatrix)
+                hexaCoreParser.solErdaFragments(hexaMatrix),
+                expired(dataSheet)
         ));
+    }
+
+    /** 기간이 지나 계산에서 빠진 항목들. 시트를 못 만들었으면 알 수 없으니 null 이다. */
+    private CombatPowerHistoryPoint.Expired expired(DataSheet dataSheet) {
+        if (dataSheet == null) {
+            return null;
+        }
+        return CombatPowerHistoryPoint.Expired.of(
+                dataSheet.getExpiredArtifactCrystals(),
+                dataSheet.getExpiredCashItems(),
+                dataSheet.getExpiredPetEquipments(),
+                dataSheet.isExpiredTitleOption());
     }
 
     /**
@@ -202,10 +215,10 @@ public class CombatPowerHistoryService {
     /**
      * 계산 규칙이나 지점 모양을 바꾸면 접두사 버전을 올린다. 안 그러면 고친 값이 30일 동안
      * 안 보인다 ({@code maple:datasheet:v5} 와 같은 이유다).
-     * v2 부터 솔 에르다 조각이 들어 있다.
+     * v3 부터 만료 정보가 들어 있다.
      */
     private static String historyPointCacheKey(String ocid, LocalDate date) {
-        return "maple:history:v2:" + (ocid == null ? "" : ocid.trim()) + ":" + date;
+        return "maple:history:v3:" + (ocid == null ? "" : ocid.trim()) + ":" + date;
     }
 
     private Long apiCombatPower(CharacterSnapshot snapshot) {

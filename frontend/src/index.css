@@ -256,9 +256,12 @@ h1,h2,h3,p {
   flex-shrink:0;
   color:#e99556;
   font-size:44px;
-  /* 위와 옆으로는 넘치게 두고 아래만 박스에서 자른다. 실측 18명 중 둘은 탈것·이펙트가
-     발끝 아래로 캔버스 92% 지점까지 늘어져 있어, 안 자르면 아래 글자를 덮는다. */
-  clip-path:inset(-150% -100% 0 -100%);
+  /* 위로는 열고, 아래와 오른쪽은 막는다.
+     - 아래: 실측 18명 중 둘은 탈것·이펙트가 발끝 아래 캔버스 92% 지점까지 늘어져 있어
+       안 자르면 아래 글자를 덮는다.
+     - 오른쪽: 폭이 큰 코디가 캐릭터 이름을 덮는다. .identity 의 gap(22px) 안쪽까지만 둔다.
+     - 왼쪽: 덮을 글자가 없으니 그대로 흘려보낸다. */
+  clip-path:inset(-150% -18% 0 -100%);
 }
 
 .avatar::before {
@@ -320,6 +323,19 @@ h1,h2,h3,p {
   color:#ad6111;
   font-size:11px;
   margin-top:8px;
+}
+
+/* 기간이 지나 스탯이 빠진 항목. 곧 전투력이 떨어질 상태라 경고보다 한 단계 세게 둔다. */
+.expired-warning {
+  display:inline-block;
+  margin-top:8px;
+  padding:3px 8px;
+  border-radius:5px;
+  background:#fdeceb;
+  border:1px solid #f3c3c0;
+  color:var(--red);
+  font-size:11px;
+  font-weight:600;
 }
 
 .metric-label {
@@ -844,6 +860,26 @@ h2 {
 
 .before {
   color:#8b929e;
+}
+
+/* 항목이 여럿인 소스는 한 줄씩 나눠 적는다. 어빌리티 세 줄이 대표적이다. */
+.entry-line {
+  display:flex;
+  gap:8px;
+  padding:2px 0;
+}
+
+.entry-line + .entry-line {
+  border-top:1px dashed #eef0f4;
+}
+
+.entry-line-name {
+  color:#a2a9b4;
+  flex-shrink:0;
+  max-width:46%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
 }
 
 .after {

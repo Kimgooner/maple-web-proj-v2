@@ -18,6 +18,16 @@ export interface HistoryPoint {
   apiCombatPower: number | null;
   /** HEXA 코어에 그때까지 들어간 솔 에르다 조각. 6차 전이거나 못 받았으면 null */
   solErdaFragments: number | null;
+  /** 기간이 지나 계산에서 빠진 것들. 하나도 없으면 null */
+  expired: ExpiredItems | null;
+}
+
+/** 만료로 스탯이 빠진 항목 수. 스탯이 없던 항목은 파서가 표시하지 않으므로 세지 않는다 */
+export interface ExpiredItems {
+  artifactCrystals: number;
+  cashItems: number;
+  petEquipments: number;
+  titleOption: boolean;
 }
 
 export interface HistoryMeta {

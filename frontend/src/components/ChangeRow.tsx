@@ -3,6 +3,9 @@ import type { ChangeRow as Row } from '../lib/changes';
 import { formatStatDelta } from '../lib/format';
 import { CHANGE_TYPE_LABELS, sourceLabel, statLabel } from '../lib/labels';
 
+/** 이전·이후 칸에 보여줄 항목 줄 수. 그 위는 "외 N개" 로 접는다. */
+const ENTRY_LINES = 3;
+
 function tone(value: number): string {
   return value > 0 ? 'positive' : value < 0 ? 'negative' : 'neutral';
 }
@@ -71,12 +74,33 @@ export function ChangeRow({ row }: { row: Row }) {
     ? row.change.currentItemIcon ?? row.change.previousItemIcon
     : entries.find((entry) => entry.icon)?.icon ?? null;
 
+  /**
+   * 항목이 여럿인 소스(어빌리티 3줄, 심볼 여러 개…)는 한 줄로 이어 붙이면 읽을 수 없다.
+   * 항목마다 줄을 나눠 적고, 너무 길어지지 않게 세 개까지만 보인다.
+   */
+  const entryLines = (pick: (entry: EntryChange) => string | null) => {
+    if (entries.length === 0) return <>—</>;
+    return (
+      <>
+        {entries.slice(0, ENTRY_LINES).map((entry) => (
+          <div className="entry-line" key={entry.name}>
+            <span className="entry-line-name" title={entry.name}>{entry.name}</span>
+            <span>{pick(entry) ?? '없음'}</span>
+          </div>
+        ))}
+        {entries.length > ENTRY_LINES && (
+          <div className="entry-line muted">외 {entries.length - ENTRY_LINES}개</div>
+        )}
+      </>
+    );
+  };
+
   const before = row.kind === 'slot'
-    ? row.change.previousItemName ?? '미장착'
-    : entries.length ? entries.map((e) => `${e.name}: ${e.previous ?? '없음'}`).slice(0, 2).join(' / ') : '—';
+    ? <>{row.change.previousItemName ?? '미장착'}</>
+    : entryLines((entry) => entry.previous);
   const after = row.kind === 'slot'
-    ? row.change.currentItemName ?? '미장착'
-    : entries.length ? entries.map((e) => `${e.name}: ${e.current ?? '없음'}`).slice(0, 2).join(' / ') : '—';
+    ? <>{row.change.currentItemName ?? '미장착'}</>
+    : entryLines((entry) => entry.current);
 
   const groups = row.kind === 'slot' && row.change.deltaGroups?.length
     ? row.change.deltaGroups
