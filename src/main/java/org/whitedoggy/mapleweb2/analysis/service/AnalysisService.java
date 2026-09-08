@@ -15,6 +15,7 @@ import org.whitedoggy.mapleweb2.analysis.dto.CombatPowerChangeSummary;
 import org.whitedoggy.mapleweb2.analysis.dto.CombatPowerDetailResponse;
 import org.whitedoggy.mapleweb2.analysis.dto.CombatPowerSummary;
 import org.whitedoggy.mapleweb2.analysis.dto.DataSheetByDate;
+import org.whitedoggy.mapleweb2.analysis.dto.StatDeltaGroupSummary;
 import org.whitedoggy.mapleweb2.analysis.dto.StatDeltaSummary;
 import org.whitedoggy.mapleweb2.domain.basic.BasicParser;
 import org.whitedoggy.mapleweb2.domain.calculator.parser.StatParser;
@@ -249,8 +250,15 @@ public class AnalysisService {
                 changeSummary.currentItemName(),
                 changeSummary.previousItemIcon(),
                 changeSummary.currentItemIcon(),
-                changeSummary.deltas().stream().map(this::toStatDeltaSummary).toList()
+                changeSummary.deltas().stream().map(this::toStatDeltaSummary).toList(),
+                changeSummary.deltaGroups().stream().map(this::toStatDeltaGroupSummary).toList()
         );
+    }
+
+    private StatDeltaGroupSummary toStatDeltaGroupSummary(DataSheetCompareService.StatDeltaGroup group) {
+        return new StatDeltaGroupSummary(
+                group.category(),
+                group.deltas().stream().map(this::toStatDeltaSummary).toList());
     }
 
     private StatDeltaSummary toStatDeltaSummary(DataSheetCompareService.StatDelta statDelta) {

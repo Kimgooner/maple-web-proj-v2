@@ -1,7 +1,7 @@
 import type { SlotChange } from '../api/types';
 import { CHANGE_TYPE_LABELS } from '../lib/labels';
 import { ArrowRight, ItemPlaceholderIcon } from './icons';
-import { StatChips } from './StatChips';
+import { StatDetails } from './StatDetails';
 
 /** 백엔드 슬롯 키는 "장비 - 무기" 처럼 접두사가 붙는다. 부위명만 남긴다 */
 function bareSlot(slot: string | null): string | null {
@@ -38,7 +38,7 @@ export function ItemChangeCard({ change }: { change: SlotChange }) {
         <ArrowRight />
         <Side icon={change.currentItemIcon} name={change.currentItemName} kind="cur" />
       </div>
-      <StatChips deltas={change.deltas} />
+      <StatDetails groups={change.deltaGroups ?? []} />
     </div>
   );
 }

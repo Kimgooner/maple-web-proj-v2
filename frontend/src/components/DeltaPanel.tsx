@@ -4,7 +4,7 @@ import { sourceLabel } from '../lib/labels';
 import type { Interval } from '../lib/selection';
 import { ArrowRight } from './icons';
 import { ItemChangeCard } from './ItemChangeCard';
-import { StatChips } from './StatChips';
+import { StatDetails } from './StatDetails';
 
 interface Props {
   interval: Interval | null;
@@ -112,7 +112,7 @@ export function DeltaPanel({ interval, points, detail, loading, error, hint }: P
                 <div className="card source-row" key={c.source}>
                   <div className="source-head">
                     <span className="source-name">{sourceLabel(c.source)}</span>
-                    <StatChips deltas={c.deltas} />
+                    <StatDetails groups={c.deltas.length ? [{ category: '스탯', deltas: c.deltas }] : []} />
                   </div>
                   <EntryList entries={c.entries ?? []} />
                 </div>

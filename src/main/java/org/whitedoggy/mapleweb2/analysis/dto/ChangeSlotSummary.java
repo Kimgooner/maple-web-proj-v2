@@ -11,6 +11,7 @@ public record ChangeSlotSummary(
         String currentItemName,
         String previousItemIcon,
         String currentItemIcon,
-        List<StatDeltaSummary> deltas
+        List<StatDeltaSummary> deltas,
+        List<StatDeltaGroupSummary> deltaGroups
 ) {
 }

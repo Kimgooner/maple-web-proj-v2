@@ -78,6 +78,52 @@ class DataSheetCompareServiceRingTest {
         return sheet;
     }
 
+    /** 옵션·잠재·익셉셔널이 각각 얼마씩 바뀌었는지 나눠 나와야 한다. */
+    @org.junit.jupiter.api.Test
+    void statChangesAreSplitByCategory() {
+        // 옵션 몫은 전체에서 잠재·익셉셔널을 뺀 것이다.
+        // before 60 = 100 - 30 - 10, after 65 = 120 - 45 - 10 이므로 옵션은 +5, 잠재는 +15.
+        DataSheet before = sheet(Map.of("장비 - 모자", item("아케인셰이드 햇", 100, 30, 10)));
+        DataSheet after = sheet(Map.of("장비 - 모자", item("아케인셰이드 햇", 120, 45, 10)));
+
+        assertThat(service.diff(before, after).itemChanges()).singleElement()
+                .satisfies(change -> {
+                    assertThat(change.deltaGroups()).extracting(DataSheetCompareService.StatDeltaGroup::category)
+                            .as("안 바뀐 익셉셔널은 빠진다")
+                            .containsExactly("옵션", "잠재");
+                    assertThat(change.deltaGroups().get(0).deltas()).singleElement()
+                            .satisfies(delta -> assertThat(delta.delta()).isEqualTo(5.0));
+                    assertThat(change.deltaGroups().get(1).deltas()).singleElement()
+                            .satisfies(delta -> assertThat(delta.delta()).isEqualTo(15.0));
+                });
+    }
+
+    /** 잠재·익셉셔널이 없는 아이템은 전부 옵션 몫이다. */
+    @org.junit.jupiter.api.Test
+    void itemsWithoutPotentialPutEverythingInOption() {
+        DataSheet before = sheet(Map.of("장비 - 모자", ring("모자", 10)));
+        DataSheet after = sheet(Map.of("장비 - 모자", ring("모자", 25)));
+
+        assertThat(service.diff(before, after).itemChanges()).singleElement()
+                .satisfies(change -> assertThat(change.deltaGroups())
+                        .extracting(DataSheetCompareService.StatDeltaGroup::category)
+                        .containsExactly("옵션"));
+    }
+
+    /** 옵션 몫은 전체에서 잠재·익셉셔널을 뺀 값이다. */
+    private static ItemSnapShot item(String name, int totalStr, int potentialStr, int exceptionalStr) {
+        ItemSnapShot snapShot = ring(name, totalStr);
+        snapShot.setPotentialStatSheet(statSheet(name, potentialStr));
+        snapShot.setExceptionalStatSheet(statSheet(name, exceptionalStr));
+        return snapShot;
+    }
+
+    private static StatSheet statSheet(String name, int str) {
+        StatSheet sheet = new StatSheet(name);
+        sheet.setSTR(str);
+        return sheet;
+    }
+
     private static ItemSnapShot ring(String name, int str) {
         ItemSnapShot item = new ItemSnapShot(name, name + ".png");
         StatSheet stats = new StatSheet(name);

@@ -112,6 +112,61 @@ public class ItemParser {
         return new ItemRecord(itemSlot, snapShot);
     }
 
+
+    /**
+     * 아이템 효과를 화면에 나눠 보여줄 종류별로 모은다.
+     *
+     * <p>{@link #all()} 을 파싱한 것이 아이템의 스탯 시트다 — 예전과 같은 줄들을 같은 방식으로
+     * 더하므로 계산 결과는 달라지지 않는다. 잠재·익셉셔널을 따로 파싱해 두면 화면이
+     * "무엇 때문에 바뀌었나"를 갈라 보여줄 수 있다.
+     */
+    private static final class ItemEffects {
+        /** 잠재도 익셉셔널도 아닌 것 전부. 기본·추가·주문서·스타포스(item_total_option)와 무기 환산·소울·설명. */
+        private final List<String> option = new ArrayList<>();
+        private final List<String> potential = new ArrayList<>();
+        private final List<String> exceptional = new ArrayList<>();
+
+        private List<String> all() {
+            List<String> all = new ArrayList<>(option);
+            all.addAll(potential);
+            all.addAll(exceptional);
+            return all;
+        }
+
+        private void clear() {
+            option.clear();
+            potential.clear();
+            exceptional.clear();
+        }
+    }
+
+    /** 잠재·에디셔널을 {@code effects.potential} 로 모은다. */
+    private void addPotentials(ItemEffects effects, JsonNode item) {
+        for (String option : getPotentialOptions(item)) {
+            EffectTextSplitter.addSplit(effects.potential, option);
+        }
+        for (String option : getAdditionalPotentialOptions(item)) {
+            EffectTextSplitter.addSplit(effects.potential, option);
+        }
+    }
+
+    /** 합친 시트를 스냅샷에 넣고, 잠재·익셉셔널은 값이 있을 때만 따로 남긴다. */
+    private void applyEffects(ItemSnapShot snapShot, String itemName, ItemEffects effects) {
+        StatSheet statSheet = new StatSheet(itemName);
+        statSheet.merge(statSheetParser.parse(effects.all()));
+        snapShot.setStatSheet(statSheet);
+        snapShot.setPotentialStatSheet(nonZeroOrNull(effects.potential, itemName));
+        snapShot.setExceptionalStatSheet(nonZeroOrNull(effects.exceptional, itemName));
+    }
+
+    private StatSheet nonZeroOrNull(List<String> effects, String sheetName) {
+        if (effects.isEmpty()) {
+            return null;
+        }
+        StatSheet sheet = statSheetParser.parse(effects, sheetName);
+        return sheet.isZero() ? null : sheet;
+    }
+
     private ItemRecord getSubWeaponItemSnapShot(JsonNode item, String characterClass, boolean zeroAstraEquipped){
         String itemName = Jsons.text(item, "item_name");
         String itemIcon = Jsons.text(item, "item_icon");
@@ -124,13 +179,12 @@ public class ItemParser {
         String ap_grade = Jsons.text(item, "addtional_potential_option_grade");
 
         ItemSnapShot snapShot = new ItemSnapShot(itemName, itemIcon);
-        StatSheet statSheet = new StatSheet(itemName);
 
         snapShot.setStarForce(starForce);
         snapShot.setP_grade(p_grade);
         snapShot.setAp_grade(ap_grade);
 
-        List<String> effects = new ArrayList<>();
+        ItemEffects effects = new ItemEffects();
 
         //제로의 경우
         //아스트라 보조무기 O -> 기존 방식 그대로
@@ -148,15 +202,9 @@ public class ItemParser {
         if(isZero){
             //아스트라 O
             if(isAstra){
-                addStructuredOptionEffects(effects, astraCombatPowerOption(item, totalOptionNode));
+                addStructuredOptionEffects(effects.option, astraCombatPowerOption(item, totalOptionNode));
             }
-            for(String option : getPotentialOptions(item)){
-                EffectTextSplitter.addSplit(effects, option);
-            }
-
-            for(String option : getAdditionalPotentialOptions(item)){
-                EffectTextSplitter.addSplit(effects, option);
-            }
+            addPotentials(effects, item);
             // 아스트라를 끼면 대검(기본 보조무기)의 효과는 아스트라 것으로 대체되므로 통째로 뺀다.
             if(!isAstra && zeroAstraEquipped){
                 effects.clear();
@@ -164,18 +212,10 @@ public class ItemParser {
         }
         //제로X
         else {
-            addStructuredOptionEffects(effects, totalOptionNode);
-
-            for (String option : getPotentialOptions(item)) {
-                EffectTextSplitter.addSplit(effects, option);
-            }
-
-            for (String option : getAdditionalPotentialOptions(item)) {
-                EffectTextSplitter.addSplit(effects, option);
-            }
+            addStructuredOptionEffects(effects.option, totalOptionNode);
+            addPotentials(effects, item);
         }
-        statSheet.merge(statSheetParser.parse(effects));
-        snapShot.setStatSheet(statSheet);
+        applyEffects(snapShot, itemName, effects);
 
         return new ItemRecord(itemSlot, snapShot);
     }
@@ -193,15 +233,14 @@ public class ItemParser {
         String ap_grade = Jsons.text(item, "additional_potential_option_grade");
 
         ItemSnapShot snapShot = new ItemSnapShot(itemName, itemIcon);
-        StatSheet statSheet = new StatSheet(itemName);
 
         snapShot.setStarForce(starForce);
         snapShot.setP_grade(p_grade);
         snapShot.setAp_grade(ap_grade);
 
-        List<String> effects = new ArrayList<>();
+        ItemEffects effects = new ItemEffects();
 
-        addStructuredOptionEffectsForWeapon(effects, totalOptionNode);
+        addStructuredOptionEffectsForWeapon(effects.option, totalOptionNode);
 
         // 무기 정규화. 제로의 라즐리(태도)도 표에 있어 같은 방식으로 환산한다.
         // 데스티니 22성 = 스타포스 626 + 작 72 + 1추 활환산 251 = 949.
@@ -218,21 +257,14 @@ public class ItemParser {
                 : Jsons.optionalInt(item.path("item_etc_option"), "attack_power").orElse(0);
         var normalized = bowNormalization.normalize(
                 itemPart, itemName, starForce, addOption, scrollAttackValue);
-        effects.addAll(normalized.effects());
+        effects.option.addAll(normalized.effects());
         snapShot.setWeaponNormalizationFailed(!normalized.stageResolved());
 
         //무기 소울 옵션
-        EffectTextSplitter.addSplit(effects, Jsons.text(item, "soul_option"));
+        EffectTextSplitter.addSplit(effects.option, Jsons.text(item, "soul_option"));
 
-        for(String option : getPotentialOptions(item)){
-            EffectTextSplitter.addSplit(effects, option);
-        }
-
-        for(String option : getAdditionalPotentialOptions(item)){
-            EffectTextSplitter.addSplit(effects, option);
-        }
-        statSheet.merge(statSheetParser.parse(effects));
-        snapShot.setStatSheet(statSheet);
+        addPotentials(effects, item);
+        applyEffects(snapShot, itemName, effects);
 
         return new ItemRecord(itemSlot, snapShot);
     }
@@ -251,28 +283,19 @@ public class ItemParser {
         String ap_grade = Jsons.text(item, "addtional_potential_option_grade");
 
         ItemSnapShot snapShot = new ItemSnapShot(itemName, itemIcon);
-        StatSheet statSheet = new StatSheet(itemName);
 
         snapShot.setStarForce(starForce);
         snapShot.setP_grade(p_grade);
         snapShot.setAp_grade(ap_grade);
 
-        List<String> effects = new ArrayList<>();
-        addStructuredOptionEffects(effects,totalOptionNode);
-        addStructuredOptionEffects(effects, exceptionalOptionNode);
-
-        for(String option : getPotentialOptions(item)){
-            EffectTextSplitter.addSplit(effects, option);
-        }
-
-        for(String option : getAdditionalPotentialOptions(item)){
-            EffectTextSplitter.addSplit(effects, option);
-        }
+        ItemEffects effects = new ItemEffects();
+        addStructuredOptionEffects(effects.option, totalOptionNode);
+        addStructuredOptionEffects(effects.exceptional, exceptionalOptionNode);
+        addPotentials(effects, item);
 
         //다크 크리티컬 링 등 반영.
-        EffectTextSplitter.addSplit(effects, itemDescription);
-        statSheet.merge(statSheetParser.parse(effects));
-        snapShot.setStatSheet(statSheet);
+        EffectTextSplitter.addSplit(effects.option, itemDescription);
+        applyEffects(snapShot, itemName, effects);
 
         return new ItemRecord(itemSlot, snapShot);
     }

@@ -78,6 +78,12 @@ export interface SourceChange {
 
 export type ChangeType = 'ADDED' | 'REMOVED' | 'REPLACED' | 'STAT_CHANGED';
 
+/** 옵션 / 잠재 / 익셉셔널처럼 변화를 갈라 놓은 묶음. 비어 있는 종류는 오지 않는다 */
+export interface StatDeltaGroup {
+  category: string;
+  deltas: StatDelta[];
+}
+
 export interface SlotChange {
   slot: string | null;
   previousSlot: string | null;
@@ -88,6 +94,7 @@ export interface SlotChange {
   previousItemIcon: string | null;
   currentItemIcon: string | null;
   deltas: StatDelta[];
+  deltaGroups: StatDeltaGroup[];
 }
 
 export interface ChangeSummary {

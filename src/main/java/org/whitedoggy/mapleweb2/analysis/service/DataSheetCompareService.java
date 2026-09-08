@@ -312,8 +312,52 @@ public class DataSheetCompareService {
                 itemIcon(beforeItem),
                 itemIcon(afterItem),
                 deltas,
+                deltaGroups(displaySlot, beforeItem, afterItem),
                 weight(deltas)
         );
+    }
+
+    /**
+     * 변화를 옵션 / 잠재 / 익셉셔널로 나눈다. 장비 하나가 스탯 열 개를 바꾸면 한 줄로
+     * 늘어놓는 것보다 무엇이 바뀐 건지가 드러난다.
+     *
+     * <p>옵션 몫은 따로 담고 다니지 않고 전체에서 잠재·익셉셔널을 빼서 만든다.
+     * 효과 문구를 줄 단위로 더하는 파싱이라 이 뺄셈이 정확하다.
+     */
+    private List<StatDeltaGroup> deltaGroups(String displaySlot, ItemSnapShot beforeItem, ItemSnapShot afterItem) {
+        StatSheet potential = categoryDelta(displaySlot, beforeItem, afterItem, ItemSnapShot::getPotentialStatSheet);
+        StatSheet exceptional = categoryDelta(displaySlot, beforeItem, afterItem, ItemSnapShot::getExceptionalStatSheet);
+        StatSheet option = statSheet(afterItem, displaySlot).minus(statSheet(beforeItem, displaySlot))
+                .minus(potential)
+                .minus(exceptional);
+
+        List<StatDeltaGroup> groups = new ArrayList<>();
+        addGroup(groups, "옵션", option);
+        addGroup(groups, "잠재", potential);
+        addGroup(groups, "익셉셔널", exceptional);
+        return groups;
+    }
+
+    private StatSheet categoryDelta(
+            String displaySlot,
+            ItemSnapShot beforeItem,
+            ItemSnapShot afterItem,
+            java.util.function.Function<ItemSnapShot, StatSheet> category
+    ) {
+        StatSheet before = beforeItem == null ? null : category.apply(beforeItem);
+        StatSheet after = afterItem == null ? null : category.apply(afterItem);
+        return orEmpty(after, displaySlot).minus(orEmpty(before, displaySlot));
+    }
+
+    private static StatSheet orEmpty(StatSheet sheet, String sheetName) {
+        return sheet == null ? new StatSheet(sheetName) : sheet;
+    }
+
+    private void addGroup(List<StatDeltaGroup> groups, String category, StatSheet delta) {
+        if (delta.isZero()) {
+            return;
+        }
+        groups.add(new StatDeltaGroup(category, summarizeStatDelta(delta, 15)));
     }
 
     private String changeType(ItemSnapShot beforeItem, ItemSnapShot afterItem) {
@@ -441,8 +485,14 @@ public class DataSheetCompareService {
             String previousItemIcon,
             String currentItemIcon,
             List<StatDelta> deltas,
+            /** 옵션 / 잠재 / 익셉셔널로 나눈 변화. 비어 있는 종류는 빠진다. */
+            List<StatDeltaGroup> deltaGroups,
             int weight
     ) {
+    }
+
+    /** 한 종류의 스탯 변화. {@code category} 는 화면이 그대로 제목으로 쓴다. */
+    public record StatDeltaGroup(String category, List<StatDelta> deltas) {
     }
 
     public record StatDelta(
