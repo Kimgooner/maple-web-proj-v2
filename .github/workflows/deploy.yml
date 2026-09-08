@@ -12,6 +12,7 @@ concurrency:
 env:
   # GHCR 이미지 이름은 소문자여야 한다 (github.repository 는 Kimgooner 로 시작)
   IMAGE: ghcr.io/kimgooner/maple-web-proj-v2
+  WEB_IMAGE: ghcr.io/kimgooner/maple-web-proj-v2-web
 
 jobs:
   build:
@@ -66,7 +67,8 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: docker/build-push-action@v6
+      - name: Push app image
+        uses: docker/build-push-action@v6
         with:
           context: .
           platforms: linux/arm64
@@ -74,6 +76,19 @@ jobs:
           tags: |
             ${{ env.IMAGE }}:latest
             ${{ env.IMAGE }}:${{ steps.meta.outputs.tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # 프런트는 nginx 이미지로 따로 나간다. 두 이미지가 같은 APP_TAG 로 움직인다.
+      - name: Push web image
+        uses: docker/build-push-action@v6
+        with:
+          context: frontend
+          platforms: linux/arm64
+          push: true
+          tags: |
+            ${{ env.WEB_IMAGE }}:latest
+            ${{ env.WEB_IMAGE }}:${{ steps.meta.outputs.tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -105,7 +120,7 @@ jobs:
           set -euo pipefail
           cd /opt/mapledelta
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
-          docker compose pull --quiet app redis
+          docker compose pull --quiet app web redis
           docker compose up -d --remove-orphans
           docker logout ghcr.io >/dev/null
           for i in $(seq 1 30); do
@@ -115,6 +130,6 @@ jobs:
             if [ "$i" = 30 ]; then echo "app did not come up"; docker compose logs --tail 50 app; exit 1; fi
             sleep 2
           done
-          curl -sf -o /dev/null http://127.0.0.1/app/index.html && echo "caddy -> app ok"
+          curl -sf -o /dev/null http://127.0.0.1/ && echo "caddy -> web ok"
           docker image prune -f >/dev/null
           REMOTE

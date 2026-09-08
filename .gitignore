@@ -55,6 +55,3 @@ CLAUDE.md
 
 ### 골든 픽스처 원시 API 응답 (로컬 전용, 커밋하지 않는다)
 src/test/resources/fixtures/*.json.gz
-
-### 프런트 빌드 산출물
-src/main/resources/static/app/

@@ -3,7 +3,9 @@
 `main` 에 푸시하면 `.github/workflows/deploy.yml` 이 돈다.
 
 1. 프런트 테스트·빌드 → gradle 단위 테스트 → `bootJar` (골든 테스트는 픽스처가 로컬 전용이라 제외)
-2. `Dockerfile` 로 arm64 이미지를 만들어 `ghcr.io/kimgooner/maple-web-proj-v2:{latest, sha-xxxxxxx}` 로 푸시
+2. arm64 이미지 두 개를 만들어 `{latest, sha-xxxxxxx}` 로 푸시
+   - `Dockerfile` → `ghcr.io/kimgooner/maple-web-proj-v2` (앱)
+   - `frontend/Dockerfile` → `ghcr.io/kimgooner/maple-web-proj-v2-web` (nginx + 프런트)
 3. SSH 로 OCI 서버(`/opt/mapledelta`)에 compose 파일을 복사하고 `docker compose pull && up -d`
 
 서버에는 이 디렉터리의 `docker-compose.yml`, `Caddyfile` 과 서버에만 있는 `.env`
@@ -12,9 +14,23 @@
 - GitHub 시크릿: `OCI_HOST`, `OCI_USER`, `OCI_SSH_KEY` (배포 전용 ed25519 키)
 - 서버 GHCR 로그인은 배포 순간에만 워크플로 토큰으로 한다. 상시 로그인 없음.
 - 되돌리기: 서버 `.env` 의 `APP_TAG` 를 `sha-xxxxxxx` 로 바꾸고 `docker compose up -d`
+  (`APP_TAG` 하나가 앱·web 두 이미지를 같이 가리킨다 — 둘은 같이 움직인다)
 - 도메인: `mapledelta.kr` (www 포함). Caddy 가 Let's Encrypt 인증서를 받아 자동 갱신하고
   http 는 https 로 넘긴다. IP 직접 접속은 HTTP 로 남겨 둔다 (점검용).
 - 로그: `docker compose logs -f app`
+
+## 요청이 지나는 길
+
+```
+브라우저 → Caddy(TLS) → web(nginx) ─┬─ /       정적 파일, /c/이름 은 index.html
+                                    └─ /api/   app(Spring, 8080)
+```
+
+Caddy 는 TLS 만 맡는다. 정적 파일 서빙과 경로 라우팅 fallback 은 `frontend/nginx.conf`
+에 있고, Spring 은 화면을 서빙하지 않는다 (`/app/` 은 이제 404 가 정상이다).
+SSE 가 실시간으로 흐르려면 Caddy 의 `flush_interval -1` 과 nginx 의
+`proxy_buffering off` 가 둘 다 있어야 한다. 하나라도 빠지면 진행률이 0% 에서
+멈췄다가 한 번에 끝난다.
 
 ## Redis 캐시
 

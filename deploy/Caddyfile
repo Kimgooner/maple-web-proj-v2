@@ -3,11 +3,9 @@
 mapledelta.kr, www.mapledelta.kr, http://140.245.77.108 {
 	encode zstd gzip
 
-	# 루트로 오면 앱 진입점으로
-	redir / /app/ 302
-
-	# SSE 는 버퍼링 없이 흘려보낸다
-	reverse_proxy app:8080 {
+	# 정적 파일과 /api 프록시는 nginx(web) 가 맡는다. Caddy 는 TLS 만 맡는다.
+	# SSE 는 버퍼링 없이 흘려보낸다 (web 쪽 proxy_buffering off 와 짝이다).
+	reverse_proxy web:80 {
 		flush_interval -1
 	}
 }

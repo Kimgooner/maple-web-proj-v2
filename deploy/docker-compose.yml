@@ -19,6 +19,20 @@ services:
         max-size: "20m"
         max-file: "5"
 
+  # 프런트를 서빙하고 /api 만 app 으로 넘긴다. Caddy 는 TLS 만 맡는다.
+  web:
+    image: ghcr.io/kimgooner/maple-web-proj-v2-web:${APP_TAG:-latest}
+    restart: unless-stopped
+    depends_on:
+      - app
+    expose:
+      - "80"
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+
   # 데이터시트 캐시. 지나간 날짜는 넥슨이 같은 값을 주므로 길게 들고 있는다.
   # RDB 를 남겨 컨테이너를 재시작해도 캐시가 산다. 포트는 밖으로 내지 않는다.
   redis:
@@ -37,7 +51,7 @@ services:
     image: caddy:2
     restart: unless-stopped
     depends_on:
-      - app
+      - web
     ports:
       - "80:80"
       - "443:443"
