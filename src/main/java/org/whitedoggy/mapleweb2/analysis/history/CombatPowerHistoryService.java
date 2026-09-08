@@ -10,15 +10,19 @@ import org.whitedoggy.mapleweb2.analysis.dto.CharacterInfo;
 import org.whitedoggy.mapleweb2.analysis.service.DataSheetService;
 import org.whitedoggy.mapleweb2.analysis.service.OcidService;
 import org.whitedoggy.mapleweb2.analysis.service.SnapshotService;
+import org.whitedoggy.mapleweb2.analysis.support.CacheTtlPolicy;
 import org.whitedoggy.mapleweb2.domain.basic.BasicParser;
 import org.whitedoggy.mapleweb2.domain.calculator.parser.StatParser;
 import org.whitedoggy.mapleweb2.external.nexon.config.NexonEndpoint;
 import org.whitedoggy.mapleweb2.global.Jsons;
+import org.whitedoggy.mapleweb2.global.cache.MapleCache;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import tools.jackson.databind.JsonNode;
 
+import java.time.Duration;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.List;
@@ -50,6 +54,7 @@ public class CombatPowerHistoryService {
     private final DataSheetService dataSheetService;
     private final BasicParser basicParser;
     private final StatParser statParser;
+    private final MapleCache cache;
 
     /** 한 번에 다 받는 형태. 차트만 그릴 때 쓴다. */
     public Mono<CombatPowerHistoryResponse> getHistory(String characterName, HistoryRange range) {
@@ -115,16 +120,44 @@ public class CombatPowerHistoryService {
                 .map(Loaded::point);
     }
 
+    /**
+     * 지점 하나. 지나간 날짜는 캐시를 먼저 본다 — 스냅샷 한 지점이 넥슨 호출 15회라,
+     * 일간 30지점을 매번 받으면 450회다.
+     *
+     * <p>캐시에 두는 것은 43KB 짜리 {@code DataSheet} 이 아니라 숫자 네 개짜리
+     * {@link CombatPowerHistoryPoint} 다. 차트가 필요한 건 그게 전부고, 구간을 눌렀을 때
+     * 뜨는 상세는 {@code DataSheetService} 쪽 캐시가 따로 맡는다.
+     */
     private Mono<Loaded> loadPoint(Plan plan, LocalDate date) {
         // 오늘은 date 파라미터를 붙이면 API 가 거절한다(OPENAPI00004). 계획을 세울 때
-        // 이미 받아 둔 현재 스냅샷을 그대로 쓴다.
-        Mono<CharacterSnapshot> snapshot = date.equals(plan.today())
-                ? Mono.just(plan.current())
-                : snapshotService.getSnapshotByOcid(plan.ocid(), date);
-        return snapshot.map(loaded -> toPoint(loaded, date));
+        // 이미 받아 둔 현재 스냅샷을 그대로 쓴다. 계속 변하는 값이라 캐시하지 않는다.
+        if (date.equals(plan.today())) {
+            CharacterSnapshot current = plan.current();
+            return Mono.just(toPoint(current, date, combatDataSheet(current)));
+        }
+
+        String cacheKey = historyPointCacheKey(plan.ocid(), date);
+        return cache.get(cacheKey, CombatPowerHistoryPoint.class)
+                .map(point -> new Loaded(true, point))
+                .switchIfEmpty(Mono.defer(() -> snapshotService.getSnapshotByOcid(plan.ocid(), date)
+                        .flatMap(snapshot -> loadAndCachePoint(cacheKey, date, snapshot))));
     }
 
-    private Loaded toPoint(CharacterSnapshot snapshot, LocalDate date) {
+    /**
+     * 빈 응답은 캐시하지 않는다. 아직 열리지 않은 시점일 수 있는데
+     * ({@code takeWhile} 이 여기서 추이를 끊는다) 그걸 굳히면 영영 끊긴 채로 남는다.
+     */
+    private Mono<Loaded> loadAndCachePoint(String cacheKey, LocalDate date, CharacterSnapshot snapshot) {
+        DataSheet dataSheet = combatDataSheet(snapshot);
+        Loaded loaded = toPoint(snapshot, date, dataSheet);
+        if (!loaded.exists()) {
+            return Mono.just(loaded);
+        }
+        Duration ttl = CacheTtlPolicy.forDataSheet(date, LocalDateTime.now(KST), dataSheet);
+        return cache.put(cacheKey, loaded.point(), ttl).thenReturn(loaded);
+    }
+
+    private Loaded toPoint(CharacterSnapshot snapshot, LocalDate date, DataSheet dataSheet) {
         JsonNode basic = snapshot.document(NexonEndpoint.BASIC);
         if (basicParser.characterName(basic).isBlank()) {
             return Loaded.missing();
@@ -132,22 +165,29 @@ public class CombatPowerHistoryService {
         return new Loaded(true, new CombatPowerHistoryPoint(
                 date,
                 basicParser.characterLevel(basic),
-                combatPower(snapshot),
+                dataSheet == null ? null : dataSheet.getCombatPower(),
                 apiCombatPower(snapshot)
         ));
     }
 
     /**
-     * 우리가 다시 계산한 전투력. 스냅샷 일부가 깨져 계산이 터지면 그 지점만 null 로 두고
-     * 추이 전체를 잃지 않는다.
+     * 우리가 다시 계산한 시트. 스냅샷 일부가 깨져 계산이 터지면 그 지점만 null 로 두고
+     * 추이 전체를 잃지 않는다. null 이면 {@link CacheTtlPolicy} 가 짧은 TTL 을 준다.
      */
-    private Long combatPower(CharacterSnapshot snapshot) {
+    private DataSheet combatDataSheet(CharacterSnapshot snapshot) {
         try {
-            DataSheet dataSheet = dataSheetService.getCombatDataSheet(snapshot);
-            return dataSheet.getCombatPower();
+            return dataSheetService.getCombatDataSheet(snapshot);
         } catch (RuntimeException ignored) {
             return null;
         }
+    }
+
+    /**
+     * 계산 규칙을 바꾸면 접두사 버전을 올린다. 안 그러면 고친 값이 30일 동안 안 보인다
+     * ({@code maple:datasheet:v5} 와 같은 이유다).
+     */
+    private static String historyPointCacheKey(String ocid, LocalDate date) {
+        return "maple:history:v1:" + (ocid == null ? "" : ocid.trim()) + ":" + date;
     }
 
     private Long apiCombatPower(CharacterSnapshot snapshot) {
