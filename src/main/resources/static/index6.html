@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>MapleDelta · 캐릭터 분석</title>
+  <link rel="stylesheet" href="./internal-dashboard/dashboard.css">
+  <script type="module" src="./internal-dashboard/dashboard.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">본문으로 이동</a>
+  <header class="topbar">
+    <a class="brand" href="./index6.html" aria-label="MapleDelta 홈"><span class="brand-mark" aria-hidden="true">✳</span>MapleDelta</a>
+    <span class="brand-caption">캐릭터의 변화를 읽다</span>
+    <form id="search-form" class="search" role="search">
+      <label class="sr-only" for="character-input">캐릭터 닉네임</label>
+      <span aria-hidden="true" class="search-icon">⌕</span>
+      <input id="character-input" name="characterName" placeholder="캐릭터 닉네임 검색" autocomplete="off" maxlength="30" required>
+      <button type="submit">조회 <span aria-hidden="true">→</span></button>
+    </form>
+  </header>
+  <main id="main" class="page">
+    <div class="breadcrumb"><span aria-hidden="true">⌂</span><span>/</span>캐릭터 분석 <span class="internal-tag">내부 미리보기</span></div>
+    <section id="welcome" class="welcome panel">
+      <span class="eyebrow">MY CHARACTER, MY HISTORY</span>
+      <h1>어제보다 강해진 나,<br>무엇이 달라졌을까요?</h1>
+      <p>보스 프리셋 기준의 실전 전투력부터 장비와 스킬의 변화까지.<br>캐릭터 닉네임을 검색하고 성장의 기록을 살펴보세요.</p>
+      <button id="start-search" class="primary">내 캐릭터 조회하기 <span aria-hidden="true">↗</span></button>
+      <div class="welcome-steps"><span><b>01</b> 전투력 추이</span><span><b>02</b> 두 시점 비교</span><span><b>03</b> 변경 내역 확인</span></div>
+    </section>
+    <div id="history-notice" class="notice" role="status" aria-live="polite" hidden></div>
+    <button id="history-retry" class="outline retry" hidden>조회 다시 시도</button>
+    <div id="dashboard" hidden>
+      <section class="profile panel" aria-label="캐릭터 요약">
+        <div class="identity"><div id="avatar" class="avatar" aria-hidden="true">✦</div><div><div class="name-line"><h1 id="character-name">—</h1><span id="world" class="world"></span></div><p id="character-meta" class="muted"></p><span id="accuracy-warning" class="warning" hidden>계산 정확도 낮음 · 데몬어벤져</span></div></div>
+        <div class="power"><div class="metric-label">실전 전투력 <span class="soft-badge">보스 프리셋 기준</span></div><strong id="combat-power" class="power-number">—</strong><div class="muted">넥슨 전투력 <span id="api-power" class="number">—</span></div><small id="power-date" class="muted"></small></div>
+        <div class="period-metric"><div id="period-label" class="metric-label">조회 구간 변화</div><strong id="period-percent">—</strong><span id="period-delta" class="number muted">—</span><small id="period-dates" class="muted"></small></div>
+      </section>
+      <div class="analysis-grid">
+        <section class="chart-panel panel" aria-labelledby="chart-title">
+          <div class="section-heading"><div><h2 id="chart-title">전투력 추이</h2><p class="muted">변화 지점을 선택해 변경 내역을 확인하세요</p></div><div class="segmented" aria-label="조회 기간"><button data-range="daily" aria-pressed="true">최근 30일</button><button data-range="monthly" aria-pressed="false">최근 12개월</button></div></div>
+          <div class="legend"><span><i class="line-orange"></i>실전 전투력</span><span><i class="line-gray"></i>넥슨 전투력</span><span id="chart-progress" class="muted"></span></div>
+          <div id="chart" class="chart"></div>
+          <div class="chart-footer"><label class="switch-label"><input type="checkbox" id="compare-mode"><span class="switch" aria-hidden="true"></span>두 시점 비교</label><span id="chart-dates" class="muted number"></span></div>
+          <div class="date-controls"><label>이전 <select id="previous-date" aria-label="비교 시작 날짜"></select></label><span aria-hidden="true">→</span><label>이후 <select id="current-date" aria-label="비교 종료 날짜"></select></label><button id="compare-dates" class="outline">비교</button></div>
+          <p id="selection-hint" class="selection-hint" role="status"></p>
+        </section>
+        <aside class="interval panel" aria-labelledby="interval-title">
+          <span class="outline-badge">선택한 구간</span><h2 id="interval-title">두 시점을 선택해 주세요</h2>
+          <div class="interval-gain"><strong id="interval-delta">—</strong><span id="interval-percent"></span></div>
+          <p id="interval-values" class="muted number">전투력의 변화를 비교합니다</p>
+          <div class="interval-counts"><h3>이 구간의 변경 내역</h3><div><span><i>◇</i>장비</span><b id="count-items">—</b></div><div><span><i>✦</i>핵심 <small>스킬 · 심볼 등</small></span><b id="count-core">—</b></div><div><span><i>♧</i>캐시 · 펫</span><b id="count-other">—</b></div></div>
+          <p class="interval-note">같은 구간에 바뀐 항목을 모아봤어요.<br>항목별 전투력 기여도를 뜻하지는 않아요.</p>
+        </aside>
+      </div>
+      <section class="changes panel" aria-labelledby="changes-title">
+        <div class="section-heading"><h2 id="changes-title">무엇이 바뀌었나요?</h2><span id="changes-dates" class="muted number"></span></div>
+        <div id="filters" class="filters" aria-label="변경 내역 분류"></div>
+        <div id="detail-notice" class="detail-notice" role="status" aria-live="polite"></div>
+        <button id="detail-retry" class="outline retry" hidden>변경 내역 다시 시도</button>
+        <div id="change-list"></div>
+      </section>
+    </div>
+    <noscript><p class="notice">캐릭터 조회를 위해 JavaScript를 켜 주세요.</p></noscript>
+    <footer><span>Data based on NEXON Open API</span><span>MapleDelta <span class="footer-dot">·</span> 성장의 순간을 기록하다</span></footer>
+  </main>
+</body>
+</html>

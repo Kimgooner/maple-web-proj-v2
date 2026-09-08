@@ -3,55 +3,44 @@ import { Link, useParams } from 'react-router-dom';
 import { fetchDetail } from '../api/detail';
 import type { DetailResponse, HistoryRange } from '../api/types';
 import { CharacterHeader } from '../components/CharacterHeader';
-import { DeltaPanel } from '../components/DeltaPanel';
-import { NexonNotice } from '../components/NexonNotice';
+import { ChangesPanel } from '../components/ChangesPanel';
+import { IntervalPanel } from '../components/IntervalPanel';
 import { TopBar } from '../components/TopBar';
-import { TrendChart, type SelectMode } from '../components/TrendChart';
-import { formatLongDate } from '../lib/format';
-import { latestLoadedPoint } from '../lib/history';
+import { TrendChart } from '../components/TrendChart';
+import { dateLabel } from '../lib/format';
 import { pushRecent } from '../lib/recent';
 import { useHistory } from '../lib/useHistory';
-import { changedDates, defaultInterval, intervalEndingAt, pickPoint, type Interval } from '../lib/selection';
+import { defaultInterval, intervalEndingAt, pickPoint, type Interval } from '../lib/selection';
 
-const RANGE_LABEL: Record<HistoryRange, string> = { daily: '월간 (30일)', monthly: '연간 (12개월)' };
-const MODE_LABEL: Record<SelectMode, string> = { pin: '변화 지점', range: '구간 비교' };
+const RANGE_LABEL: Record<HistoryRange, string> = { daily: '최근 30일', monthly: '최근 12개월' };
 
 export function CharacterPage() {
   const { name = '' } = useParams();
   const [range, setRange] = useState<HistoryRange>('daily');
-  const [mode, setMode] = useState<SelectMode>('pin');
+  const [compare, setCompare] = useState(false);
   const [showFragments, setShowFragments] = useState(true);
   const [retry, setRetry] = useState(0);
-  // 두 구간을 한 번에 조회해 두고 토글은 보기만 바꾼다.
-  const daily = useHistory(name, 'daily', retry);
-  const monthly = useHistory(name, 'monthly', retry);
-  const history = range === 'daily' ? daily : monthly;
+  const [detailRetry, setDetailRetry] = useState(0);
+
+  const history = useHistory(name, range, retry);
   const [anchor, setAnchor] = useState<string | null>(null);
   const [interval, setInterval] = useState<Interval | null>(null);
   const [detail, setDetail] = useState<DetailResponse | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
+  /** 첫 지점을 눌렀을 때처럼 구간을 만들 수 없는 경우의 안내 */
+  const [pickHint, setPickHint] = useState<string | null>(null);
+
+  useEffect(() => { if (name) pushRecent(name); }, [name]);
 
   useEffect(() => {
-    if (name) pushRecent(name);
-  }, [name]);
-
-  // 이름·구간·재시도가 바뀌면 선택과 변경 내역을 비운다.
-  useEffect(() => {
-    setAnchor(null);
-    setInterval(null);
-    setDetail(null);
-    setDetailError(null);
+    setAnchor(null); setInterval(null); setDetail(null); setDetailError(null); setPickHint(null);
   }, [name, range, retry]);
 
-  // 로드가 끝나면 기본 구간(마지막으로 변한 지점과 직전 지점)을 고른다.
   useEffect(() => {
-    if (history.status === 'done' && interval === null) {
-      setInterval(defaultInterval(history.points));
-    }
+    if (history.status === 'done' && interval === null) setInterval(defaultInterval(history.points));
   }, [history.status, history.points, interval]);
 
-  // 구간이 바뀌면 변경 내역을 가져온다.
   useEffect(() => {
     const ocid = history.meta?.ocid;
     if (!interval || !ocid) return;
@@ -59,137 +48,147 @@ export function CharacterPage() {
     setDetailLoading(true);
     setDetailError(null);
     fetchDetail(ocid, interval.previousDate, interval.currentDate, controller.signal)
-      .then((res) => { setDetail(res); })
+      .then(setDetail)
       .catch((err: unknown) => {
         if (controller.signal.aborted) return;
         setDetailError(err instanceof Error ? err.message : '변경 내역을 불러오지 못했습니다.');
       })
       .finally(() => { if (!controller.signal.aborted) setDetailLoading(false); });
     return () => controller.abort();
-  }, [interval, history.meta?.ocid]);
+  }, [interval, history.meta?.ocid, detailRetry]);
 
-  const onPick = (date: string) => {
-    const next = pickPoint(anchor, date);
-    setAnchor(next.anchor);
-    if (next.interval) setInterval(next.interval);
-  };
-  const onPin = (date: string) => {
+  const notFound = history.errorCode === 'NOT_FOUND';
+  const failed = !notFound && history.status === 'error' && history.error;
+  const streaming = history.status === 'loading';
+  const info = history.meta?.characterInfo ?? null;
+  const selectable = history.status === 'done'
+    && history.points.filter((point) => point.combatPower != null).length >= 2;
+
+  /** 비교 모드면 두 점을 차례로, 아니면 고른 지점과 그 직전 지점을 잡는다. */
+  const pick = (date: string) => {
+    if (!selectable) return;
+    setPickHint(null);
+    if (compare) {
+      const next = pickPoint(anchor, date);
+      setAnchor(next.anchor);
+      if (next.interval) setInterval(next.interval);
+      return;
+    }
     setAnchor(null);
     const next = intervalEndingAt(history.points, date);
     if (next) setInterval(next);
-  };
-  const switchMode = (next: SelectMode) => {
-    setMode(next);
-    setAnchor(null);
+    else setPickHint('첫 지점에는 이전 기록이 없어요. 다음 지점을 선택해 주세요.');
   };
 
-  const info = history.meta?.characterInfo ?? null;
-  const latest = latestLoadedPoint(history.points);
-  // 없는 이름은 실패가 아니라 "그런 캐릭터가 없다"로 보여준다. 어느 구간에서 걸리든 같다.
-  const notFound = daily.errorCode === 'NOT_FOUND' || monthly.errorCode === 'NOT_FOUND';
-  const failed = !notFound && history.status === 'error' && history.error;
-  const streaming = history.status === 'loading';
-  const loaded = history.points.filter((p) => p.combatPower != null || p.solErdaFragments != null).length;
-  // 지점을 하나도 못 받고 끝난 경우에만 비었다고 한다. 받는 중에는 아직 모른다.
-  const noData = history.status === 'done' && loaded === 0;
-  const progress = history.total > 0 ? Math.min(100, Math.round((history.received / history.total) * 100)) : 0;
-  const pinCount = changedDates(history.points).length;
-  const hint = mode === 'pin'
-    ? pinCount > 0
-      ? '차트의 변화 지점을 누르면 직전 지점과 비교합니다'
-      : '이 구간에는 전투력이 변한 지점이 없습니다'
-    : anchor
-      ? `${formatLongDate(anchor)} 을 시작점으로 잡았습니다. 끝점을 고르세요`
-      : '차트에서 두 점을 차례로 고르면 그 사이를 비교합니다';
-
-  const rangeToggle = (
-    <div className="toggle">
-      {(['daily', 'monthly'] as HistoryRange[]).map((r) => (
-        <button type="button" key={r} className={range === r ? 'on' : ''} onClick={() => setRange(r)}>{RANGE_LABEL[r]}</button>
-      ))}
-    </div>
-  );
+  const hint = pickHint ?? (!selectable
+    ? '지점을 모두 받으면 두 시점을 고를 수 있어요.'
+    : compare
+      ? anchor
+        ? `${dateLabel(anchor)} 선택 · 비교할 다른 날짜를 선택하세요.`
+        : '차트에서 두 지점을 차례로 선택하세요.'
+      : '차트의 지점을 선택하면 직전 지점과 비교합니다.');
 
   return (
-    <div>
-      <TopBar withSearch />
-      <div className="page">
-        {notFound && (
-          <div className="card header header-missing">
+    <>
+      <TopBar />
+      <main className="page">
+        <div className="breadcrumb">
+          <span aria-hidden="true">⌂</span><span>/</span>캐릭터 분석
+        </div>
+
+        {notFound ? (
+          <section className="panel missing">
             <div>
-              <div className="header-name"><h1>{name}</h1></div>
-              <div className="header-meta">그런 이름의 캐릭터가 없습니다. 철자를 확인해 주세요.</div>
+              <h1>{name}</h1>
+              <p>그런 이름의 캐릭터가 없습니다. 철자를 확인해 주세요.</p>
             </div>
-            <Link to="/" className="chip-btn">처음으로</Link>
+            <Link to="/" className="outline">처음으로</Link>
+          </section>
+        ) : failed ? (
+          <div className="notice">
+            {history.error}
+            <button type="button" className="outline retry" onClick={() => setRetry((v) => v + 1)}>다시 시도</button>
           </div>
-        )}
-
-        {failed && (
-          <div className="card error-box">
-            <span>{history.error}</span>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button type="button" className="chip-btn" onClick={() => setRetry((r) => r + 1)}>다시 시도</button>
-              <Link to="/" className="chip-btn">다른 캐릭터</Link>
-            </div>
-          </div>
-        )}
-
-        {!notFound && !failed && (
+        ) : (
           <>
-            {info
-              ? <CharacterHeader info={info} latest={latest} />
-              : <div className="skeleton" style={{ height: 134 }} />}
+            {info ? (
+              <CharacterHeader info={info} name={name} points={history.points} loading={streaming} />
+            ) : (
+              <div className="skeleton" style={{ height: 168, marginBottom: 22 }} />
+            )}
 
-            <div className="card">
-              <div className="section-head">
-                <div className="section-title">
-                  전투력 추이
-                  <small>{hint}</small>
-                </div>
-                <div className="controls">
-                  <div className="legend">
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span className="swatch" />전투력</span>
-                    <button type="button" className={showFragments ? '' : 'off'} onClick={() => setShowFragments((v) => !v)}><span className="swatch-frag" />솔 에르다 조각</button>
+            <div className="analysis-grid">
+              <section className="chart-panel panel" aria-labelledby="chart-title">
+                <div className="section-heading">
+                  <div>
+                    <h2 id="chart-title">전투력 추이</h2>
+                    <p className="muted">변화 지점을 선택해 변경 내역을 확인하세요</p>
                   </div>
-                  <div className="toggle">
-                    {(['pin', 'range'] as SelectMode[]).map((m) => (
-                      <button type="button" key={m} className={mode === m ? 'on' : ''} onClick={() => switchMode(m)}>{MODE_LABEL[m]}</button>
+                  <div className="segmented" aria-label="조회 기간">
+                    {(['daily', 'monthly'] as HistoryRange[]).map((value) => (
+                      <button
+                        type="button" key={value}
+                        aria-pressed={range === value}
+                        onClick={() => setRange(value)}
+                      >{RANGE_LABEL[value]}</button>
                     ))}
                   </div>
-                  {rangeToggle}
                 </div>
-              </div>
 
-              {noData ? (
-                <div className="empty">이 구간에는 캐릭터 데이터가 없습니다.</div>
-              ) : history.points.length === 0 ? (
-                <div className="skeleton" style={{ height: 240, margin: '8px' }} />
-              ) : (
-                <TrendChart points={history.points} range={range} showFragments={showFragments} mode={mode} interval={interval} anchor={anchor} onPick={onPick} onPin={onPin} />
-              )}
-
-              <div className="chart-foot">
-                <span>
-                  {history.meta?.truncated && history.meta.truncatedFrom
-                    ? `${formatLongDate(history.meta.truncatedFrom)} 이전은 캐릭터가 없어 잘렸습니다.`
-                    : ' '}
-                </span>
-                {streaming ? (
-                  <span className="progress">
-                    <span className="progress-bar"><span style={{ width: `${progress}%` }} /></span>
-                    <span className="mono">{history.received}/{history.total || '…'}</span>
+                <div className="legend">
+                  <span><i />실전 전투력</span>
+                  <button type="button" onClick={() => setShowFragments((v) => !v)} style={{ opacity: showFragments ? 1 : 0.45 }}>
+                    <i className="line-fragment" />솔 에르다 조각
+                  </button>
+                  <span className="muted" style={{ marginLeft: 'auto', fontSize: 10 }}>
+                    {streaming ? `${history.received} / ${history.total || '…'} 지점` : ''}
                   </span>
+                </div>
+
+                {history.points.length === 0 ? (
+                  <div className="chart-empty">캐릭터의 성장 기록을 불러오고 있어요…</div>
                 ) : (
-                  <span className="mono">변화 지점 {pinCount}개</span>
+                  <TrendChart
+                    points={history.points} range={range} showFragments={showFragments}
+                    interval={interval} anchor={anchor} interactive={selectable} onPick={pick}
+                  />
                 )}
-              </div>
+
+                <div className="chart-footer">
+                  <label className="switch-label">
+                    <input
+                      type="checkbox" checked={compare} disabled={!selectable}
+                      onChange={(event) => { setCompare(event.target.checked); setAnchor(null); }}
+                    />
+                    <span className="switch" aria-hidden="true" />두 시점 비교
+                  </label>
+                  <span className="muted number">
+                    {history.points.length
+                      ? `${dateLabel(history.points[0].date)} — ${dateLabel(history.points[history.points.length - 1].date)}`
+                      : ''}
+                  </span>
+                </div>
+                <p className="selection-hint" role="status">{hint}</p>
+              </section>
+
+              <IntervalPanel interval={interval} points={history.points} summary={detail?.changeSummary ?? null} />
             </div>
 
-            <DeltaPanel interval={interval} points={history.points} detail={detail} loading={detailLoading} error={detailError} hint={hint} />
+            <ChangesPanel
+              interval={interval}
+              summary={detail?.changeSummary ?? null}
+              loading={detailLoading}
+              error={detailError}
+              onRetry={() => setDetailRetry((v) => v + 1)}
+            />
           </>
         )}
-      </div>
-      <NexonNotice />
-    </div>
+
+        <footer>
+          <span>Data based on NEXON Open API</span>
+          <span>MapleDelta <span className="footer-dot">·</span> 성장의 순간을 기록하다</span>
+        </footer>
+      </main>
+    </>
   );
 }

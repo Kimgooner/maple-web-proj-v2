@@ -1,12 +1,15 @@
 import { Link } from 'react-router-dom';
-import { LogoIcon } from './icons';
 import { SearchForm } from './SearchForm';
 
-export function TopBar({ withSearch }: { withSearch?: boolean }) {
+/** 모든 화면 위에 있는 줄. 브랜드와 검색창. */
+export function TopBar() {
   return (
-    <div className="topbar">
-      <Link to="/" className="logo"><LogoIcon /><span>전투력 변화 뷰어</span></Link>
-      {withSearch && <div className="topbar-search"><SearchForm size="sm" placeholder="다른 캐릭터 조회" /></div>}
-    </div>
+    <header className="topbar">
+      <Link to="/" className="brand" aria-label="MapleDelta 홈">
+        <span className="brand-mark" aria-hidden="true">✳</span>MapleDelta
+      </Link>
+      <span className="brand-caption">캐릭터의 변화를 읽다</span>
+      <SearchForm />
+    </header>
   );
 }

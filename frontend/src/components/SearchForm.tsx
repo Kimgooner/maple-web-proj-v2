@@ -1,20 +1,13 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { SearchIcon } from './icons';
 import { pushRecent } from '../lib/recent';
 
-interface Props {
-  size: 'lg' | 'sm';
-  placeholder?: string;
-  autoFocus?: boolean;
-}
-
-export function SearchForm({ size, placeholder = '캐릭터 닉네임', autoFocus }: Props) {
+export function SearchForm({ autoFocus }: { autoFocus?: boolean }) {
   const [value, setValue] = useState('');
   const navigate = useNavigate();
 
-  const submit = (e: FormEvent) => {
-    e.preventDefault();
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
     const name = value.trim();
     if (!name) return;
     pushRecent(name);
@@ -23,17 +16,19 @@ export function SearchForm({ size, placeholder = '캐릭터 닉네임', autoFocu
   };
 
   return (
-    <form className={`search search-${size}`} onSubmit={submit}>
-      <SearchIcon />
+    <form className="search" role="search" onSubmit={submit}>
+      <label className="sr-only" htmlFor="character-input">캐릭터 닉네임</label>
+      <span aria-hidden="true" className="search-icon">⌕</span>
       <input
+        id="character-input"
         value={value}
-        onChange={(e) => setValue(e.target.value)}
-        placeholder={placeholder}
-        autoFocus={autoFocus}
+        onChange={(event) => setValue(event.target.value)}
+        placeholder="캐릭터 닉네임 검색"
         autoComplete="off"
-        aria-label="캐릭터 닉네임"
+        maxLength={30}
+        autoFocus={autoFocus}
       />
-      <button type="submit" className="btn-primary" disabled={!value.trim()}>조회</button>
+      <button type="submit" disabled={!value.trim()}>조회 <span aria-hidden="true">→</span></button>
     </form>
   );
 }

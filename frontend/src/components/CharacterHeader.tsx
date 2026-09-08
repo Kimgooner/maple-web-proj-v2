@@ -1,38 +1,62 @@
 import type { CharacterInfo, HistoryPoint } from '../api/types';
-import { formatNumber } from '../lib/format';
+import { dateLabel, formatNumber, formatPercentChange, formatSigned, shortDate } from '../lib/format';
 import { INCOMPLETE_CLASSES } from '../lib/labels';
-import { PersonIcon } from './icons';
 
 interface Props {
-  info: CharacterInfo;
-  latest: HistoryPoint | null;
+  info: CharacterInfo | null;
+  name: string;
+  points: HistoryPoint[];
+  loading: boolean;
 }
 
-export function CharacterHeader({ info, latest }: Props) {
-  const incomplete = INCOMPLETE_CLASSES.has(info.className);
-  const level = latest?.level ?? info.level;
+function tone(value: number | null): string {
+  if (value == null || value === 0) return 'neutral';
+  return value > 0 ? 'positive' : 'negative';
+}
+
+/** 캐릭터 요약. 이름·실전 전투력·조회 구간 변화 셋을 나란히 둔다. */
+export function CharacterHeader({ info, name, points, loading }: Props) {
+  const valid = points.filter((point) => point.combatPower != null);
+  const first = valid[0];
+  const latest = valid[valid.length - 1];
+  const level = latest?.level ?? info?.level;
+  const meta = [level == null ? null : `Lv. ${level}`, info?.className, info?.guild].filter(Boolean).join(' · ');
+
+  const comparable = !loading && valid.length >= 2;
+  const delta = comparable ? latest.combatPower! - first.combatPower! : null;
 
   return (
-    <div className="card header">
-      <div className="header-left">
-        <div className="avatar">{info.image ? <img src={info.image} alt="" /> : <PersonIcon />}</div>
+    <section className="profile panel" aria-label="캐릭터 요약">
+      <div className="identity">
+        <div className="avatar" aria-hidden="true">
+          {info?.image ? <img src={info.image} alt="" /> : '✦'}
+        </div>
         <div>
-          <div className="header-name">
-            <h1>{info.name}</h1>
-            {info.world && <span className="tag">{info.world}</span>}
-            {incomplete && <span className="tag tag-warn" title="이 직업은 계산식이 아직 완성되지 않아 값이 넥슨과 크게 다를 수 있습니다">계산 정확도 낮음</span>}
+          <div className="name-line">
+            <h1>{info?.name || name}</h1>
+            {info?.world && <span className="world">{info.world}</span>}
           </div>
-          <div className="header-meta">
-            <span>{info.className}</span>
-            {level != null && <><span>·</span><span className="mono">Lv. {level}</span></>}
-            {info.guild && <><span>·</span><span>{info.guild}</span></>}
-          </div>
+          <p className="muted">{meta}</p>
+          {info?.className && INCOMPLETE_CLASSES.has(info.className) && (
+            <span className="warning">계산 정확도 낮음 · {info.className}</span>
+          )}
         </div>
       </div>
-      <div className="header-right">
-        <span className="header-label">실전 전투력 · 계산값</span>
-        <span className="header-cp mono">{latest?.combatPower != null ? formatNumber(latest.combatPower) : '—'}</span>
+
+      <div className="power">
+        <div className="metric-label">실전 전투력 <span className="soft-badge">보스 프리셋 기준</span></div>
+        <strong className="power-number">{latest?.combatPower != null ? formatNumber(latest.combatPower) : '—'}</strong>
+        <small className="muted">{latest ? `${dateLabel(latest.date)} 기준` : '계산 데이터를 기다리고 있어요'}</small>
       </div>
-    </div>
+
+      <div className="period-metric">
+        <div className="metric-label">{loading ? '조회 중' : '조회 구간 변화'}</div>
+        <strong className={tone(delta)}>
+          {comparable ? formatPercentChange(first.combatPower!, latest.combatPower!) : '—'}
+        </strong>
+        <span className={`number ${tone(delta)}`}>{delta != null ? formatSigned(delta) : '—'}</span>
+        <small className="muted">{comparable ? `${shortDate(first.date)} — ${shortDate(latest.date)}` : ''}</small>
+      </div>
+    </section>
   );
 }

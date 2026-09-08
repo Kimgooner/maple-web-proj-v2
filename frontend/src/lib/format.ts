@@ -39,6 +39,19 @@ export function formatStatDelta(statName: string, delta: number): string {
   return `${sign}${body}${PERCENT_STATS.has(statName) ? '%' : ''}`;
 }
 
+/** "2026-09-04" → "2026.09.04" */
+export function dateLabel(date: string): string {
+  return date ? date.replaceAll('-', '.') : '—';
+}
+
+/** "2026-09-04" → "09.04" */
+export function shortDate(date: string): string {
+  return date ? date.slice(5).replace('-', '.') : '—';
+}
+
+/** 차트 축용. formatCompact 의 별칭 — 원본 대시보드가 쓰던 이름이다. */
+export const compact = formatCompact;
+
 /** "2026-09-04" → "9/4", 월간이면 "2026.09" */
 export function formatAxisDate(date: string, range: 'daily' | 'monthly'): string {
   const [y, m, d] = date.split('-');

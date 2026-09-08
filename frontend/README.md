@@ -1,6 +1,11 @@
 # frontend
 
-전투력 변화 뷰어 화면. React + Vite + TypeScript.
+MapleDelta 화면. React + Vite + TypeScript.
+
+디자인은 `src/main/resources/static/index6.html` + `internal-dashboard/` 내부 미리보기에서
+옮겨 왔다. 스타일(`src/index.css`)은 그 `dashboard.css` 를 편 것이고, 컴포넌트가 같은
+클래스 이름을 쓴다. 원본과 다른 점은 둘이다 — 넥슨 전투력을 화면에 두지 않고,
+솔 에르다 조각을 차트의 두 번째 축으로 그린다.
 
 ```bash
 npm install
