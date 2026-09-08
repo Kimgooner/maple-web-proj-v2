@@ -145,8 +145,10 @@ input { font: inherit; color: inherit; }
 
 .group-title { display: flex; align-items: baseline; gap: 10px; margin-top: 8px; font-size: 15px; font-weight: 600; }
 .group-title small { font-size: 12px; font-weight: 400; color: var(--muted); }
-.grid3 { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
-.item-card { display: flex; flex-direction: column; gap: 14px; padding: 18px; }
+/* 카드 폭은 내용에 맞춘다. 고정 칸으로 깔면 짧은 카드가 빈 채로 늘어난다. */
+.grid3 { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-start; }
+/* 세부 스탯이 호버로 빠져 카드가 작아졌다. 이름이 길면 잘라 폭이 끝없이 늘지 않게 한다. */
+.item-card { position: relative; display: flex; flex-direction: column; gap: 12px; padding: 14px 16px; max-width: 340px; }
 .item-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 .item-slot { font-size: 13px; font-weight: 600; }
 .badge { padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.02em; }
@@ -155,42 +157,36 @@ input { font: inherit; color: inherit; }
 .badge-ADDED { background: var(--add); color: #0b1420; }
 .badge-REMOVED { background: var(--down); color: #1f0d0d; }
 .item-body { display: flex; align-items: center; gap: 12px; }
-.item-side { display: flex; align-items: center; gap: 10px; flex: 1 1 0; min-width: 0; }
+.item-side { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .item-side.prev { opacity: 0.6; }
-.item-name { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.item-name { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 124px; }
 .item-side.cur .item-name { font-weight: 500; }
 .icon-box {
   width: 44px; height: 44px; flex-shrink: 0; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--border);
   display: flex; align-items: center; justify-content: center; overflow: hidden;
 }
-.icon-box img { width: 32px; height: 32px; image-rendering: pixelated; }
+.icon-box img { max-width: 32px; max-height: 32px; object-fit: contain; image-rendering: pixelated; }
 /* 스탯 변화는 세로로 쌓는다. 가로로 흘리면 항목이 늘어날수록 어디서 끊기는지 알 수 없다.
    폭은 내용에 맞춘다 - 늘려 놓으면 이름과 값 사이가 비어 보인다. */
 .chips { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; min-width: 0; }
 .chip { display: inline-flex; align-items: baseline; gap: 8px; padding: 5px 10px; border-radius: 6px; background: var(--surface-2); font-size: 12px; max-width: 100%; }
 .chip .label { color: var(--muted); }
-/* 세부 스탯은 접어 둔다. 변화가 많은 구간은 펼쳐 두면 페이지가 한없이 길어진다. */
-.stat-details { position: relative; display: flex; flex-direction: column; gap: 10px; flex: 1 1 200px; min-width: 0; }
-.stat-trigger {
-  display: flex; justify-content: space-between; align-items: center; gap: 12px;
-  padding: 7px 10px; border: 1px dashed var(--border); border-radius: 8px;
-  font-size: 12px; color: var(--muted); cursor: pointer;
-}
-.stat-details.open .stat-trigger { border-style: solid; border-color: var(--muted); color: var(--text); }
-.stat-trigger-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.stat-caret { width: 0; height: 0; flex-shrink: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid currentColor; }
-.stat-details.open .stat-caret { transform: rotate(180deg); }
-/* 트리거에 붙여 둔다 - 사이를 띄우면 마우스가 지나갈 때 닫힌다. */
+/* 세부 내역은 카드에 마우스를 올리면 뜬다. 펼쳐 두면 페이지가 한없이 길어진다.
+   카드 바로 아래(top:100%)에 붙인다 - 사이를 띄우면 마우스가 그 틈을 지날 때 닫힌다. */
 .stat-pop {
-  position: absolute; top: 100%; left: 0; z-index: 20;
-  min-width: 190px; max-width: 320px; margin-top: 4px; padding: 10px;
+  position: absolute; top: 100%; left: 0; z-index: 30;
+  display: none; flex-direction: column; gap: 10px;
+  min-width: 100%; max-width: 320px; width: max-content; padding: 10px 12px;
   border: 1px solid var(--muted); border-radius: 10px; background: var(--surface-2);
-  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.5);
-  display: flex; flex-direction: column; gap: 10px;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.55);
 }
+.item-card:hover > .stat-pop,
+.source-row:hover > .stat-pop { display: flex; }
 .stat-pop-group { display: flex; flex-direction: column; gap: 5px; }
 .stat-pop-title { font-size: 11px; font-weight: 600; color: var(--accent); }
 .stat-pop .chip { background: var(--surface); }
+.pop-entry { display: flex; justify-content: space-between; gap: 14px; font-size: 12px; padding: 4px 8px; border-radius: 6px; background: var(--bg); }
+.pop-entry-name { color: var(--text); }
 
 .source-row { display: flex; align-items: center; gap: 16px; padding: 14px 18px; flex-wrap: wrap; }
 .source-name { width: 120px; font-size: 13px; font-weight: 600; }
@@ -209,13 +205,11 @@ input { font: inherit; color: inherit; }
 
 
 /* 핵심 항목 이름 목록 */
-.source-row { flex-direction: column; align-items: stretch; gap: 10px; }
+.source-row { position: relative; flex-direction: column; align-items: stretch; gap: 10px; }
 .source-head { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
-.entry-list { margin: 0; padding: 0 0 0 4px; list-style: none; display: flex; flex-direction: column; gap: 4px; }
-.entry { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; padding: 4px 8px; border-radius: 6px; background: var(--bg); }
-.entry-name { color: var(--text); }
-.entry-value { color: var(--text); text-align: right; word-break: keep-all; overflow-wrap: anywhere; }
-.entry-name { display: inline-flex; align-items: center; gap: 8px; }
-.entry-icon { width: 24px; height: 24px; border-radius: 5px; background: var(--surface-2); image-rendering: pixelated; flex-shrink: 0; }
+.entry-names { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+/* 유니온 공격대처럼 이름이 통째로 문장인 항목이 있어 줄을 넓히지 않게 자른다. 전체는 title 로 본다. */
+.entry-name { display: inline-flex; align-items: center; gap: 7px; max-width: 240px; font-size: 13px; color: var(--text); padding: 4px 9px; border-radius: 6px; background: var(--bg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.entry-icon { width: 22px; height: 22px; border-radius: 5px; background: var(--surface-2); object-fit: contain; image-rendering: pixelated; flex-shrink: 0; }
 
 /* 조회 팝업 */

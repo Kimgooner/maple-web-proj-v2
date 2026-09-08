@@ -4,7 +4,7 @@ import { sourceLabel } from '../lib/labels';
 import type { Interval } from '../lib/selection';
 import { ArrowRight } from './icons';
 import { ItemChangeCard } from './ItemChangeCard';
-import { StatDetails } from './StatDetails';
+import { StatPop } from './StatPop';
 
 interface Props {
   interval: Interval | null;
@@ -15,27 +15,21 @@ interface Props {
   hint: string;
 }
 
-function EntryList({ entries }: { entries: EntryChange[] }) {
+/** 무엇이 바뀌었는지만. 얼마나 바뀌었는지는 카드에 마우스를 올리면 뜬다. */
+function EntryNames({ entries }: { entries: EntryChange[] }) {
   if (entries.length === 0) return null;
   return (
-    <ul className="entry-list">
+    <div className="entry-names">
       {entries.map((e) => {
         const kind = e.previous == null ? 'added' : e.current == null ? 'removed' : 'changed';
         return (
-          <li className={`entry entry-${kind}`} key={e.name}>
-            <span className="entry-name">
-              {e.icon && <img className="entry-icon" src={e.icon} alt="" />}
-              {e.name}
-            </span>
-            <span className="entry-value mono">
-              {kind === 'added' && <><span className="up">새로 적용</span> {e.current}</>}
-              {kind === 'removed' && <><span className="down">빠짐</span> {e.previous}</>}
-              {kind === 'changed' && <><span className="muted">{e.previous}</span> → {e.current}</>}
-            </span>
-          </li>
+          <span className={`entry-name entry-${kind}`} key={e.name} title={e.name}>
+            {e.icon && <img className="entry-icon" src={e.icon} alt="" />}
+            {e.name}
+          </span>
         );
       })}
-    </ul>
+    </div>
   );
 }
 
@@ -112,9 +106,12 @@ export function DeltaPanel({ interval, points, detail, loading, error, hint }: P
                 <div className="card source-row" key={c.source}>
                   <div className="source-head">
                     <span className="source-name">{sourceLabel(c.source)}</span>
-                    <StatDetails groups={c.deltas.length ? [{ category: '스탯', deltas: c.deltas }] : []} />
+                    <EntryNames entries={c.entries ?? []} />
                   </div>
-                  <EntryList entries={c.entries ?? []} />
+                  <StatPop
+                    groups={c.deltas.length ? [{ category: '스탯', deltas: c.deltas }] : []}
+                    entries={c.entries ?? []}
+                  />
                 </div>
               ))}
             </>
