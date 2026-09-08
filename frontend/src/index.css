@@ -890,10 +890,18 @@ h2 {
   font-size:20px;
 }
 
+/*
+ * 넥슨 아이콘은 크기가 제각각이고 대부분 정사각형이 아니다 (32x23, 23x30, 43x39...).
+ * width/height 를 둘 다 박으면 눌리거나 늘어난다. scale-down 은 상자보다 크면 비율을
+ * 지켜 줄이고, 작으면 원래 크기 그대로 둔다 - 키우면서 생기는 계단도 같이 사라진다.
+ *
+ * image-rendering:pixelated 는 여기 두지 않는다. 정수배가 아닌 확대·축소에 쓰면
+ * 픽셀이 고르지 않게 뭉개져 되레 깨져 보인다. 캐릭터 이미지처럼 크게 키우는 곳만 쓴다.
+ */
 .item-icon img {
   max-width:30px;
   max-height:30px;
-  image-rendering:pixelated;
+  object-fit:scale-down;
 }
 
 .item-title {
@@ -938,7 +946,7 @@ h2 {
   width:18px;
   height:18px;
   flex-shrink:0;
-  image-rendering:pixelated;
+  object-fit:scale-down;
 }
 
 .item-subtitle {
@@ -1110,11 +1118,12 @@ h2 {
   color:#43509b;
 }
 
+/* 42px 상자 안쪽이 36px 이라 흔한 34x34 아이콘은 손대지 않고 그대로 놓인다. */
 .item-card-icon {
-  width:38px;
-  height:38px;
+  width:42px;
+  height:42px;
   flex-shrink:0;
-  image-rendering:pixelated;
+  object-fit:scale-down;
   background:#f5f6f8;
   border:1px solid #eaedf2;
   border-radius:7px;
@@ -1357,7 +1366,7 @@ h2 {
 .entry-label img {
   width:24px;
   height:24px;
-  object-fit:contain;
+  object-fit:scale-down;
 }
 
 .detail-notice:not(:empty) {
