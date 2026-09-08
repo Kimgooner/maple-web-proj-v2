@@ -77,6 +77,8 @@ public class PetParser {
                 EffectTextSplitter.addSplit(effects, type + " " + value);
             }
             StatSheet parsed = statSheetParser.parse(effects);
+            // 펫 장비도 옵션 필드가 없다. 계산이 읽는 그 줄들을 화면에도 그대로 준다.
+            snapShot.setDescriptionLines(List.copyOf(effects));
 
             boolean expired = ExpiryDates.isAnyExpired(referenceDate, slot.petExpire(), equipExpire);
             if (expired) {

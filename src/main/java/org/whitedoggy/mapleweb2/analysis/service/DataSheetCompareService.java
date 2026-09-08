@@ -5,6 +5,7 @@ import org.whitedoggy.mapleweb2.analysis.data.DataSheet;
 import org.whitedoggy.mapleweb2.analysis.data.SourceEntry;
 import org.whitedoggy.mapleweb2.domain.common.stat.StatSheet;
 import org.whitedoggy.mapleweb2.domain.item.data.ItemSnapShot;
+import org.whitedoggy.mapleweb2.domain.item.data.ItemStatLine;
 
 import java.lang.reflect.Field;
 import java.time.LocalDate;
@@ -115,7 +116,7 @@ public class DataSheetCompareService {
             return;
         }
 
-        List<StatDelta> statDeltas = summarizeStatDelta(delta, 3);
+        List<StatDelta> statDeltas = summarizeStatDelta(delta);
         summaries.add(new ChangeSummary(label, statDeltas, entryChanges(label, previous, current), weight(statDeltas)));
     }
 
@@ -302,7 +303,7 @@ public class DataSheetCompareService {
     ) {
         String displaySlot = displaySlot(previousSlot, currentSlot);
         StatSheet delta = statSheet(afterItem, displaySlot + " after").minus(statSheet(beforeItem, displaySlot + " before"));
-        List<StatDelta> deltas = delta.isZero() ? List.of() : summarizeStatDelta(delta, 15);
+        List<StatDelta> deltas = delta.isZero() ? List.of() : summarizeStatDelta(delta);
 
         return new SlotChangeSummary(
                 displaySlot,
@@ -315,8 +316,41 @@ public class DataSheetCompareService {
                 itemIcon(afterItem),
                 deltas,
                 deltaGroups(displaySlot, beforeItem, afterItem),
+                itemDetail(beforeItem),
+                itemDetail(afterItem),
                 weight(deltas)
         );
+    }
+
+    /**
+     * 아이템에 붙어 있는 효과를 원문 그대로, 종류별로 묶어 준다.
+     *
+     * <p>교체는 증감만 보면 무엇이 빠지고 무엇이 붙었는지 알 수 없다 — 잠재 한 줄이 여러
+     * 스탯으로 흩어지기 때문이다. 화면이 두 아이템을 나란히 놓고 읽을 수 있게 원문을 보낸다.
+     */
+    private ItemDetail itemDetail(ItemSnapShot item) {
+        if (item == null) {
+            return null;
+        }
+        return new ItemDetail(
+                item.getItemName(),
+                item.getItemIcon(),
+                item.getStarForce(),
+                item.getScrollUpgrade(),
+                item.getRequiredLevel(),
+                item.getP_grade(),
+                item.getAp_grade(),
+                item.getExpired(),
+                nullToEmpty(item.getStatLines()),
+                nullToEmpty(item.getDescriptionLines()),
+                nullToEmpty(item.getPotentialLines()),
+                nullToEmpty(item.getAdditionalPotentialLines()),
+                nullToEmpty(item.getExceptionalLines())
+        );
+    }
+
+    private <T> List<T> nullToEmpty(List<T> values) {
+        return values == null ? List.of() : List.copyOf(values);
     }
 
     /**
@@ -359,7 +393,7 @@ public class DataSheetCompareService {
         if (delta.isZero()) {
             return;
         }
-        groups.add(new StatDeltaGroup(category, summarizeStatDelta(delta, 15)));
+        groups.add(new StatDeltaGroup(category, summarizeStatDelta(delta)));
     }
 
     private String changeType(ItemSnapShot beforeItem, ItemSnapShot afterItem) {
@@ -409,7 +443,11 @@ public class DataSheetCompareService {
         return previousSlot + " -> " + currentSlot;
     }
 
-    private List<StatDelta> summarizeStatDelta(StatSheet delta, int limit) {
+    /**
+     * 0 이 아닌 스탯을 모두 준다. 자르지 않는다 — 무엇을 보여줄지와 어떤 순서로 놓을지는
+     * 직업을 아는 화면이 정한다. 여기서 셋만 남기면 화면이 되살릴 방법이 없다.
+     */
+    private List<StatDelta> summarizeStatDelta(StatSheet delta) {
         List<StatDelta> deltas = new ArrayList<>();
         for (StatField statField : STAT_FIELDS) {
             double value = readNumericField(delta, statField.fieldName());
@@ -417,11 +455,7 @@ public class DataSheetCompareService {
                 deltas.add(new StatDelta(statField.label(), value));
             }
         }
-
-        return deltas.stream()
-                .sorted((left, right) -> Double.compare(Math.abs(right.delta()), Math.abs(left.delta())))
-                .limit(limit)
-                .toList();
+        return List.copyOf(deltas);
     }
 
     private int weight(List<StatDelta> deltas) {
@@ -494,7 +528,33 @@ public class DataSheetCompareService {
             List<StatDelta> deltas,
             /** 옵션 / 잠재 / 익셉셔널로 나눈 변화. 비어 있는 종류는 빠진다. */
             List<StatDeltaGroup> deltaGroups,
+            /** 게임 아이템 창에 나오는 것들. 교체를 펼쳐 나란히 읽는다. 빈 자리면 null. */
+            ItemDetail previousItem,
+            ItemDetail currentItem,
             int weight
+    ) {
+    }
+
+    /**
+     * 게임 아이템 창 한 장. 잠재·에디셔널·익셉셔널은 넥슨이 준 문구 그대로다 —
+     * 증감으로 바꿔 적으면 한 줄이 여러 스탯으로 흩어져 무엇이 붙어 있었는지가 사라진다.
+     */
+    public record ItemDetail(
+            String name,
+            String icon,
+            Integer starForce,
+            Integer scrollUpgrade,
+            Integer requiredLevel,
+            String potentialGrade,
+            String additionalPotentialGrade,
+            /** 기간이 지나 스탯이 빠졌으면 그 사유. 아직 살아 있으면 null. */
+            String expired,
+            List<ItemStatLine> stats,
+            /** 설명문이 곧 스탯인 것들(칭호). 스탯 줄이 없을 때 이 자리가 채워진다. */
+            List<String> descriptionLines,
+            List<String> potentialLines,
+            List<String> additionalPotentialLines,
+            List<String> exceptionalLines
     ) {
     }
 

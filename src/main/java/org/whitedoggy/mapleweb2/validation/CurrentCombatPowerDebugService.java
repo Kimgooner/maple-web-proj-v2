@@ -2,6 +2,7 @@ package org.whitedoggy.mapleweb2.validation;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.whitedoggy.mapleweb2.domain.common.stat.GameData;
 import org.whitedoggy.mapleweb2.analysis.data.CharacterSnapshot;
 import org.whitedoggy.mapleweb2.analysis.data.DataSheet;
 import org.whitedoggy.mapleweb2.analysis.data.PresetSelection;
@@ -31,6 +32,7 @@ public class CurrentCombatPowerDebugService {
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     private final OcidService ocidService;
+    private final GameData gameData;
     private final SnapshotService snapshotService;
     private final DataSheetService dataSheetService;
     private final BasicParser basicParser;
@@ -81,13 +83,14 @@ public class CurrentCombatPowerDebugService {
     }
 
     private CharacterInfo characterInfo(CharacterSnapshot snapshot) {
-        return new CharacterInfo(
+        return CharacterInfo.of(
                 basicParser.characterName(snapshot.document(NexonEndpoint.BASIC)),
                 basicParser.characterClass(snapshot.document(NexonEndpoint.BASIC)),
                 basicParser.characterLevel(snapshot.document(NexonEndpoint.BASIC)),
                 basicParser.characterGuild(snapshot.document(NexonEndpoint.BASIC)),
                 basicParser.characterWorld(snapshot.document(NexonEndpoint.BASIC)),
-                basicParser.characterImage(snapshot.document(NexonEndpoint.BASIC))
+                basicParser.characterImage(snapshot.document(NexonEndpoint.BASIC)),
+                gameData
         );
     }
 

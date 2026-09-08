@@ -12,6 +12,9 @@ public record ChangeSlotSummary(
         String previousItemIcon,
         String currentItemIcon,
         List<StatDeltaSummary> deltas,
-        List<StatDeltaGroupSummary> deltaGroups
+        List<StatDeltaGroupSummary> deltaGroups,
+        /** 게임 아이템 창에 나오는 것들. 교체를 펼쳐 나란히 읽는다. 빈 자리면 null. */
+        ItemDetailSummary previousItem,
+        ItemDetailSummary currentItem
 ) {
 }

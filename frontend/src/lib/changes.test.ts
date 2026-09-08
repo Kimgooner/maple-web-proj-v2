@@ -16,7 +16,7 @@ describe('changeRows', () => {
 
   it('캐시와 펫은 한 묶음이다', () => {
     const rows = changeRows(summary);
-    expect(rows.filter((row) => row.category === 'other').map((row) => row.label)).toEqual(['캐시']);
+    expect(rows.filter((row) => row.category === 'cash').map((row) => row.label)).toEqual(['캐시']);
   });
 
   it('요약이 없으면 빈 목록이다', () => {

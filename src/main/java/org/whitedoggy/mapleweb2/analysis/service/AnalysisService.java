@@ -8,6 +8,7 @@ import org.whitedoggy.mapleweb2.analysis.data.DataSheet;
 import org.whitedoggy.mapleweb2.analysis.dto.AnalysisCombatPowerResponse;
 import org.whitedoggy.mapleweb2.analysis.dto.AnalysisResponse;
 import org.whitedoggy.mapleweb2.analysis.dto.ChangeSlotSummary;
+import org.whitedoggy.mapleweb2.analysis.dto.ItemDetailSummary;
 import org.whitedoggy.mapleweb2.analysis.dto.ChangeSourceSummary;
 import org.whitedoggy.mapleweb2.analysis.dto.EntryChangeSummary;
 import org.whitedoggy.mapleweb2.analysis.dto.CharacterInfo;
@@ -19,6 +20,7 @@ import org.whitedoggy.mapleweb2.analysis.dto.StatDeltaGroupSummary;
 import org.whitedoggy.mapleweb2.analysis.dto.StatDeltaSummary;
 import org.whitedoggy.mapleweb2.domain.basic.BasicParser;
 import org.whitedoggy.mapleweb2.domain.calculator.parser.StatParser;
+import org.whitedoggy.mapleweb2.domain.common.stat.GameData;
 import org.whitedoggy.mapleweb2.domain.common.stat.StatSheet;
 import org.whitedoggy.mapleweb2.external.nexon.config.NexonEndpoint;
 import org.whitedoggy.mapleweb2.global.Jsons;
@@ -44,6 +46,7 @@ public class AnalysisService {
     private final SnapshotService snapshotService;
     private final BasicParser basicParser;
     private final StatParser statParser;
+    private final GameData gameData;
 
     public Mono<AnalysisResponse> getCombatPower(String characterName, LocalDate date) {
         return ocidService.getOcid(characterName)
@@ -119,13 +122,15 @@ public class AnalysisService {
     }
 
     private CharacterInfo buildCharacterInfo(CharacterSnapshot snapshot) {
-        return new CharacterInfo(
+        String characterClass = basicParser.characterClass(snapshot.document(NexonEndpoint.BASIC));
+        return CharacterInfo.of(
                 basicParser.characterName(snapshot.document(NexonEndpoint.BASIC)),
-                basicParser.characterClass(snapshot.document(NexonEndpoint.BASIC)),
+                characterClass,
                 basicParser.characterLevel(snapshot.document(NexonEndpoint.BASIC)),
                 basicParser.characterGuild(snapshot.document(NexonEndpoint.BASIC)),
                 basicParser.characterWorld(snapshot.document(NexonEndpoint.BASIC)),
-                basicParser.characterImage(snapshot.document(NexonEndpoint.BASIC))
+                basicParser.characterImage(snapshot.document(NexonEndpoint.BASIC)),
+                gameData
         );
     }
 
@@ -251,8 +256,21 @@ public class AnalysisService {
                 changeSummary.previousItemIcon(),
                 changeSummary.currentItemIcon(),
                 changeSummary.deltas().stream().map(this::toStatDeltaSummary).toList(),
-                changeSummary.deltaGroups().stream().map(this::toStatDeltaGroupSummary).toList()
+                changeSummary.deltaGroups().stream().map(this::toStatDeltaGroupSummary).toList(),
+                toItemDetailSummary(changeSummary.previousItem()),
+                toItemDetailSummary(changeSummary.currentItem())
         );
+    }
+
+    private ItemDetailSummary toItemDetailSummary(DataSheetCompareService.ItemDetail item) {
+        if (item == null) {
+            return null;
+        }
+        return new ItemDetailSummary(
+                item.name(), item.icon(), item.starForce(), item.scrollUpgrade(), item.requiredLevel(),
+                item.potentialGrade(), item.additionalPotentialGrade(), item.expired(),
+                item.stats(), item.descriptionLines(),
+                item.potentialLines(), item.additionalPotentialLines(), item.exceptionalLines());
     }
 
     private StatDeltaGroupSummary toStatDeltaGroupSummary(DataSheetCompareService.StatDeltaGroup group) {

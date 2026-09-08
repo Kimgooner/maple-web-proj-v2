@@ -176,6 +176,7 @@ export function CharacterPage() {
 
             <ChangesPanel
               interval={interval}
+              info={info}
               summary={detail?.changeSummary ?? null}
               loading={detailLoading}
               error={detailError}

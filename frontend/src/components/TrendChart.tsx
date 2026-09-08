@@ -23,6 +23,14 @@ const TICKS = 4;
 
 type Scale = ((value: number) => number) & { ticks: number[] };
 
+/** 0 을 바닥에, 완성에 필요한 총량을 천장에 두는 축. 눈금은 백분율이라 값을 담지 않는다. */
+function progressScale(required: number): Scale {
+  const at = ((value: number) =>
+    HEIGHT - BOTTOM - (HEIGHT - TOP - BOTTOM) * Math.min(Math.max(value, 0) / required, 1)) as Scale;
+  at.ticks = [];
+  return at;
+}
+
 /** 값이 하나뿐이거나 모두 같아도 선이 납작해지지 않게 최소 폭을 준다. */
 function scale(values: number[]): Scale {
   const rawMin = values.length ? Math.min(...values) : 0;
@@ -43,9 +51,18 @@ export function TrendChart({ points, range, showFragments, interval, anchor, int
 
   const y = scale(points.map((p) => p.combatPower).filter((v): v is number => v != null));
   const fragValues = points.map((p) => p.solErdaFragments).filter((v): v is number => v != null);
-  const fy = scale(fragValues);
-  // 조각이 한 번도 안 변한 캐릭터(만렙)는 축을 다섯 칸으로 늘려 봐야 같은 숫자만 반복된다.
-  const fragFlat = fragValues.length > 0 && Math.min(...fragValues) === Math.max(...fragValues);
+  /**
+   * 조각 축은 데이터 범위로 확대하지 않는다. 맨 아래가 0, 맨 위가 "가진 코어를 모두
+   * 만렙까지 올리는 데 드는 조각"이다. 범위로 확대하면 100개 올린 것과 3000개 올린 것이
+   * 똑같은 기울기로 보여, 얼마나 왔는지가 아니라 그 구간의 들쭉날쭉함만 남는다.
+   *
+   * 분모는 가장 마지막에 아는 값을 쓴다 — 코어를 새로 열면 분모가 늘어나므로,
+   * 지금 기준으로 그려야 축이 구간마다 흔들리지 않는다.
+   */
+  const required = [...points].reverse()
+    .map((p) => p.solErdaFragmentsRequired)
+    .find((v): v is number => v != null && v > 0) ?? null;
+  const fy = required != null ? progressScale(required) : scale(fragValues);
 
   const line = (pick: (point: HistoryPoint) => number | null, at: Scale): string => {
     let path = '';
@@ -61,8 +78,8 @@ export function TrendChart({ points, range, showFragments, interval, anchor, int
 
   /**
    * 조각은 누적이라 줄지 않는다. 선만 그으면 전투력과 겹쳐 읽기 어려워 아래를 옅게 깐다.
-   * 오른쪽 축이 0부터 시작하지 않으므로 균일하게 채우면 "0부터 쌓인 양"으로 잘못 읽힌다 —
-   * 아래로 사라지는 그라디언트라야 면적이 아니라 강조로 보인다.
+   * 축이 0부터 시작하므로 이 면적은 실제로 "0부터 쌓인 양"이 맞다. 그래도 전투력 선을
+   * 가리지 않게 아래로 사라지는 그라디언트를 쓴다.
    */
   const fragmentRuns = (): { line: string; area: string }[] => {
     const runs: { i: number; v: number }[][] = [];
@@ -102,7 +119,7 @@ export function TrendChart({ points, range, showFragments, interval, anchor, int
           <g key={value}>
             <line x1={LEFT} x2={WIDTH - RIGHT} y1={y(value)} y2={y(value)} stroke="#eef0f4" strokeWidth="1" />
             <text x={LEFT - 10} y={y(value) + 4} textAnchor="end">{compact(Math.round(value))}</text>
-            {showFragments && !fragFlat && (
+            {showFragments && required == null && fy.ticks.length > k && (
               <text className="fragment-axis" x={WIDTH - RIGHT + 10} y={y(value) + 4} textAnchor="start">
                 {formatNumber(Math.round(fy.ticks[k]))}
               </text>
@@ -110,11 +127,16 @@ export function TrendChart({ points, range, showFragments, interval, anchor, int
           </g>
         ))}
 
-        {showFragments && fragFlat && (
-          <text className="fragment-axis" x={WIDTH - RIGHT + 10} y={fy(fragValues[0]) + 4} textAnchor="start">
-            {formatNumber(fragValues[0])}
-          </text>
-        )}
+        {/* 조각 축의 눈금은 전투력 격자와 자리가 다르다. 0%가 바닥에 딱 붙어야 뜻이 산다. */}
+        {showFragments && required != null && [0, 25, 50, 75, 100].map((percent) => (
+          <text
+            key={percent}
+            className="fragment-axis"
+            x={WIDTH - RIGHT + 10}
+            y={HEIGHT - BOTTOM - ((HEIGHT - TOP - BOTTOM) * percent) / 100 + 4}
+            textAnchor="start"
+          >{percent}%</text>
+        ))}
 
         {start != null && end != null && (
           <>
@@ -140,7 +162,10 @@ export function TrendChart({ points, range, showFragments, interval, anchor, int
               <title>
                 {dateLabel(point.date)}
                 {pending ? ' · 불러오는 중' : point.combatPower == null ? ' · 계산 실패' : ` · 전투력 ${point.combatPower.toLocaleString('ko-KR')}`}
-                {point.solErdaFragments != null ? ` · 조각 ${point.solErdaFragments.toLocaleString('ko-KR')}` : ''}
+                {point.solErdaFragments != null
+                  ? ` · 조각 ${point.solErdaFragments.toLocaleString('ko-KR')}${
+                    required != null ? ` (${Math.round((point.solErdaFragments / required) * 100)}%)` : ''}`
+                  : ''}
               </title>
               {point.combatPower != null && (
                 <circle

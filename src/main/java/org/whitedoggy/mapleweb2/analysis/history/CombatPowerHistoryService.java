@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
+import org.whitedoggy.mapleweb2.domain.common.stat.GameData;
 import org.whitedoggy.mapleweb2.analysis.data.CharacterSnapshot;
 import org.whitedoggy.mapleweb2.analysis.data.DataSheet;
 import org.whitedoggy.mapleweb2.analysis.dto.CharacterInfo;
@@ -56,6 +57,7 @@ public class CombatPowerHistoryService {
     private final BasicParser basicParser;
     private final StatParser statParser;
     private final HexaCoreParser hexaCoreParser;
+    private final GameData gameData;
     private final MapleCache cache;
 
     /** 한 번에 다 받는 형태. 차트만 그릴 때 쓴다. */
@@ -184,6 +186,7 @@ public class CombatPowerHistoryService {
                 dataSheet == null ? null : dataSheet.getCombatPower(),
                 apiCombatPower(snapshot),
                 hexaCoreParser.solErdaFragments(hexaMatrix),
+                hexaCoreParser.solErdaFragmentsRequired(hexaMatrix),
                 expired(dataSheet)
         ));
     }
@@ -215,10 +218,10 @@ public class CombatPowerHistoryService {
     /**
      * 계산 규칙이나 지점 모양을 바꾸면 접두사 버전을 올린다. 안 그러면 고친 값이 30일 동안
      * 안 보인다 ({@code maple:datasheet:v5} 와 같은 이유다).
-     * v3 부터 만료 정보가 들어 있다.
+     * v4 부터 조각 진행률의 분모가 들어 있다.
      */
     private static String historyPointCacheKey(String ocid, LocalDate date) {
-        return "maple:history:v3:" + (ocid == null ? "" : ocid.trim()) + ":" + date;
+        return "maple:history:v4:" + (ocid == null ? "" : ocid.trim()) + ":" + date;
     }
 
     private Long apiCombatPower(CharacterSnapshot snapshot) {
@@ -259,13 +262,14 @@ public class CombatPowerHistoryService {
     }
 
     private CharacterInfo characterInfo(JsonNode basic) {
-        return new CharacterInfo(
+        return CharacterInfo.of(
                 basicParser.characterName(basic),
                 basicParser.characterClass(basic),
                 basicParser.characterLevel(basic),
                 basicParser.characterGuild(basic),
                 basicParser.characterWorld(basic),
-                basicParser.characterImage(basic)
+                basicParser.characterImage(basic),
+                gameData
         );
     }
 

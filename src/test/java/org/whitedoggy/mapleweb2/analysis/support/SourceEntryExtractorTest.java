@@ -55,7 +55,11 @@ class SourceEntryExtractorTest {
         assertThat(entries.get("unionRaider")).containsEntry("LUK 증가", SourceEntry.of("100"));
         assertThat(entries.get("unionOccupied")).containsEntry("보스 몬스터 공격 시 데미지 증가", SourceEntry.of("5.00%"));
         assertThat(entries.get("unionArtifact")).containsEntry("올스탯 증가", SourceEntry.of("150 (Lv.10)"));
-        assertThat(entries.get("hexaStat")).containsEntry("코어1 주 주력 스탯 증가", SourceEntry.of("Lv.5"));
+        // 코어 하나가 한 항목이다. 셋을 따로 두면 코어를 갈아 끼웠을 때 세 줄이 각각 바뀐 것처럼 나온다.
+        assertThat(entries.get("hexaStat")).containsEntry("헥사 스탯I", SourceEntry.of("""
+                주옵션 주력 스탯 증가 Lv.5
+                부옵션 공격력 증가 Lv.8
+                부옵션 크리티컬 데미지 증가 Lv.7"""));
         // 전투력에 안 들어가는 달팽이 세마리는 빠지고, 펫 버프 모양의 스킬만 남는다.
         // 값은 설명문이 아니라 파서가 스탯으로 바꾼 결과다.
         assertThat(entries.get("skill")).containsOnly(

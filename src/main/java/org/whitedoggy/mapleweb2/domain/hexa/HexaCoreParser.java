@@ -46,6 +46,21 @@ public class HexaCoreParser {
      * 0은 "6차인데 아직 아무것도 안 올렸다"이고, null은 "모른다"다.
      */
     public Long solErdaFragments(JsonNode hexaMatrix) {
+        // hexa_core_event_level 은 이벤트로 받은 레벨이라 조각이 들지 않았다.
+        return sum(hexaMatrix, (table, core) -> core.path("hexa_core_level").asInt(0));
+    }
+
+    /**
+     * 지금 가진 코어를 모두 만렙까지 올리는 데 드는 조각. 진행률의 분모다.
+     *
+     * <p>가지고 있는 코어만 센다. 3번 스킬 코어를 아직 안 연 캐릭터는 그만큼 분모가 작고,
+     * 여는 날 분모가 늘어난다. 직업마다 코어 수가 달라 상수 하나로는 둘 수 없다.
+     */
+    public Long solErdaFragmentsRequired(JsonNode hexaMatrix) {
+        return sum(hexaMatrix, (table, core) -> table.size());
+    }
+
+    private Long sum(JsonNode hexaMatrix, java.util.function.ToIntBiFunction<List<Integer>, JsonNode> levelOf) {
         if (Jsons.empty(hexaMatrix)) {
             return null;
         }
@@ -68,8 +83,7 @@ public class HexaCoreParser {
             if (table == null) {
                 continue;
             }
-            // hexa_core_event_level 은 이벤트로 받은 레벨이라 조각이 들지 않았다.
-            total += HexaCoreCost.cumulative(table, core.path("hexa_core_level").asInt(0));
+            total += HexaCoreCost.cumulative(table, levelOf.applyAsInt(table, core));
         }
         return total;
     }

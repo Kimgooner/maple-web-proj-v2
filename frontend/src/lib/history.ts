@@ -46,7 +46,7 @@ export function applyHistoryEvent(state: HistoryState, event: HistoryAction): Hi
         ...state,
         status: 'loading',
         meta: event.data,
-        points: dates.map((date) => ({ date, level: null, combatPower: null, apiCombatPower: null, solErdaFragments: null, expired: null })),
+        points: dates.map((date) => ({ date, level: null, combatPower: null, apiCombatPower: null, solErdaFragments: null, solErdaFragmentsRequired: null, expired: null })),
         received: 0,
         total: event.data.plannedCount,
         error: null,

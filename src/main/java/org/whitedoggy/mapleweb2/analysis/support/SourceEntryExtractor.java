@@ -214,16 +214,35 @@ public class SourceEntryExtractor {
             if (core.isEmpty()) continue;
             coreNo += 1;
             JsonNode stat = core.get(0);
-            putHexa(result, coreNo, "주", Jsons.text(stat, "main_stat_name"), stat.path("main_stat_level").asInt(0));
-            putHexa(result, coreNo, "부1", Jsons.text(stat, "sub_stat_name_1"), stat.path("sub_stat_level_1").asInt(0));
-            putHexa(result, coreNo, "부2", Jsons.text(stat, "sub_stat_name_2"), stat.path("sub_stat_level_2").asInt(0));
+            List<String> lines = new ArrayList<>();
+            addHexaLine(lines, "주옵션", Jsons.text(stat, "main_stat_name"), stat.path("main_stat_level").asInt(0));
+            // 부옵션은 1·2 를 가르지 않는다. 자리 번호는 코어가 무엇인지와 아무 상관이 없다.
+            addHexaLine(lines, "부옵션", Jsons.text(stat, "sub_stat_name_1"), stat.path("sub_stat_level_1").asInt(0));
+            addHexaLine(lines, "부옵션", Jsons.text(stat, "sub_stat_name_2"), stat.path("sub_stat_level_2").asInt(0));
+            if (!lines.isEmpty()) {
+                result.put("헥사 스탯" + roman(coreNo), SourceEntry.of(String.join("\n", lines)));
+            }
         }
         return result;
     }
 
-    private void putHexa(Map<String, SourceEntry> target, int coreNo, String role, String name, int level) {
-        if (name.isEmpty()) return;
-        target.put("코어" + coreNo + " " + role + " " + name, SourceEntry.of("Lv." + level));
+    /** 헥사 스탯 코어는 게임에서 로마 숫자로 부른다. 표 밖으로 나가면 아라비아 숫자로 되돌린다. */
+    private static final String[] ROMAN = {"I", "II", "III", "IV", "V", "VI"};
+
+    private String roman(int coreNo) {
+        return coreNo >= 1 && coreNo <= ROMAN.length ? ROMAN[coreNo - 1] : String.valueOf(coreNo);
+    }
+
+    /**
+     * 한 코어의 주·부옵션을 한 항목에 줄로 담는다.
+     *
+     * <p>따로 두면 코어 하나를 갈아 끼웠을 때 세 줄이 각각 바뀐 것처럼 나온다.
+     * 값에 줄바꿈이 들어가므로 변화 판정도 코어 단위로 한 번에 이뤄진다.
+     */
+    private void addHexaLine(List<String> lines, String role, String name, int level) {
+        if (!name.isEmpty()) {
+            lines.add(role + " " + name + " Lv." + level);
+        }
     }
 
     /**

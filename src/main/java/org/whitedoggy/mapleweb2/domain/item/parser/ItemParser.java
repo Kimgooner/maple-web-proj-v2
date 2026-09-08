@@ -9,6 +9,7 @@ import org.whitedoggy.mapleweb2.domain.common.support.EffectTextSplitter;
 import org.whitedoggy.mapleweb2.domain.common.support.ExpiryDates;
 import org.whitedoggy.mapleweb2.domain.item.data.ItemRecord;
 import org.whitedoggy.mapleweb2.domain.item.data.ItemSnapShot;
+import org.whitedoggy.mapleweb2.domain.item.data.ItemStatLine;
 import org.whitedoggy.mapleweb2.domain.item.support.BowNormalization;
 import org.whitedoggy.mapleweb2.domain.item.support.WeaponData;
 import org.whitedoggy.mapleweb2.global.Jsons;
@@ -98,6 +99,8 @@ public class ItemParser {
         List<String> effects = new ArrayList<>();
         EffectTextSplitter.addSplit(effects, description);
         StatSheet parsed = statSheetParser.parse(effects);
+        // 칭호는 옵션 필드가 없다. 계산이 읽는 그 줄들을 화면에도 그대로 준다.
+        snapShot.setDescriptionLines(statLikeLines(effects));
 
         boolean expired = ExpiryDates.isAnyExpired(referenceDate,
                 Jsons.text(item, "date_expire"), Jsons.text(item, "date_option_expire"));
@@ -124,11 +127,19 @@ public class ItemParser {
         /** 잠재도 익셉셔널도 아닌 것 전부. 기본·추가·주문서·스타포스(item_total_option)와 무기 환산·소울·설명. */
         private final List<String> option = new ArrayList<>();
         private final List<String> potential = new ArrayList<>();
+        private final List<String> additionalPotential = new ArrayList<>();
         private final List<String> exceptional = new ArrayList<>();
+
+        /** 잠재와 에디셔널을 합친 것. 계산과 잠재 시트는 예전처럼 둘을 한 덩어리로 본다. */
+        private List<String> allPotential() {
+            List<String> all = new ArrayList<>(potential);
+            all.addAll(additionalPotential);
+            return all;
+        }
 
         private List<String> all() {
             List<String> all = new ArrayList<>(option);
-            all.addAll(potential);
+            all.addAll(allPotential());
             all.addAll(exceptional);
             return all;
         }
@@ -136,17 +147,85 @@ public class ItemParser {
         private void clear() {
             option.clear();
             potential.clear();
+            additionalPotential.clear();
             exceptional.clear();
         }
     }
 
-    /** 잠재·에디셔널을 {@code effects.potential} 로 모은다. */
+    /**
+     * 게임 아이템 창에 나오는 것들을 그대로 담는다. 계산 경로와 아무 상관이 없다 —
+     * 원본 JSON 을 다시 읽어 총합과 내역(기본·추가옵션·주문서·스타포스)을 나눠 둘 뿐이다.
+     *
+     * <p>계산용 {@code effects.option} 을 쓰지 않는 이유는, 거기엔 활 환산·소울처럼
+     * 아이템 창에 없는 우리 쪽 보정이 섞여 있기 때문이다.
+     */
+    private void applyTooltip(ItemSnapShot snapShot, JsonNode item) {
+        JsonNode base = item.path("item_base_option");
+        snapShot.setRequiredLevel(base.path("base_equipment_level").asInt(0));
+        snapShot.setScrollUpgrade(Jsons.optionalInt(item, "scroll_upgrade").orElse(0));
+
+        List<ItemStatLine> lines = new ArrayList<>();
+        for (TooltipStat stat : TOOLTIP_STATS) {
+            int b = optionValue(base, stat.field());
+            int a = optionValue(item.path("item_add_option"), stat.field());
+            int e = optionValue(item.path("item_etc_option"), stat.field());
+            int s = optionValue(item.path("item_starforce_option"), stat.field());
+            int total = optionValue(item.path("item_total_option"), stat.field());
+            if (total == 0 && b == 0 && a == 0 && e == 0 && s == 0) {
+                continue;
+            }
+            lines.add(new ItemStatLine(stat.label(), total, b, a, e, s, stat.percent()));
+        }
+        snapShot.setStatLines(List.copyOf(lines));
+    }
+
+    /**
+     * 숫자가 있는 줄만 남긴다. 설명문에는 스탯과 겉멋 문구가 섞여 있는데
+     * ("꺼지지 않는 불꽃의 힘이 깃든 특별한 반지이다") 값이 있는 줄만 효과다.
+     * 계산은 설명문을 통째로 파싱한다 - 여기서 거르는 것은 화면에 낼 것뿐이다.
+     */
+    private List<String> statLikeLines(List<String> lines) {
+        return lines.stream().filter(line -> line.matches(".*\\d.*")).toList();
+    }
+
+    /** 값이 문자열로 오기도 하고 숫자로 오기도 한다. 없는 필드는 0. */
+    private int optionValue(JsonNode option, String field) {
+        JsonNode value = option.path(field);
+        return value.isMissingNode() || value.isNull() ? 0 : value.asInt(0);
+    }
+
+    private record TooltipStat(String field, String label, boolean percent) {
+    }
+
+    /** 아이템 창에 나오는 차례 그대로. */
+    private static final List<TooltipStat> TOOLTIP_STATS = List.of(
+            new TooltipStat("str", "STR", false),
+            new TooltipStat("dex", "DEX", false),
+            new TooltipStat("int", "INT", false),
+            new TooltipStat("luk", "LUK", false),
+            // 올스탯은 추가옵션으로만 붙는다. 주스탯 바로 아래여야 눈에 걸린다.
+            new TooltipStat("all_stat", "올스탯", true),
+            new TooltipStat("max_hp", "최대 HP", false),
+            new TooltipStat("max_mp", "최대 MP", false),
+            new TooltipStat("attack_power", "공격력", false),
+            new TooltipStat("magic_power", "마력", false),
+            new TooltipStat("armor", "방어력", false),
+            new TooltipStat("speed", "이동속도", false),
+            new TooltipStat("jump", "점프력", false),
+            new TooltipStat("boss_damage", "보스 몬스터 공격 시 데미지", true),
+            new TooltipStat("ignore_monster_armor", "몬스터 방어율 무시", true),
+            new TooltipStat("damage", "데미지", true),
+            new TooltipStat("max_hp_rate", "최대 HP", true),
+            new TooltipStat("max_mp_rate", "최대 MP", true)
+    );
+
+    /** 잠재와 에디셔널을 따로 모은다. 화면이 둘을 갈라 보여준다. */
     private void addPotentials(ItemEffects effects, JsonNode item) {
         for (String option : getPotentialOptions(item)) {
             EffectTextSplitter.addSplit(effects.potential, option);
         }
         for (String option : getAdditionalPotentialOptions(item)) {
-            EffectTextSplitter.addSplit(effects.potential, option);
+            EffectTextSplitter.addSplit(effects.additionalPotential, option);
         }
     }
 
@@ -155,8 +234,12 @@ public class ItemParser {
         StatSheet statSheet = new StatSheet(itemName);
         statSheet.merge(statSheetParser.parse(effects.all()));
         snapShot.setStatSheet(statSheet);
-        snapShot.setPotentialStatSheet(nonZeroOrNull(effects.potential, itemName));
+        snapShot.setPotentialStatSheet(nonZeroOrNull(effects.allPotential(), itemName));
         snapShot.setExceptionalStatSheet(nonZeroOrNull(effects.exceptional, itemName));
+
+        snapShot.setPotentialLines(List.copyOf(effects.potential));
+        snapShot.setAdditionalPotentialLines(List.copyOf(effects.additionalPotential));
+        snapShot.setExceptionalLines(List.copyOf(effects.exceptional));
     }
 
     private StatSheet nonZeroOrNull(List<String> effects, String sheetName) {
@@ -176,7 +259,7 @@ public class ItemParser {
         JsonNode totalOptionNode = item.path("item_total_option");
 
         String p_grade = Jsons.text(item, "potential_option_grade");
-        String ap_grade = Jsons.text(item, "addtional_potential_option_grade");
+        String ap_grade = Jsons.text(item, "additional_potential_option_grade");
 
         ItemSnapShot snapShot = new ItemSnapShot(itemName, itemIcon);
 
@@ -216,6 +299,7 @@ public class ItemParser {
             addPotentials(effects, item);
         }
         applyEffects(snapShot, itemName, effects);
+        applyTooltip(snapShot, item);
 
         return new ItemRecord(itemSlot, snapShot);
     }
@@ -265,6 +349,7 @@ public class ItemParser {
 
         addPotentials(effects, item);
         applyEffects(snapShot, itemName, effects);
+        applyTooltip(snapShot, item);
 
         return new ItemRecord(itemSlot, snapShot);
     }
@@ -280,7 +365,7 @@ public class ItemParser {
         String itemDescription = Jsons.text(item, "item_description");
 
         String p_grade = Jsons.text(item, "potential_option_grade");
-        String ap_grade = Jsons.text(item, "addtional_potential_option_grade");
+        String ap_grade = Jsons.text(item, "additional_potential_option_grade");
 
         ItemSnapShot snapShot = new ItemSnapShot(itemName, itemIcon);
 
@@ -296,6 +381,7 @@ public class ItemParser {
         //다크 크리티컬 링 등 반영.
         EffectTextSplitter.addSplit(effects.option, itemDescription);
         applyEffects(snapShot, itemName, effects);
+        applyTooltip(snapShot, item);
 
         return new ItemRecord(itemSlot, snapShot);
     }

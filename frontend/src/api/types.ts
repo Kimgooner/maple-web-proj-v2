@@ -9,6 +9,12 @@ export interface CharacterInfo {
   guild: string | null;
   world: string | null;
   image: string | null;
+  /** 이 직업의 주스탯 (STR/DEX/INT/LUK). 화면이 남의 직업 스탯 증감을 지운다 */
+  mainStats: string[];
+  /** 부스탯. 직업에 따라 둘 이상일 수 있다 */
+  subStats: string[];
+  /** 마력을 쓰는 직업인가. 공격력·마력 중 어느 쪽을 보여줄지 가른다 */
+  usesMagic: boolean;
 }
 
 export interface HistoryPoint {
@@ -18,6 +24,8 @@ export interface HistoryPoint {
   apiCombatPower: number | null;
   /** HEXA 코어에 그때까지 들어간 솔 에르다 조각. 6차 전이거나 못 받았으면 null */
   solErdaFragments: number | null;
+  /** 가진 코어를 모두 만렙까지 올리는 데 드는 조각. 조각 축 0~100%의 분모 */
+  solErdaFragmentsRequired: number | null;
   /** 기간이 지나 계산에서 빠진 것들. 하나도 없으면 null */
   expired: ExpiredItems | null;
 }
@@ -96,6 +104,36 @@ export interface StatDeltaGroup {
   deltas: StatDelta[];
 }
 
+/** 아이템 창 스탯 한 줄. total = base + add + scroll + starforce */
+export interface ItemStatLine {
+  name: string;
+  total: number;
+  base: number;
+  add: number;
+  scroll: number;
+  starforce: number;
+  percent: boolean;
+}
+
+/** 게임 아이템 창 한 장. 교체를 펼쳐 이전·이후를 나란히 읽는다 */
+export interface ItemDetail {
+  name: string | null;
+  icon: string | null;
+  starForce: number | null;
+  scrollUpgrade: number | null;
+  requiredLevel: number | null;
+  potentialGrade: string | null;
+  additionalPotentialGrade: string | null;
+  /** 기간이 지나 스탯이 빠졌으면 그 사유. 아직 살아 있으면 null */
+  expired: string | null;
+  stats: ItemStatLine[];
+  /** 설명문이 곧 스탯인 것들(칭호). 스탯 줄이 없을 때 이 자리가 채워진다 */
+  descriptionLines: string[];
+  potentialLines: string[];
+  additionalPotentialLines: string[];
+  exceptionalLines: string[];
+}
+
 export interface SlotChange {
   slot: string | null;
   previousSlot: string | null;
@@ -107,6 +145,9 @@ export interface SlotChange {
   currentItemIcon: string | null;
   deltas: StatDelta[];
   deltaGroups: StatDeltaGroup[];
+  /** 게임 아이템 창에 나오는 것들. 교체를 펼쳐 나란히 읽는다. 빈 자리면 null */
+  previousItem: ItemDetail | null;
+  currentItem: ItemDetail | null;
 }
 
 export interface ChangeSummary {

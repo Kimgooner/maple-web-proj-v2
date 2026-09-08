@@ -12,6 +12,8 @@ import java.time.LocalDate;
  * @param solErdaFragments  HEXA 코어에 그때까지 들어간 솔 에르다 조각. 헥사 강화는 전투력에
  *                          잡히지 않아 이 축으로 따로 보여준다. 문서를 못 받았거나 6차 전이면
  *                          null 이고, 0(6차인데 아직 안 올림)과 구분해야 한다.
+ * @param solErdaFragmentsRequired 지금 가진 코어를 모두 만렙까지 올리는 데 드는 조각.
+ *                          화면이 조각 축을 0~100%로 그릴 때의 분모다. 코어를 새로 열면 늘어난다.
  * @param expired           기간이 지나 스탯이 빠진 것들. 화면이 "만료됨"으로 알린다.
  */
 public record CombatPowerHistoryPoint(
@@ -20,6 +22,7 @@ public record CombatPowerHistoryPoint(
         Long combatPower,
         Long apiCombatPower,
         Long solErdaFragments,
+        Long solErdaFragmentsRequired,
         Expired expired
 ) {
     /**

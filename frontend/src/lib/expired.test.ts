@@ -3,7 +3,7 @@ import { expiredLabel, latestExpired } from './expired';
 import type { HistoryPoint } from '../api/types';
 
 const point = (date: string, combatPower: number | null, expired: HistoryPoint['expired'] = null): HistoryPoint =>
-  ({ date, level: 1, combatPower, apiCombatPower: null, solErdaFragments: null, expired });
+  ({ date, level: 1, combatPower, apiCombatPower: null, solErdaFragments: null, solErdaFragmentsRequired: null, expired });
 
 describe('expiredLabel', () => {
   it('만료된 것만 골라 이어 붙인다', () => {
