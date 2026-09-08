@@ -27,7 +27,8 @@
 ```
 
 Caddy 는 TLS 만 맡는다. 정적 파일 서빙과 경로 라우팅 fallback 은 `frontend/nginx.conf`
-에 있고, Spring 은 화면을 서빙하지 않는다 (`/app/` 은 이제 404 가 정상이다).
+에 있고, Spring 은 화면을 서빙하지 않는다 — `/app/` 을 아는 것은 이제 아무도 없어서,
+옛 주소로 들어오면 nginx 가 `index.html` 을 주고 화면이 홈으로 넘긴다.
 SSE 가 실시간으로 흐르려면 Caddy 의 `flush_interval -1` 과 nginx 의
 `proxy_buffering off` 가 둘 다 있어야 한다. 하나라도 빠지면 진행률이 0% 에서
 멈췄다가 한 번에 끝난다.
