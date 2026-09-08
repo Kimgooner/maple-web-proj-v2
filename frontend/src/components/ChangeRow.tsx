@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import type { EntryChange, StatDelta } from '../api/types';
 import type { ChangeRow as Row } from '../lib/changes';
 import { formatStatDelta } from '../lib/format';
@@ -20,6 +21,39 @@ function StatSpans({ deltas, limit = Infinity }: { deltas: StatDelta[]; limit?: 
       ))}
       {deltas.length > limit && <span className="muted">외 {deltas.length - limit}개</span>}
     </>
+  );
+}
+
+/** 오른 것 / 내린 것 / 그대로인 것. 비어 있는 줄은 그리지 않는다. */
+const STAT_SIDES = [
+  { key: 'up', label: '증가', match: (delta: number) => delta > 0 },
+  { key: 'down', label: '감소', match: (delta: number) => delta < 0 },
+  { key: 'flat', label: '유지', match: (delta: number) => delta === 0 },
+];
+
+/**
+ * 펼친 화면의 스탯 묶음. 한 줄에 +와 -를 섞어 늘어놓으면 색만이 둘을 갈라서
+ * 무엇이 깎였는지 세어 봐야 안다. 오른 쪽과 내린 쪽을 줄로 나눠 적는다.
+ */
+function StatChips({ deltas }: { deltas: StatDelta[] }) {
+  return (
+    <div className="stat-split">
+      {STAT_SIDES.map((side) => ({ side, items: deltas.filter((delta) => side.match(delta.delta)) }))
+        .filter(({ items }) => items.length > 0)
+        .map(({ side, items }) => (
+          <Fragment key={side.key}>
+            <span className={`stat-side ${side.key}`}>{side.label}</span>
+            <div className="stat-chips">
+              {items.map((delta) => (
+                <span className={`stat-chip ${side.key}`} key={delta.statName}>
+                  <span className="stat-chip-name">{statLabel(delta.statName)}</span>
+                  <span className="stat-chip-value">{formatStatDelta(delta.statName, delta.delta)}</span>
+                </span>
+              ))}
+            </div>
+          </Fragment>
+        ))}
+    </div>
   );
 }
 
@@ -118,7 +152,15 @@ export function ChangeRow({ row, open, onToggle }: { row: Row; open: boolean; on
    */
   const sameItem = row.kind === 'slot' && row.change.changeType === 'STAT_CHANGED';
   const before = row.kind === 'slot'
-    ? <>{sameItem ? '—' : row.change.previousItemName ?? '미장착'}</>
+    ? (
+      <span className="value-item">
+        {/* 무엇이 빠졌는지는 이름보다 그림이 빠르다. 옵션만 바뀐 줄에는 뺄 것이 없어 안 붙인다. */}
+        {!sameItem && row.change.previousItemIcon && (
+          <img className="value-icon" src={row.change.previousItemIcon} alt="" loading="lazy" />
+        )}
+        {sameItem ? '—' : row.change.previousItemName ?? '미장착'}
+      </span>
+    )
     : entryLines((entry) => entry.previous);
   const after = row.kind === 'slot'
     ? <>{sameItem ? '옵션만 바뀜' : row.change.currentItemName ?? '미장착'}</>
@@ -174,7 +216,7 @@ export function ChangeRow({ row, open, onToggle }: { row: Row; open: boolean; on
         {groups.filter((group) => group.deltas.length > 0).map((group) => (
           <div key={group.category}>
             <h3>{group.category}</h3>
-            <div className="all-stats"><StatSpans deltas={group.deltas} /></div>
+            <StatChips deltas={group.deltas} />
           </div>
         ))}
         {entries.length === 0 && deltas.length === 0 && (

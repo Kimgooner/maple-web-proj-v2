@@ -896,6 +896,20 @@ h2 {
   opacity:.72;
 }
 
+/* 이전 칸의 아이템 그림. 왼쪽 큰 아이콘이 지금 낀 것이므로 이쪽은 작게 둔다. */
+.value-item {
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+}
+
+.value-icon {
+  width:18px;
+  height:18px;
+  flex-shrink:0;
+  image-rendering:pixelated;
+}
+
 .item-subtitle {
   font-size:10px;
   color:#818a97;
@@ -974,17 +988,59 @@ h2 {
   margin-top:0;
 }
 
-.all-stats {
-  display:flex;
-  gap:6px 18px;
-  flex-wrap:wrap;
+/* 오른 것과 내린 것을 줄로 갈라 놓는다. 섞어 놓으면 색으로만 구분해야 한다. */
+.stat-split {
+  display:grid;
+  grid-template-columns:auto 1fr;
+  gap:6px 10px;
+  align-items:start;
 }
 
-.all-stats span {
-  display:inline-flex;
-  gap:7px;
-  align-items:baseline;
+.stat-side {
+  font-size:10px;
+  font-weight:650;
+  line-height:20px;
+  padding:0 7px;
+  border-radius:5px;
+  white-space:nowrap;
 }
+
+.stat-side.up { background:#e8f5ec; color:#1c6b3c; }
+.stat-side.down { background:#fdecea; color:#b23b34; }
+.stat-side.flat { background:#f1f3f5; color:#6d7685; }
+
+.stat-chips {
+  display:flex;
+  flex-wrap:wrap;
+  gap:4px 6px;
+}
+
+.stat-chip {
+  display:inline-flex;
+  align-items:baseline;
+  gap:6px;
+  padding:1px 8px;
+  border-radius:5px;
+  font-size:11px;
+  line-height:18px;
+}
+
+.stat-chip.up { background:#f2faf5; }
+.stat-chip.down { background:#fdf4f3; }
+.stat-chip.flat { background:#f6f7f9; }
+
+.stat-chip-name {
+  color:#6d7685;
+}
+
+.stat-chip-value {
+  font-variant-numeric:tabular-nums;
+  font-weight:650;
+}
+
+.stat-chip.up .stat-chip-value { color:var(--green); }
+.stat-chip.down .stat-chip-value { color:var(--red); }
+.stat-chip.flat .stat-chip-value { color:var(--muted); }
 
 .entry-table {
   width:100%;
