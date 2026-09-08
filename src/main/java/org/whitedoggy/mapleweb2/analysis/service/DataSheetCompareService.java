@@ -171,7 +171,7 @@ public class DataSheetCompareService {
 
         List<SlotChangeSummary> changes = new ArrayList<>();
         for (String slot : all.keySet()) {
-            if (FLEXIBLE_ITEM_SLOTS.contains(slot)) {
+            if (FLEXIBLE_ITEM_SLOTS.contains(bareSlot(slot))) {
                 continue;
             }
 
@@ -238,12 +238,24 @@ public class DataSheetCompareService {
     private List<EquippedItem> equippedItems(Map<String, ItemSnapShot> itemsBySlot, List<String> slots) {
         List<EquippedItem> items = new ArrayList<>();
         for (String slot : slots) {
-            ItemSnapShot itemSnapShot = itemsBySlot.get(slot);
-            if (itemSnapShot != null) {
-                items.add(new EquippedItem(slot, itemSnapShot));
+            for (Map.Entry<String, ItemSnapShot> entry : itemsBySlot.entrySet()) {
+                if (slot.equals(bareSlot(entry.getKey())) && entry.getValue() != null) {
+                    items.add(new EquippedItem(entry.getKey(), entry.getValue()));
+                }
             }
         }
         return items;
+    }
+
+    /**
+     * {@code itemEquip} 의 키는 {@code "장비 - 반지1"} 처럼 접두사가 붙어 온다. 뒤쪽 부위명만 뽑는다.
+     *
+     * <p>화면에 내보내는 슬롯 값은 접두사가 붙은 원래 키 그대로 둔다 — 프런트가 그걸 기대한다.
+     * 여기서 벗기는 것은 어느 부위인지 <b>판정</b>할 때뿐이다.
+     */
+    private static String bareSlot(String key) {
+        int separator = key.lastIndexOf(" - ");
+        return separator < 0 ? key : key.substring(separator + 3);
     }
 
     private EquippedItem findSameItem(EquippedItem beforeItem, List<EquippedItem> afterItems) {
