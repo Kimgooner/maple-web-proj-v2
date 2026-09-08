@@ -520,6 +520,34 @@ h2 {
   cursor:pointer;
 }
 
+/* 지점이 하나씩 도착할 때마다 축이 다시 잡혀 그림 전체가 튄다. 좌표를 짧게 이어 준다.
+   선(d)은 지점이 늘면 명령 수가 달라져 보간되지 않고 그냥 바뀐다 - 튀는 주범인 축과
+   점의 세로 이동만 눅여도 충분히 부드럽다. */
+.chart svg circle {
+  transition:cx .25s ease-out, cy .25s ease-out, r .12s ease-out;
+}
+
+.chart svg line {
+  transition:y1 .25s ease-out, y2 .25s ease-out;
+}
+
+.chart svg text {
+  transition:y .25s ease-out;
+}
+
+.chart svg path {
+  transition:d .25s ease-out;
+}
+
+@media (prefers-reduced-motion:reduce) {
+  .chart svg circle,
+  .chart svg line,
+  .chart svg text,
+  .chart svg path {
+    transition:none;
+  }
+}
+
 .chart svg .chart-point:hover circle,.chart svg .chart-point:focus-visible circle {
   r:6;
   stroke:#c14b17;
@@ -838,10 +866,34 @@ h2 {
 }
 
 .item-title {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
   font-size:12px;
   font-weight:600;
   line-height:1.55;
   overflow-wrap:anywhere;
+}
+
+/* 무엇이 일어났는지는 이름 옆 블럭으로 말한다. 부제에 섞어 쓰면 눈에 안 들어온다. */
+.change-badge {
+  flex-shrink:0;
+  padding:2px 7px;
+  border-radius:5px;
+  font-size:10px;
+  font-weight:650;
+  letter-spacing:-.2px;
+}
+
+.badge-REPLACED { background:#fff0e7; color:#b94612; }
+.badge-STAT_CHANGED { background:#eef1fd; color:#43509b; }
+.badge-ADDED { background:#e8f5ec; color:#1c6b3c; }
+.badge-REMOVED { background:#fdecea; color:#b23b34; }
+
+/* 교체된 경우 이전 아이템은 흐리게 둔다. 지금 낀 것이 무엇인지가 먼저 읽혀야 한다. */
+.row-value.before {
+  opacity:.72;
 }
 
 .item-subtitle {
@@ -957,6 +1009,14 @@ h2 {
 
 .entry-table th:first-child {
   width:40%;
+}
+
+/* 세트 효과 문구처럼 값 한 줄로는 못 담는 설명. 펼친 표에서만 보인다. */
+.entry-detail {
+  margin-top:6px;
+  color:var(--muted);
+  font-size:10px;
+  line-height:1.7;
 }
 
 .entry-label {
@@ -1179,10 +1239,11 @@ footer {
     color:#969da7;
     margin-bottom:3px;
   }
-  .before:before {
+  /* 요약 줄에만 붙인다. 펼친 표의 td.before/.after 까지 걸려 "이전없음" 처럼 붙어 나왔다. */
+  .row-value.before:before {
     content:"이전";
   }
-  .after:before {
+  .row-value.after:before {
     content:"이후";
   }
   .stat-preview {

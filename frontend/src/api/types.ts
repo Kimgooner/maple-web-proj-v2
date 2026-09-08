@@ -78,6 +78,8 @@ export interface EntryChange {
   current: string | null;
   /** 넥슨 아이콘 URL. 스킬·심볼만 있다 */
   icon: string | null;
+  /** 펼쳐 봤을 때 보여줄 여러 줄 설명. 세트 효과 문구 등. 줄바꿈으로 구분된다 */
+  detail: string | null;
 }
 
 export interface SourceChange {

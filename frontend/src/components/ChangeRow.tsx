@@ -23,6 +23,14 @@ function StatSpans({ deltas, limit = Infinity }: { deltas: StatDelta[]; limit?: 
   );
 }
 
+function EntryDetail({ detail }: { detail: string }) {
+  return (
+    <div className="entry-detail">
+      {detail.split('\n').map((line) => <div key={line}>{line}</div>)}
+    </div>
+  );
+}
+
 function EntryTable({ entries }: { entries: EntryChange[] }) {
   return (
     <table className="entry-table">
@@ -38,8 +46,16 @@ function EntryTable({ entries }: { entries: EntryChange[] }) {
                 {entry.name}
               </span>
             </td>
-            <td className="before">{entry.previous ?? '없음'}</td>
-            <td className="after">{entry.current ?? '없음'}</td>
+            {/* 설명은 그 값이 살아 있는 쪽에 붙인다. 사라진 항목의 효과를
+                "없음" 아래에 늘어놓으면 아직 받는 것처럼 읽힌다. */}
+            <td className="before">
+              {entry.previous ?? '없음'}
+              {entry.detail && entry.current == null && <EntryDetail detail={entry.detail} />}
+            </td>
+            <td className="after">
+              {entry.current ?? '없음'}
+              {entry.detail && entry.current != null && <EntryDetail detail={entry.detail} />}
+            </td>
           </tr>
         ))}
       </tbody>
@@ -60,7 +76,7 @@ function bareSlot(slot: string | null): string {
  * <p>펼친 내용은 장비면 옵션·잠재·익셉셔널로 나뉘고, 스킬 같은 핵심이면
  * 항목별 이전·이후 표가 먼저 온다.
  */
-export function ChangeRow({ row }: { row: Row }) {
+export function ChangeRow({ row, open, onToggle }: { row: Row; open: boolean; onToggle: () => void }) {
   const deltas = row.change.deltas ?? [];
   const entries = row.kind === 'source' ? row.change.entries ?? [] : [];
 
@@ -68,7 +84,7 @@ export function ChangeRow({ row }: { row: Row }) {
     ? row.change.currentItemName ?? row.change.previousItemName ?? '이름 없는 항목'
     : sourceLabel(row.change.source);
   const subtitle = row.kind === 'slot'
-    ? `${row.label} · ${bareSlot(row.change.currentSlot ?? row.change.slot ?? row.change.previousSlot)} · ${CHANGE_TYPE_LABELS[row.change.changeType] ?? row.change.changeType}`
+    ? `${row.label} · ${bareSlot(row.change.currentSlot ?? row.change.slot ?? row.change.previousSlot)}`
     : entries.length ? `${entries.length}개 항목 변경` : '스탯 변화';
   const icon = row.kind === 'slot'
     ? row.change.currentItemIcon ?? row.change.previousItemIcon
@@ -95,11 +111,17 @@ export function ChangeRow({ row }: { row: Row }) {
     );
   };
 
+  /**
+   * 옵션 변경은 장비가 그대로고 옵션만 바뀐 것이라, 이전·이후에 같은 이름을 두 번 적으면
+   * 무엇이 바뀌었는지 되레 가려진다. 그 칸은 비우고 "주요 변화" 가 말하게 둔다.
+   * 교체·장착·해제는 무엇이 무엇으로 바뀌었는지가 핵심이라 그대로 적는다.
+   */
+  const sameItem = row.kind === 'slot' && row.change.changeType === 'STAT_CHANGED';
   const before = row.kind === 'slot'
-    ? <>{row.change.previousItemName ?? '미장착'}</>
+    ? <>{sameItem ? '—' : row.change.previousItemName ?? '미장착'}</>
     : entryLines((entry) => entry.previous);
   const after = row.kind === 'slot'
-    ? <>{row.change.currentItemName ?? '미장착'}</>
+    ? <>{sameItem ? '옵션만 바뀜' : row.change.currentItemName ?? '미장착'}</>
     : entryLines((entry) => entry.current);
 
   const groups = row.kind === 'slot' && row.change.deltaGroups?.length
@@ -107,14 +129,29 @@ export function ChangeRow({ row }: { row: Row }) {
     : [{ category: '스탯 증감', deltas }];
 
   return (
-    <details className="change-row">
+    <details
+      className="change-row"
+      open={open}
+      onToggle={(event) => {
+        // 브라우저가 details 를 열고 닫을 때마다 부모에 알린다. 하나만 열어 두려고
+        // 열림 상태를 위에서 들고 있다.
+        if (event.currentTarget.open !== open) onToggle();
+      }}
+    >
       <summary className="change-summary">
         <div className="change-name">
           <span className="item-icon" aria-hidden="true">
             {icon ? <img src={icon} alt="" loading="lazy" /> : row.kind === 'slot' ? '◇' : '✦'}
           </span>
           <div>
-            <div className="item-title">{title}</div>
+            <div className="item-title">
+              {title}
+              {row.kind === 'slot' && (
+                <span className={`change-badge badge-${row.change.changeType}`}>
+                  {CHANGE_TYPE_LABELS[row.change.changeType] ?? row.change.changeType}
+                </span>
+              )}
+            </div>
             <div className="item-subtitle">{subtitle}</div>
           </div>
         </div>

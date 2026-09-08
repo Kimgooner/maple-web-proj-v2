@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ChangeSummary } from '../api/types';
 import type { Interval } from '../lib/selection';
 import { changeRows, type ChangeCategory } from '../lib/changes';
@@ -19,7 +19,12 @@ const FILTERS: [ChangeCategory | 'all', string][] = [
 
 export function ChangesPanel({ interval, summary, loading, error, onRetry }: Props) {
   const [filter, setFilter] = useState<ChangeCategory | 'all'>('all');
+  /** 펼친 줄. 하나를 펼치면 앞서 펼친 것은 닫힌다. */
+  const [openKey, setOpenKey] = useState<string | null>(null);
   const rows = changeRows(summary);
+
+  // 구간이 바뀌면 줄이 통째로 갈리므로 펼친 것을 닫는다.
+  useEffect(() => { setOpenKey(null); }, [interval, summary]);
   const shown = rows.filter((row) => filter === 'all' || row.category === filter);
 
   const notice = error
@@ -66,7 +71,14 @@ export function ChangesPanel({ interval, summary, loading, error, onRetry }: Pro
           <div className="table-head" aria-hidden="true">
             {['변경 항목', '이전', '이후', '주요 변화', ''].map((text, i) => <span key={i}>{text}</span>)}
           </div>
-          {shown.map((row) => <ChangeRow row={row} key={row.key} />)}
+          {shown.map((row) => (
+            <ChangeRow
+              row={row}
+              key={row.key}
+              open={openKey === row.key}
+              onToggle={() => setOpenKey((current) => (current === row.key ? null : row.key))}
+            />
+          ))}
         </div>
       )}
     </section>

@@ -128,12 +128,14 @@ public class DataSheetCompareService {
             SourceEntry old = before.get(entry.getKey());
             String oldValue = old == null ? null : old.value();
             if (!entry.getValue().value().equals(oldValue)) {
-                changes.add(new EntryChange(entry.getKey(), oldValue, entry.getValue().value(), entry.getValue().icon()));
+                changes.add(new EntryChange(entry.getKey(), oldValue, entry.getValue().value(),
+                        entry.getValue().icon(), entry.getValue().detail()));
             }
         }
         for (Map.Entry<String, SourceEntry> entry : before.entrySet()) {
             if (!after.containsKey(entry.getKey())) {
-                changes.add(new EntryChange(entry.getKey(), entry.getValue().value(), null, entry.getValue().icon()));
+                changes.add(new EntryChange(entry.getKey(), entry.getValue().value(), null,
+                        entry.getValue().icon(), entry.getValue().detail()));
             }
         }
         return changes;
@@ -471,8 +473,13 @@ public class DataSheetCompareService {
             String name,
             String previous,
             String current,
-            String icon
+            String icon,
+            /** 펼쳐 봤을 때 보여줄 여러 줄 설명. 지금 상태 기준이고, 사라진 항목이면 이전 것. */
+            String detail
     ) {
+        public EntryChange(String name, String previous, String current, String icon) {
+            this(name, previous, current, icon, null);
+        }
     }
 
     public record SlotChangeSummary(

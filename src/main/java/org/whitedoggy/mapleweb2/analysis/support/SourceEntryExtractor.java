@@ -161,8 +161,29 @@ public class SourceEntryExtractor {
         Map<String, SourceEntry> result = new LinkedHashMap<>();
         if (setEffect == null || presetItems == null) return result;
         setEffectParser.getAppliedSetCounts(setEffect, presetItems, characterClass)
-                .forEach((name, count) -> result.put(name, SourceEntry.of(count + "세트")));
+                .forEach((name, count) -> result.put(
+                        name, new SourceEntry(count + "세트", null, setOptions(setEffect, name, count))));
         return result;
+    }
+
+    /**
+     * 지금 적용 중인 단계까지의 세트 효과 문구. 세트는 낮은 단계 효과가 그대로 쌓이므로
+     * {@code count} 이하 단계를 모두 모은다. 값이 아니라 설명이라 변화 판정에는 쓰이지 않는다.
+     */
+    private String setOptions(JsonNode setEffect, String setName, int count) {
+        List<String> lines = new ArrayList<>();
+        for (JsonNode set : setEffect.path("set_effect")) {
+            if (!setName.equals(Jsons.text(set, "set_name"))) {
+                continue;
+            }
+            for (JsonNode info : set.path("set_effect_info")) {
+                int tier = info.path("set_count").asInt(0);
+                if (tier > 0 && tier <= count) {
+                    lines.add(tier + "세트 " + Jsons.text(info, "set_option").replaceAll("\\s+", " ").trim());
+                }
+            }
+        }
+        return lines.isEmpty() ? null : String.join("\n", lines);
     }
 
     private Map<String, SourceEntry> artifacts(JsonNode artifact) {
