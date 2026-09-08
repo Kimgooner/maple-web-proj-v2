@@ -13,6 +13,7 @@ import org.whitedoggy.mapleweb2.analysis.service.SnapshotService;
 import org.whitedoggy.mapleweb2.analysis.support.CacheTtlPolicy;
 import org.whitedoggy.mapleweb2.domain.basic.BasicParser;
 import org.whitedoggy.mapleweb2.domain.calculator.parser.StatParser;
+import org.whitedoggy.mapleweb2.domain.hexa.HexaCoreParser;
 import org.whitedoggy.mapleweb2.external.nexon.config.NexonEndpoint;
 import org.whitedoggy.mapleweb2.global.Jsons;
 import org.whitedoggy.mapleweb2.global.cache.MapleCache;
@@ -54,6 +55,7 @@ public class CombatPowerHistoryService {
     private final DataSheetService dataSheetService;
     private final BasicParser basicParser;
     private final StatParser statParser;
+    private final HexaCoreParser hexaCoreParser;
     private final MapleCache cache;
 
     /** 한 번에 다 받는 형태. 차트만 그릴 때 쓴다. */
@@ -133,31 +135,46 @@ public class CombatPowerHistoryService {
         // 이미 받아 둔 현재 스냅샷을 그대로 쓴다. 계속 변하는 값이라 캐시하지 않는다.
         if (date.equals(plan.today())) {
             CharacterSnapshot current = plan.current();
-            return Mono.just(toPoint(current, date, combatDataSheet(current)));
+            return hexaMatrix(plan.ocid(), date, false)
+                    .map(hexa -> toPoint(current, date, combatDataSheet(current), hexa));
         }
 
         String cacheKey = historyPointCacheKey(plan.ocid(), date);
         return cache.get(cacheKey, CombatPowerHistoryPoint.class)
                 .map(point -> new Loaded(true, point))
-                .switchIfEmpty(Mono.defer(() -> snapshotService.getSnapshotByOcid(plan.ocid(), date)
-                        .flatMap(snapshot -> loadAndCachePoint(cacheKey, date, snapshot))));
+                .switchIfEmpty(Mono.defer(() -> Mono.zip(
+                                snapshotService.getSnapshotByOcid(plan.ocid(), date),
+                                hexaMatrix(plan.ocid(), date, true))
+                        .flatMap(both -> loadAndCachePoint(cacheKey, date, both.getT1(), both.getT2()))));
+    }
+
+    /**
+     * 헥사 코어 문서. 15종 스냅샷에 넣지 않고 여기서만 부른다 — 조각이 필요한 것은
+     * 추이 차트뿐이라, 스냅샷에 넣으면 monthly·yearly·검증까지 호출이 한 번씩 는다.
+     * 캐시가 비었을 때만 부르므로 실제로 늘어나는 것은 콜드 조회 한 번이다.
+     */
+    private Mono<JsonNode> hexaMatrix(String ocid, LocalDate date, boolean includeDateParam) {
+        return snapshotService.getDocument(NexonEndpoint.HEXA_MATRIX, ocid, date, includeDateParam);
     }
 
     /**
      * 빈 응답은 캐시하지 않는다. 아직 열리지 않은 시점일 수 있는데
      * ({@code takeWhile} 이 여기서 추이를 끊는다) 그걸 굳히면 영영 끊긴 채로 남는다.
      */
-    private Mono<Loaded> loadAndCachePoint(String cacheKey, LocalDate date, CharacterSnapshot snapshot) {
+    private Mono<Loaded> loadAndCachePoint(
+            String cacheKey, LocalDate date, CharacterSnapshot snapshot, JsonNode hexaMatrix) {
         DataSheet dataSheet = combatDataSheet(snapshot);
-        Loaded loaded = toPoint(snapshot, date, dataSheet);
+        Loaded loaded = toPoint(snapshot, date, dataSheet, hexaMatrix);
         if (!loaded.exists()) {
             return Mono.just(loaded);
         }
-        Duration ttl = CacheTtlPolicy.forDataSheet(date, LocalDateTime.now(KST), dataSheet);
+        Duration ttl = CacheTtlPolicy.forHistoryPoint(date, LocalDateTime.now(KST), dataSheet,
+                loaded.point().solErdaFragments() != null);
         return cache.put(cacheKey, loaded.point(), ttl).thenReturn(loaded);
     }
 
-    private Loaded toPoint(CharacterSnapshot snapshot, LocalDate date, DataSheet dataSheet) {
+    private Loaded toPoint(
+            CharacterSnapshot snapshot, LocalDate date, DataSheet dataSheet, JsonNode hexaMatrix) {
         JsonNode basic = snapshot.document(NexonEndpoint.BASIC);
         if (basicParser.characterName(basic).isBlank()) {
             return Loaded.missing();
@@ -166,7 +183,8 @@ public class CombatPowerHistoryService {
                 date,
                 basicParser.characterLevel(basic),
                 dataSheet == null ? null : dataSheet.getCombatPower(),
-                apiCombatPower(snapshot)
+                apiCombatPower(snapshot),
+                hexaCoreParser.solErdaFragments(hexaMatrix)
         ));
     }
 
@@ -183,11 +201,12 @@ public class CombatPowerHistoryService {
     }
 
     /**
-     * 계산 규칙을 바꾸면 접두사 버전을 올린다. 안 그러면 고친 값이 30일 동안 안 보인다
-     * ({@code maple:datasheet:v5} 와 같은 이유다).
+     * 계산 규칙이나 지점 모양을 바꾸면 접두사 버전을 올린다. 안 그러면 고친 값이 30일 동안
+     * 안 보인다 ({@code maple:datasheet:v5} 와 같은 이유다).
+     * v2 부터 솔 에르다 조각이 들어 있다.
      */
     private static String historyPointCacheKey(String ocid, LocalDate date) {
-        return "maple:history:v1:" + (ocid == null ? "" : ocid.trim()) + ":" + date;
+        return "maple:history:v2:" + (ocid == null ? "" : ocid.trim()) + ":" + date;
     }
 
     private Long apiCombatPower(CharacterSnapshot snapshot) {

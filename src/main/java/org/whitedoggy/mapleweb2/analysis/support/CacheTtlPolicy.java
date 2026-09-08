@@ -51,6 +51,19 @@ public final class CacheTtlPolicy {
     }
 
     /**
+     * 추이 지점용. 시트 기준으로 정한 뒤, 헥사 문서를 못 받았으면 짧은 쪽으로 내린다 —
+     * 조각이 빠진 지점을 30일 들고 있으면 그 캐릭터 그래프에 구멍이 굳는다.
+     */
+    public static Duration forHistoryPoint(
+            LocalDate date, LocalDateTime nowKst, DataSheet sheet, boolean hexaLoaded) {
+        Duration ttl = forDataSheet(date, nowKst, sheet);
+        if (hexaLoaded || ttl.compareTo(UNSETTLED) <= 0) {
+            return ttl;
+        }
+        return UNSETTLED;
+    }
+
+    /**
      * 다시 받아도 같은 값이 나올 시트인가.
      *
      * <p>{@code weaponMissing} 을 결손으로 보는 것은, 장비 문서가 빈 채로 200 이 오면

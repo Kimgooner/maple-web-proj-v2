@@ -32,6 +32,18 @@ public class SnapshotService {
         return fetchSnapshot(ocid, date, false);
     }
 
+    /**
+     * 문서 하나만 따로 받는다. 스냅샷 15종에 넣으면 그 문서가 필요 없는 조회
+     * (monthly·yearly·검증)까지 호출이 늘어나므로, 쓰는 쪽에서만 부르게 열어 둔다.
+     *
+     * <p>실패하면 {@code NullNode} 다 — 부르는 쪽이 그 값 없이도 답을 만들 수 있어야 한다.
+     */
+    public Mono<JsonNode> getDocument(NexonEndpoint endpoint, String ocid, LocalDate date, boolean includeDateParam) {
+        return nexonApiClient.get(endpoint, ocid, date, includeDateParam)
+                .retryWhen(retrySpec())
+                .onErrorReturn(nullNode());
+    }
+
     private Mono<CharacterSnapshot> fetchSnapshot(String ocid, LocalDate date, boolean includeDateParam) {
         // 구독마다 새로 만든다. 어느 문서를 못 받았는지는 조립이 끝나야 알 수 있다.
         return Mono.defer(() -> fetchSnapshot(ocid, date, includeDateParam, ConcurrentHashMap.newKeySet()));

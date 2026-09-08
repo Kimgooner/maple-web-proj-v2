@@ -7,6 +7,7 @@ spring:
       - classpath:event-buffs.yml
       - classpath:game-data.yml
       - classpath:challengers-buffs.yml
+      - classpath:hexa-core-cost.yml
 
   profiles:
     active: local

@@ -12,6 +12,7 @@ public enum NexonEndpoint {
     ABILITY("/maplestory/v1/character/ability"),
     SKILL_0("/maplestory/v1/character/skill"),
     HEXA_MATRIX_STAT("/maplestory/v1/character/hexamatrix-stat"),
+    HEXA_MATRIX("/maplestory/v1/character/hexamatrix"),
     OTHER_STAT("/maplestory/v1/character/other-stat"),
     UNION_RAIDER("/maplestory/v1/user/union-raider"),
     UNION_CHAMPION("/maplestory/v1/user/union-champion"),

@@ -51,7 +51,8 @@ jobs:
           ./gradlew --no-daemon test \
             --tests 'org.whitedoggy.mapleweb2.Mapleweb2ApplicationTests' \
             --tests 'org.whitedoggy.mapleweb2.global.*' \
-            --tests 'org.whitedoggy.mapleweb2.analysis.*'
+            --tests 'org.whitedoggy.mapleweb2.analysis.*' \
+            --tests 'org.whitedoggy.mapleweb2.domain.*'
           ./gradlew --no-daemon bootJar
           cp "$(ls build/libs/*.jar | grep -v -- '-plain.jar')" build/app.jar
 

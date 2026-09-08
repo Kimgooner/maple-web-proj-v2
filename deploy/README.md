@@ -39,12 +39,12 @@ SSE 가 실시간으로 흐르려면 Caddy 의 `flush_interval -1` 과 nginx 의
 
 | 키 | 무엇 | 크기 | 쓰는 곳 |
 |---|---|---|---|
-| `maple:history:v1:<ocid>:<date>` | 추이 지점 (레벨·전투력 두 개) | 약 200B | 차트 (SSE) |
+| `maple:history:v2:<ocid>:<date>` | 추이 지점 (레벨·전투력·솔 에르다 조각) | 약 200B | 차트 (SSE) |
 | `maple:datasheet:v5:<ocid>:<date>` | 데이터시트 통째 | 약 43KB | 구간 상세 팝업, monthly·yearly |
 | `maple:ocid:<이름>` | 캐릭터 ocid | 작음 | 전부 |
 
-차트는 숫자 네 개만 필요해서 작은 쪽을 쓴다. 일간 30지점을 다 받아도 6KB 다.
-**계산 규칙을 바꾸면 두 접두사 버전을 같이 올려야 한다** — 안 그러면 고친 값이
+차트는 숫자 몇 개만 필요해서 작은 쪽을 쓴다. 일간 30지점을 다 받아도 6KB 다.
+**계산 규칙(전투력식·헥사 조각표)을 바꾸면 두 접두사 버전을 같이 올려야 한다** — 안 그러면 고친 값이
 30일 동안 안 보인다. 앱은 `MAPLE_CACHE_TYPE=redis` 로 켠다
 (빼면 프로세스 메모리 캐시로 돌아간다 — 롤백 수단이기도 하다).
 지나간 날짜는 넥슨이 같은 값을 주므로 30일, 오늘치는 6시간, 아직 굳지 않은 시점은
@@ -54,7 +54,7 @@ Redis 가 죽어도 앱은 캐시 미스로 넘어가 계속 뜬다 (느려질 �
 - 키 수: `docker compose exec redis redis-cli DBSIZE`
 - 메모리: `docker compose exec redis redis-cli INFO memory`
 - 캐시 비우기: `docker compose exec redis redis-cli FLUSHALL`
-- 종류별 키 보기: `docker compose exec redis redis-cli --scan --pattern 'maple:history:v1:*'`
+- 종류별 키 보기: `docker compose exec redis redis-cli --scan --pattern 'maple:history:v2:*'`
   (`maple:datasheet:v5:*`, `maple:ocid:*` 도 같은 식으로)
 
 데이터시트 한 지점이 약 43KB 라 1GB 면 2만 지점 남짓 들어간다 (추이 지점은 200B 라
