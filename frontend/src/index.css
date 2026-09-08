@@ -172,13 +172,16 @@ input { font: inherit; color: inherit; }
 .chip { display: inline-flex; align-items: baseline; gap: 8px; padding: 5px 10px; border-radius: 6px; background: var(--surface-2); font-size: 12px; max-width: 100%; }
 .chip .label { color: var(--muted); }
 /* 세부 내역은 카드에 마우스를 올리면 뜬다. 펼쳐 두면 페이지가 한없이 길어진다.
-   카드 바로 아래(top:100%)에 붙인다 - 사이를 띄우면 마우스가 그 틈을 지날 때 닫힌다. */
+   좌표는 useHoverPop 이 화면 기준으로 잡아 준다 - 문서 흐름에 두면 카드 아래로 삐져나온
+   만큼 스크롤 영역이 늘어나 화면이 밀린다. 카드의 DOM 자식으로 두어야 팝오버 위로
+   마우스가 넘어가도 카드의 :hover 가 유지된다. */
 .stat-pop {
-  position: absolute; top: 100%; left: 0; z-index: 30;
+  position: fixed; z-index: 30;
   display: none; flex-direction: column; gap: 10px;
-  min-width: 100%; max-width: 320px; width: max-content; padding: 10px 12px;
+  min-width: 190px; max-width: 320px; width: max-content; padding: 10px 12px;
   border: 1px solid var(--muted); border-radius: 10px; background: var(--surface-2);
   box-shadow: 0 14px 30px rgba(0, 0, 0, 0.55);
+  overflow-y: auto; overscroll-behavior: contain;
 }
 .item-card:hover > .stat-pop,
 .source-row:hover > .stat-pop { display: flex; }

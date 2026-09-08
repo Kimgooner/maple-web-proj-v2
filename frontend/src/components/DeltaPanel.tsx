@@ -1,10 +1,11 @@
-import type { DetailResponse, EntryChange, HistoryPoint, SlotChange } from '../api/types';
+import type { DetailResponse, EntryChange, HistoryPoint, SlotChange, SourceChange } from '../api/types';
 import { formatLongDate, formatNumber, formatPercentChange, formatSigned } from '../lib/format';
 import { sourceLabel } from '../lib/labels';
 import type { Interval } from '../lib/selection';
 import { ArrowRight } from './icons';
 import { ItemChangeCard } from './ItemChangeCard';
 import { StatPop } from './StatPop';
+import { useHoverPop } from '../lib/useHoverPop';
 
 interface Props {
   interval: Interval | null;
@@ -44,6 +45,23 @@ function SlotGroup({ title, changes }: { title: string; changes: SlotChange[] })
         {changes.map((c, i) => <ItemChangeCard change={c} key={`${c.slot ?? c.currentSlot ?? c.previousSlot}-${i}`} />)}
       </div>
     </>
+  );
+}
+
+function SourceRow({ change }: { change: SourceChange }) {
+  const { anchor, popStyle, onMouseEnter } = useHoverPop();
+  return (
+    <div className="card source-row" ref={anchor} onMouseEnter={onMouseEnter}>
+      <div className="source-head">
+        <span className="source-name">{sourceLabel(change.source)}</span>
+        <EntryNames entries={change.entries ?? []} />
+      </div>
+      <StatPop
+        groups={change.deltas.length ? [{ category: '스탯', deltas: change.deltas }] : []}
+        entries={change.entries ?? []}
+        style={popStyle}
+      />
+    </div>
   );
 }
 
@@ -102,18 +120,7 @@ export function DeltaPanel({ interval, points, detail, loading, error, hint }: P
           {summary.coreChanges.length > 0 ? (
             <>
               <div className="group-title">핵심<small className="mono">{summary.coreChanges.length}</small></div>
-              {summary.coreChanges.map((c) => (
-                <div className="card source-row" key={c.source}>
-                  <div className="source-head">
-                    <span className="source-name">{sourceLabel(c.source)}</span>
-                    <EntryNames entries={c.entries ?? []} />
-                  </div>
-                  <StatPop
-                    groups={c.deltas.length ? [{ category: '스탯', deltas: c.deltas }] : []}
-                    entries={c.entries ?? []}
-                  />
-                </div>
-              ))}
+              {summary.coreChanges.map((c) => <SourceRow change={c} key={c.source} />)}
             </>
           ) : (
             <div className="group-empty"><b>핵심</b><span>스킬·세트·심볼·유니온 등에 변화 없음</span></div>

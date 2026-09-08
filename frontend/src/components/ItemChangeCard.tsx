@@ -2,6 +2,7 @@ import type { SlotChange } from '../api/types';
 import { CHANGE_TYPE_LABELS } from '../lib/labels';
 import { ArrowRight, ItemPlaceholderIcon } from './icons';
 import { StatPop } from './StatPop';
+import { useHoverPop } from '../lib/useHoverPop';
 
 /** 백엔드 슬롯 키는 "장비 - 무기" 처럼 접두사가 붙는다. 부위명만 남긴다 */
 function bareSlot(slot: string | null): string | null {
@@ -27,8 +28,9 @@ function Side({ icon, name, kind }: { icon: string | null; name: string | null; 
 }
 
 export function ItemChangeCard({ change }: { change: SlotChange }) {
+  const { anchor, popStyle, onMouseEnter } = useHoverPop();
   return (
-    <div className="card item-card">
+    <div className="card item-card" ref={anchor} onMouseEnter={onMouseEnter}>
       <div className="item-head">
         <span className="item-slot">{slotLabel(change)}</span>
         <span className={`badge badge-${change.changeType}`}>{CHANGE_TYPE_LABELS[change.changeType] ?? change.changeType}</span>
@@ -38,7 +40,7 @@ export function ItemChangeCard({ change }: { change: SlotChange }) {
         <ArrowRight />
         <Side icon={change.currentItemIcon} name={change.currentItemName} kind="cur" />
       </div>
-      <StatPop groups={change.deltaGroups ?? []} />
+      <StatPop groups={change.deltaGroups ?? []} style={popStyle} />
     </div>
   );
 }

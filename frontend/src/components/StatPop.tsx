@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import type { EntryChange, StatDelta, StatDeltaGroup } from '../api/types';
 import { formatStatDelta } from '../lib/format';
 import { statLabel } from '../lib/labels';
@@ -6,6 +7,8 @@ interface Props {
   groups: StatDeltaGroup[];
   /** 스킬·심볼처럼 이름 있는 항목의 값 변화. 장비에는 없다 */
   entries?: EntryChange[];
+  /** useHoverPop 이 잡아 준 화면 좌표 */
+  style?: CSSProperties;
 }
 
 function Chip({ delta }: { delta: StatDelta }) {
@@ -37,14 +40,16 @@ function EntryRow({ entry }: { entry: EntryChange }) {
  * 카드 위에 마우스를 올렸을 때 뜨는 세부 내역. 여닫는 것은 CSS 가 맡는다
  * (`.item-card:hover > .stat-pop`) — 카드 어디에 올려도 뜬다.
  *
- * <p>카드 바로 아래에 붙여 둔다. 사이를 띄우면 마우스가 그 틈을 지날 때 닫힌다.
+ * <p>자리는 {@link useHoverPop} 이 화면 좌표로 잡아 준다. 문서 흐름에 두면 카드 아래로
+ * 삐져나온 만큼 스크롤이 늘어나 화면이 밀린다. 카드의 DOM 자식으로 두는 것은 그래야
+ * 팝오버 위로 마우스가 넘어가도 카드의 :hover 가 유지되기 때문이다.
  */
-export function StatPop({ groups, entries = [] }: Props) {
+export function StatPop({ groups, entries = [], style }: Props) {
   const named = entries.filter((entry) => entry.previous !== entry.current);
   if (groups.length === 0 && named.length === 0) return null;
 
   return (
-    <div className="stat-pop" role="group">
+    <div className="stat-pop" role="group" style={style}>
       {named.length > 0 && (
         <div className="stat-pop-group">
           {named.map((entry) => <EntryRow entry={entry} key={entry.name} />)}
