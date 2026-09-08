@@ -27,7 +27,7 @@ export function loadingHistoryState(): HistoryState {
 
 /** 아직 point 가 오지 않은 자리 */
 export function isPending(point: HistoryPoint): boolean {
-  return point.level === null && point.combatPower === null && point.apiCombatPower === null;
+  return point.level === null && point.combatPower === null && point.solErdaFragments === null;
 }
 
 export function applyHistoryEvent(state: HistoryState, event: HistoryEvent): HistoryState {
@@ -38,7 +38,7 @@ export function applyHistoryEvent(state: HistoryState, event: HistoryEvent): His
         ...state,
         status: 'loading',
         meta: event.data,
-        points: dates.map((date) => ({ date, level: null, combatPower: null, apiCombatPower: null })),
+        points: dates.map((date) => ({ date, level: null, combatPower: null, apiCombatPower: null, solErdaFragments: null })),
         received: 0,
         total: event.data.plannedCount,
         error: null,

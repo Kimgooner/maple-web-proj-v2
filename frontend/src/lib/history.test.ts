@@ -21,7 +21,7 @@ describe('applyHistoryEvent', () => {
     let state = applyHistoryEvent(loadingHistoryState(), { type: 'meta', data: meta });
     state = applyHistoryEvent(state, {
       type: 'point',
-      data: { index: 1, total: 3, point: { date: '2026-09-01', level: 290, combatPower: 100, apiCombatPower: 100 } },
+      data: { index: 1, total: 3, point: { date: '2026-09-01', level: 290, combatPower: 100, apiCombatPower: 100, solErdaFragments: 500 } },
     });
     expect(state.points[2].combatPower).toBe(100);
     expect(state.points[1].combatPower).toBeNull();
@@ -40,8 +40,8 @@ describe('applyHistoryEvent', () => {
 describe('latestLoadedPoint', () => {
   it('계산값이 null 인 최신 지점은 건너뛴다', () => {
     const point = latestLoadedPoint([
-      { date: '2026-09-01', level: 1, combatPower: 5, apiCombatPower: 5 },
-      { date: '2026-09-02', level: 1, combatPower: null, apiCombatPower: 7 },
+      { date: '2026-09-01', level: 1, combatPower: 5, apiCombatPower: 5, solErdaFragments: 10 },
+      { date: '2026-09-02', level: 1, combatPower: null, apiCombatPower: 7, solErdaFragments: null },
     ]);
     expect(point?.date).toBe('2026-09-01');
   });

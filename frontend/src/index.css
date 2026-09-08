@@ -11,6 +11,8 @@
   --down: #e07b7b;
   --line: #d6cdb9;
   --api: #6f675a;
+  /* 솔 에르다 조각. 전투력(따뜻한 크림)과 겹쳐 그려도 갈라지게 보라 계열로 둔다. */
+  --frag: #b49cf2;
   --add: #8fb6e0;
   --font: 'IBM Plex Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
   --mono: 'IBM Plex Mono', 'SF Mono', Menlo, monospace;
@@ -111,7 +113,7 @@ input { font: inherit; color: inherit; }
 .legend button { display: inline-flex; align-items: center; gap: 6px; color: inherit; }
 .legend button.off { opacity: 0.45; }
 .swatch { width: 18px; height: 2px; background: var(--line); display: inline-block; }
-.swatch-dash { width: 18px; height: 0; border-top: 2px dashed var(--api); display: inline-block; }
+.swatch-frag { width: 18px; height: 8px; background: var(--frag); opacity: 0.35; border-top: 2px solid var(--frag); display: inline-block; }
 .toggle { display: flex; padding: 3px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; }
 .toggle button { padding: 6px 14px; border-radius: 6px; font-size: 13px; color: var(--muted); }
 .toggle button.on { background: var(--surface-2); color: var(--text); font-weight: 600; }

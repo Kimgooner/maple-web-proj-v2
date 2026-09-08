@@ -21,7 +21,7 @@ export function CharacterPage() {
   const { name = '' } = useParams();
   const [range, setRange] = useState<HistoryRange>('daily');
   const [mode, setMode] = useState<SelectMode>('pin');
-  const [showApi, setShowApi] = useState(true);
+  const [showFragments, setShowFragments] = useState(true);
   const [retry, setRetry] = useState(0);
   // 두 구간을 한 번에 조회해 두고 토글은 보기만 바꾼다.
   const daily = useHistory(name, 'daily', retry);
@@ -89,7 +89,7 @@ export function CharacterPage() {
   const failed = history.status === 'error' && history.error;
   const anyLoading = daily.status === 'loading' || monthly.status === 'loading';
   const loading = !failed && history.status !== 'done';
-  const loaded = history.points.filter((p) => p.combatPower != null || p.apiCombatPower != null).length;
+  const loaded = history.points.filter((p) => p.combatPower != null || p.solErdaFragments != null).length;
   const pinCount = changedDates(history.points).length;
   const hint = mode === 'pin'
     ? pinCount > 0
@@ -141,8 +141,8 @@ export function CharacterPage() {
                 </div>
                 <div className="controls">
                   <div className="legend">
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span className="swatch" />계산값</span>
-                    <button type="button" className={showApi ? '' : 'off'} onClick={() => setShowApi((v) => !v)}><span className="swatch-dash" />넥슨 값</button>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span className="swatch" />전투력</span>
+                    <button type="button" className={showFragments ? '' : 'off'} onClick={() => setShowFragments((v) => !v)}><span className="swatch-frag" />솔 에르다 조각</button>
                   </div>
                   <div className="toggle">
                     {(['pin', 'range'] as SelectMode[]).map((m) => (
@@ -156,7 +156,7 @@ export function CharacterPage() {
               {loaded === 0 ? (
                 <div className="empty">이 구간에는 캐릭터 데이터가 없습니다.</div>
               ) : (
-                <TrendChart points={history.points} range={range} showApi={showApi} mode={mode} interval={interval} anchor={anchor} onPick={onPick} onPin={onPin} />
+                <TrendChart points={history.points} range={range} showFragments={showFragments} mode={mode} interval={interval} anchor={anchor} onPick={onPick} onPin={onPin} />
               )}
 
               <div className="chart-foot">

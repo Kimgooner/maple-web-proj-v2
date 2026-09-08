@@ -16,6 +16,8 @@ export interface HistoryPoint {
   level: number | null;
   combatPower: number | null;
   apiCombatPower: number | null;
+  /** HEXA 코어에 그때까지 들어간 솔 에르다 조각. 6차 전이거나 못 받았으면 null */
+  solErdaFragments: number | null;
 }
 
 export interface HistoryMeta {
