@@ -1,5 +1,6 @@
 package org.whitedoggy.mapleweb2.global.cache;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
@@ -7,7 +8,12 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * 프로세스 안에만 사는 캐시. 기본값이라 로컬과 테스트는 Redis 없이 돈다.
+ * 재시작하면 사라지므로 프로덕션은 {@link RedisMapleCache} 를 쓴다.
+ */
 @Component
+@ConditionalOnProperty(name = "maple.cache.type", havingValue = "memory", matchIfMissing = true)
 public class InMemoryMapleCache implements MapleCache {
     private final Map<String, CacheEntry> cache = new ConcurrentHashMap<>();
 

@@ -1,10 +1,17 @@
 package org.whitedoggy.mapleweb2.domain.common.stat;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * 캐시에 JSON 으로 실려 나가므로 기본 생성자가 필요하다. 필드명이 대문자라
+ * Jackson 이 {@code "STR"} 그대로 읽고 쓴다 — 이름이 바뀌면 옛 캐시 값을 못 읽는다.
+ */
 @Getter
 @Setter
+@NoArgsConstructor
 public class StatSheet {
     private String sheetName = null;
     private int STR = 0;
@@ -189,6 +196,8 @@ public class StatSheet {
         this.FINAL_DAMAGE += other.FINAL_DAMAGE;
     }
 
+    /** 파생 값이라 직렬화하지 않는다. 세터가 없어 되읽을 수도 없다. */
+    @JsonIgnore
     public boolean isZero() {
         return STR == 0
                 && DEX == 0

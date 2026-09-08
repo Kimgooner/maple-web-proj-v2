@@ -107,6 +107,12 @@ public class DataSheet {
      */
     boolean inactiveCharacter;
 
+    /**
+     * 스냅샷을 만들 때 끝내 받지 못한 문서가 있었다. 그만큼 빠진 채로 계산된 값이라
+     * 나중에 다시 받으면 달라질 수 있다. 캐시 TTL 을 짧게 잡는 근거로 쓴다.
+     */
+    boolean incompleteSnapshot;
+
     public void copy(DataSheet other) {
         this.abilityPoint = other.abilityPoint;
         this.symbol = other.symbol;
@@ -140,6 +146,7 @@ public class DataSheet {
         this.weaponMissing = other.weaponMissing;
         this.unknownWeapon = other.unknownWeapon;
         this.inactiveCharacter = other.inactiveCharacter;
+        this.incompleteSnapshot = other.incompleteSnapshot;
     }
 
     public void buildSum(){

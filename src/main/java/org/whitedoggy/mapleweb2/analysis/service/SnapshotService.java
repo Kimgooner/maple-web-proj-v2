@@ -16,6 +16,8 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @RequiredArgsConstructor
@@ -31,24 +33,30 @@ public class SnapshotService {
     }
 
     private Mono<CharacterSnapshot> fetchSnapshot(String ocid, LocalDate date, boolean includeDateParam) {
+        // 구독마다 새로 만든다. 어느 문서를 못 받았는지는 조립이 끝나야 알 수 있다.
+        return Mono.defer(() -> fetchSnapshot(ocid, date, includeDateParam, ConcurrentHashMap.newKeySet()));
+    }
+
+    private Mono<CharacterSnapshot> fetchSnapshot(
+            String ocid, LocalDate date, boolean includeDateParam, Set<NexonEndpoint> missing) {
         return Mono.zip(
-                        fetchBasic(ocid, date, includeDateParam),
-                        fetchStat(ocid, date, includeDateParam),
-                        fetchItemEquipment(ocid, date, includeDateParam),
-                        fetchCashItemEquipment(ocid, date, includeDateParam),
-                        fetchSetEffect(ocid, date, includeDateParam),
-                        fetchSymbolEquipment(ocid, date, includeDateParam),
-                        fetchPetEquipment(ocid, date, includeDateParam),
-                        fetchEndpoint(NexonEndpoint.OTHER_STAT, ocid, date, includeDateParam)
+                        fetchBasic(ocid, date, includeDateParam, missing),
+                        fetchStat(ocid, date, includeDateParam, missing),
+                        fetchItemEquipment(ocid, date, includeDateParam, missing),
+                        fetchCashItemEquipment(ocid, date, includeDateParam, missing),
+                        fetchSetEffect(ocid, date, includeDateParam, missing),
+                        fetchSymbolEquipment(ocid, date, includeDateParam, missing),
+                        fetchPetEquipment(ocid, date, includeDateParam, missing),
+                        fetchEndpoint(NexonEndpoint.OTHER_STAT, ocid, date, includeDateParam, missing)
                 )
                 .zipWith(Mono.zip(
-                        fetchHyperStat(ocid, date, includeDateParam),
-                        fetchAbility(ocid, date, includeDateParam),
-                        fetchSkill0(ocid, date, includeDateParam),
-                        fetchHexaMatrixStat(ocid, date, includeDateParam),
-                        fetchUnionRaider(ocid, date, includeDateParam),
-                        fetchUnionChampion(ocid, date, includeDateParam),
-                        fetchArtifact(ocid, date, includeDateParam)
+                        fetchHyperStat(ocid, date, includeDateParam, missing),
+                        fetchAbility(ocid, date, includeDateParam, missing),
+                        fetchSkill0(ocid, date, includeDateParam, missing),
+                        fetchHexaMatrixStat(ocid, date, includeDateParam, missing),
+                        fetchUnionRaider(ocid, date, includeDateParam, missing),
+                        fetchUnionChampion(ocid, date, includeDateParam, missing),
+                        fetchArtifact(ocid, date, includeDateParam, missing)
                 ))
                 .map(tuple -> {
                     Map<NexonEndpoint, JsonNode> documents = new EnumMap<>(NexonEndpoint.class);
@@ -67,72 +75,94 @@ public class SnapshotService {
                     documents.put(NexonEndpoint.UNION_RAIDER, tuple.getT2().getT5());
                     documents.put(NexonEndpoint.UNION_CHAMPION, tuple.getT2().getT6());
                     documents.put(NexonEndpoint.UNION_ARTIFACT, tuple.getT2().getT7());
-                    return new CharacterSnapshot(ocid, date, documents);
+                    return new CharacterSnapshot(ocid, date, documents, Set.copyOf(missing));
                 });
     }
 
-    private Mono<JsonNode> fetchBasic(String ocid, LocalDate date, boolean includeDateParam) {
-        return fetchEndpoint(NexonEndpoint.BASIC, ocid, date, includeDateParam);
+    private Mono<JsonNode> fetchBasic(String ocid, LocalDate date, boolean includeDateParam, Set<NexonEndpoint> missing) {
+        return fetchEndpoint(NexonEndpoint.BASIC, ocid, date, includeDateParam, missing);
     }
 
-    private Mono<JsonNode> fetchStat(String ocid, LocalDate date, boolean includeDateParam) {
-        return fetchEndpoint(NexonEndpoint.STAT, ocid, date, includeDateParam);
+    private Mono<JsonNode> fetchStat(String ocid, LocalDate date, boolean includeDateParam, Set<NexonEndpoint> missing) {
+        return fetchEndpoint(NexonEndpoint.STAT, ocid, date, includeDateParam, missing);
     }
 
-    private Mono<JsonNode> fetchItemEquipment(String ocid, LocalDate date, boolean includeDateParam) {
-        return fetchEndpoint(NexonEndpoint.ITEM_EQUIPMENT, ocid, date, includeDateParam);
+    private Mono<JsonNode> fetchItemEquipment(String ocid, LocalDate date, boolean includeDateParam, Set<NexonEndpoint> missing) {
+        return fetchEndpoint(NexonEndpoint.ITEM_EQUIPMENT, ocid, date, includeDateParam, missing);
     }
 
-    private Mono<JsonNode> fetchCashItemEquipment(String ocid, LocalDate date, boolean includeDateParam) {
-        return fetchEndpoint(NexonEndpoint.CASH_ITEM_EQUIPMENT, ocid, date, includeDateParam);
+    private Mono<JsonNode> fetchCashItemEquipment(String ocid, LocalDate date, boolean includeDateParam, Set<NexonEndpoint> missing) {
+        return fetchEndpoint(NexonEndpoint.CASH_ITEM_EQUIPMENT, ocid, date, includeDateParam, missing);
     }
 
-    private Mono<JsonNode> fetchSetEffect(String ocid, LocalDate date, boolean includeDateParam) {
-        return fetchEndpoint(NexonEndpoint.SET_EFFECT, ocid, date, includeDateParam);
+    private Mono<JsonNode> fetchSetEffect(String ocid, LocalDate date, boolean includeDateParam, Set<NexonEndpoint> missing) {
+        return fetchEndpoint(NexonEndpoint.SET_EFFECT, ocid, date, includeDateParam, missing);
     }
 
-    private Mono<JsonNode> fetchSymbolEquipment(String ocid, LocalDate date, boolean includeDateParam) {
-        return fetchEndpoint(NexonEndpoint.SYMBOL_EQUIPMENT, ocid, date, includeDateParam);
+    private Mono<JsonNode> fetchSymbolEquipment(String ocid, LocalDate date, boolean includeDateParam, Set<NexonEndpoint> missing) {
+        return fetchEndpoint(NexonEndpoint.SYMBOL_EQUIPMENT, ocid, date, includeDateParam, missing);
     }
 
-    private Mono<JsonNode> fetchPetEquipment(String ocid, LocalDate date, boolean includeDateParam) {
-        return fetchEndpoint(NexonEndpoint.PET_EQUIPMENT, ocid, date, includeDateParam);
+    private Mono<JsonNode> fetchPetEquipment(String ocid, LocalDate date, boolean includeDateParam, Set<NexonEndpoint> missing) {
+        return fetchEndpoint(NexonEndpoint.PET_EQUIPMENT, ocid, date, includeDateParam, missing);
     }
 
-    private Mono<JsonNode> fetchHyperStat(String ocid, LocalDate date, boolean includeDateParam) {
-        return fetchEndpoint(NexonEndpoint.HYPER_STAT, ocid, date, includeDateParam);
+    private Mono<JsonNode> fetchHyperStat(String ocid, LocalDate date, boolean includeDateParam, Set<NexonEndpoint> missing) {
+        return fetchEndpoint(NexonEndpoint.HYPER_STAT, ocid, date, includeDateParam, missing);
     }
 
-    private Mono<JsonNode> fetchAbility(String ocid, LocalDate date, boolean includeDateParam) {
-        return fetchEndpoint(NexonEndpoint.ABILITY, ocid, date, includeDateParam);
+    private Mono<JsonNode> fetchAbility(String ocid, LocalDate date, boolean includeDateParam, Set<NexonEndpoint> missing) {
+        return fetchEndpoint(NexonEndpoint.ABILITY, ocid, date, includeDateParam, missing);
     }
 
-    private Mono<JsonNode> fetchSkill0(String ocid, LocalDate date, boolean includeDateParam) {
+    private Mono<JsonNode> fetchSkill0(String ocid, LocalDate date, boolean includeDateParam, Set<NexonEndpoint> missing) {
         return nexonApiClient.getSkill0(ocid, date, includeDateParam)
                 .retryWhen(retrySpec())
-                .onErrorReturn(nullNode());
+                .onErrorResume(error -> missingDocument(NexonEndpoint.SKILL_0, error, missing));
     }
 
-    private Mono<JsonNode> fetchHexaMatrixStat(String ocid, LocalDate date, boolean includeDateParam) {
-        return fetchEndpoint(NexonEndpoint.HEXA_MATRIX_STAT, ocid, date, includeDateParam);
+    private Mono<JsonNode> fetchHexaMatrixStat(String ocid, LocalDate date, boolean includeDateParam, Set<NexonEndpoint> missing) {
+        return fetchEndpoint(NexonEndpoint.HEXA_MATRIX_STAT, ocid, date, includeDateParam, missing);
     }
 
-    private Mono<JsonNode> fetchUnionRaider(String ocid, LocalDate date, boolean includeDateParam) {
-        return fetchEndpoint(NexonEndpoint.UNION_RAIDER, ocid, date, includeDateParam);
+    private Mono<JsonNode> fetchUnionRaider(String ocid, LocalDate date, boolean includeDateParam, Set<NexonEndpoint> missing) {
+        return fetchEndpoint(NexonEndpoint.UNION_RAIDER, ocid, date, includeDateParam, missing);
     }
 
-    private Mono<JsonNode> fetchUnionChampion(String ocid, LocalDate date, boolean includeDateParam) {
-        return fetchEndpoint(NexonEndpoint.UNION_CHAMPION, ocid, date, includeDateParam);
+    private Mono<JsonNode> fetchUnionChampion(String ocid, LocalDate date, boolean includeDateParam, Set<NexonEndpoint> missing) {
+        return fetchEndpoint(NexonEndpoint.UNION_CHAMPION, ocid, date, includeDateParam, missing);
     }
 
-    private Mono<JsonNode> fetchArtifact(String ocid, LocalDate date, boolean includeDateParam) {
-        return fetchEndpoint(NexonEndpoint.UNION_ARTIFACT, ocid, date, includeDateParam);
+    private Mono<JsonNode> fetchArtifact(String ocid, LocalDate date, boolean includeDateParam, Set<NexonEndpoint> missing) {
+        return fetchEndpoint(NexonEndpoint.UNION_ARTIFACT, ocid, date, includeDateParam, missing);
     }
 
-    private Mono<JsonNode> fetchEndpoint(NexonEndpoint endpoint, String ocid, LocalDate date, boolean includeDateParam) {
+    private Mono<JsonNode> fetchEndpoint(NexonEndpoint endpoint, String ocid, LocalDate date,
+                                         boolean includeDateParam, Set<NexonEndpoint> missing) {
         return nexonApiClient.get(endpoint, ocid, date, includeDateParam)
                 .retryWhen(retrySpec())
-                .onErrorReturn(nullNode());
+                .onErrorResume(error -> missingDocument(endpoint, error, missing));
+    }
+
+    /**
+     * 실패한 문서를 {@code NullNode} 로 채워 나머지 계산을 살린다.
+     *
+     * <p>다만 API 가 4xx 로 "그런 데이터는 없다"고 답한 것은 결손으로 세지 않는다.
+     * 챌린저스 월드 캐릭터의 유니온 챔피언이 그렇고, 다시 물어도 같은 대답이 온다.
+     * 이것까지 결손으로 세면 그 캐릭터는 캐시를 길게 둘 수 없다.
+     */
+    private Mono<JsonNode> missingDocument(NexonEndpoint endpoint, Throwable error, Set<NexonEndpoint> missing) {
+        if (!isAbsent(error)) {
+            missing.add(endpoint);
+        }
+        return Mono.just(nullNode());
+    }
+
+    /** 재시도가 소진돼 감싸인 예외는 여기 걸리지 않는다 — 그건 결손이 맞다. */
+    private boolean isAbsent(Throwable error) {
+        return error instanceof WebClientResponseException response
+                && response.getStatusCode().is4xxClientError()
+                && response.getStatusCode().value() != 429;
     }
 
     private Retry retrySpec() {

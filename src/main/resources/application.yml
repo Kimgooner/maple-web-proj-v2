@@ -11,6 +11,20 @@ spring:
   profiles:
     active: local
 
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+      # 캐시가 죽었을 때 오래 붙들지 않고 미스로 떨어지게 짧게 잡는다.
+      timeout: 2s
+      connect-timeout: 2s
+
+maple:
+  # memory: 프로세스 안에만 사는 캐시 (로컬·테스트 기본).
+  # redis:  재시작에도 남는 캐시. 프로덕션은 MAPLE_CACHE_TYPE=redis 로 켠다.
+  cache:
+    type: ${MAPLE_CACHE_TYPE:memory}
+
 nexon:
   api:
     base-url: https://open.api.nexon.com

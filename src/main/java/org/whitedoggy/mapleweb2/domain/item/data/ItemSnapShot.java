@@ -1,11 +1,14 @@
 package org.whitedoggy.mapleweb2.domain.item.data;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.whitedoggy.mapleweb2.domain.common.stat.StatSheet;
 
+/** 캐시에 JSON 으로 실려 나가므로 기본 생성자가 필요하다. */
 @Setter
 @Getter
+@NoArgsConstructor
 public class ItemSnapShot {
     String itemName;
     String itemIcon;

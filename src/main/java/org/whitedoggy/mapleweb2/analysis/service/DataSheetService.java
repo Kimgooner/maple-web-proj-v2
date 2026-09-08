@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import org.whitedoggy.mapleweb2.analysis.data.CharacterSnapshot;
 import org.whitedoggy.mapleweb2.analysis.data.DataSheet;
 import org.whitedoggy.mapleweb2.analysis.data.PresetSelection;
+import org.whitedoggy.mapleweb2.analysis.support.CacheTtlPolicy;
 import org.whitedoggy.mapleweb2.analysis.support.PresetSelector;
 import org.whitedoggy.mapleweb2.analysis.support.SourceEntryExtractor;
 import org.whitedoggy.mapleweb2.domain.ability.AbilityParser;
@@ -37,8 +38,9 @@ import org.whitedoggy.mapleweb2.global.cache.MapleCache;
 import reactor.core.publisher.Mono;
 import tools.jackson.databind.JsonNode;
 
-import java.time.Duration;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,7 +49,8 @@ import java.util.function.Supplier;
 @Service
 @RequiredArgsConstructor
 public class DataSheetService {
-    private static final Duration DATASHEET_CACHE_TTL = Duration.ofHours(6);
+    /** TTL 을 정할 때 쓰는 "오늘". 넥슨의 날짜 경계와 같은 기준이어야 한다. */
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     private final BasicParser basicParser;
     private final ItemEquipmentParser itemEquipmentParser;
@@ -79,8 +82,13 @@ public class DataSheetService {
             Supplier<Mono<CharacterSnapshot>> snapshotLoader
     ) {
         String cacheKey = dataSheetCacheKey(ocid, date);
-        return cache.getOrLoad(cacheKey, DataSheet.class, DATASHEET_CACHE_TTL,
-                () -> snapshotLoader.get().map(this::getCombatDataSheet));
+        return cache.get(cacheKey, DataSheet.class)
+                .switchIfEmpty(Mono.defer(() -> snapshotLoader.get()
+                        .map(this::getCombatDataSheet)
+                        .flatMap(dataSheet -> cache.put(
+                                cacheKey,
+                                dataSheet,
+                                CacheTtlPolicy.forDataSheet(date, LocalDateTime.now(KST), dataSheet)))));
     }
 
     public DataSheet getCombatDataSheet(CharacterSnapshot snapshot) {
@@ -128,6 +136,7 @@ public class DataSheetService {
         Integer characterLevel = basicParser.characterLevel(basic);
 
         DataSheet dataSheet = getDataSheetFromSnapshot(snapshot.documents(), characterClass, presetSelection, referenceDate);
+        dataSheet.setIncompleteSnapshot(snapshot.hasMissingDocuments());
         long combatPower = combatCalculationService.estimateCombatPower(dataSheet, characterClass, characterLevel);
         combatPower = applyPirateBlessIfBetter(dataSheet, characterClass, characterLevel, combatPower);
         dataSheet.setCombatPower(combatPower);
@@ -489,8 +498,9 @@ public class DataSheetService {
         return statSheetParser.parseNoPercentStat(raiderParser.getUnionRaiderStatByPreset(node, presetNo), "unionRaider");
     }
 
+    /** 직렬화 형식이 바뀌면 접두사 버전을 올려 옛 값과 섞이지 않게 한다. */
     private String dataSheetCacheKey(String ocid, LocalDate date) {
-        return "maple:datasheet:v4:" + normalizeOcid(ocid) + ":" + date;
+        return "maple:datasheet:v5:" + normalizeOcid(ocid) + ":" + date;
     }
 
     private String normalizeOcid(String ocid) {
