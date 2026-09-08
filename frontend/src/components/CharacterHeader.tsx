@@ -11,7 +11,6 @@ interface Props {
 export function CharacterHeader({ info, latest }: Props) {
   const incomplete = INCOMPLETE_CLASSES.has(info.className);
   const level = latest?.level ?? info.level;
-  const apiDiffers = latest?.apiCombatPower != null && latest.combatPower != null && latest.apiCombatPower !== latest.combatPower;
 
   return (
     <div className="card header">
@@ -33,11 +32,6 @@ export function CharacterHeader({ info, latest }: Props) {
       <div className="header-right">
         <span className="header-label">실전 전투력 · 계산값</span>
         <span className="header-cp mono">{latest?.combatPower != null ? formatNumber(latest.combatPower) : '—'}</span>
-        {latest?.apiCombatPower != null && (
-          <span className="header-api mono" title={apiDiffers ? '넥슨 stat 문서는 캐릭터가 접속하지 않으면 그 시점에 멈춥니다. 차이가 나도 오류가 아닙니다.' : undefined}>
-            넥슨 전투력 {formatNumber(latest.apiCombatPower)}
-          </span>
-        )}
       </div>
     </div>
   );
