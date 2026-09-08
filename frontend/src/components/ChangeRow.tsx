@@ -312,9 +312,15 @@ export function ChangeRow({ row, info, open, onToggle }: {
             </span>
           </div>
         )}
-        {/* 바뀐 스탯이 없으면 이 자리는 비운다. "세부 변경 보기" 같은 안내는 셰브런이 이미 하고 있다. */}
+        {/*
+          이동속도처럼 전투력에 안 걸리는 것만 바뀌었거나, 바뀐 것이 이 직업에 안 맞는
+          스탯이라 걸러졌을 때다. "변경 사항 없음"이라고 하면 줄 자체가 왜 있는지
+          말이 안 되므로, 무엇이 없는 것인지를 정확히 적는다.
+        */}
         <div className="stat-preview">
-          {deltas.length > 0 && <StatChips deltas={deltas} />}
+          {deltas.length > 0
+            ? <StatChips deltas={deltas} />
+            : <span className="muted">전투력 변화 요소 없음</span>}
         </div>
         <span className="chevron" aria-hidden="true">›</span>
       </summary>
