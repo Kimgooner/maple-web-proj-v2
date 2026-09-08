@@ -225,6 +225,9 @@ h1,h2,h3,p {
   gap:32px;
   padding:28px;
   margin-bottom:22px;
+  /* 캐릭터는 아바타 네모를 넘어도 되지만 패널 밖으로는 못 나간다. 탈것·날개처럼 폭이
+     큰 코디가 카드 바깥까지 삐져나오면 의도가 아니라 깨진 것으로 보인다. */
+  overflow:hidden;
 }
 
 .identity {
@@ -234,26 +237,54 @@ h1,h2,h3,p {
   min-width:0;
 }
 
+/* 캐릭터 이미지 자리.
+ *
+ * 넥슨이 주는 look 이미지는 300x300 캔버스인데 캐릭터는 가운데 76x78 픽셀만 차지한다
+ * (위 여백 42%, 아래 32%). object-fit:contain 으로 캔버스를 맞추면 캐릭터가 박스의
+ * 4분의 1 크기로 그려져 아주 작아 보인다. 그래서 캔버스를 박스보다 크게 그리고
+ * 발끝을 박스 바닥에 맞춘다 - 캐릭터가 박스를 채우고, 머리가 긴 코디는 위로 넘친다.
+ *
+ * 넘치는 부분을 보여주려고 overflow 를 열어 두었으므로 배경 네모는 ::before 로 따로 깐다.
+ */
 .avatar {
+  position:relative;
   width:110px;
   height:112px;
-  border-radius:12px;
-  background:radial-gradient(circle at 50% 35%,#fff8f1,#ffe8d7);
-  border:1px solid #ffdac1;
   display:flex;
   align-items:center;
   justify-content:center;
   flex-shrink:0;
   color:#e99556;
   font-size:44px;
-  overflow:hidden;
+  /* 위와 옆으로는 넘치게 두고 아래만 박스에서 자른다. 실측 18명 중 둘은 탈것·이펙트가
+     발끝 아래로 캔버스 92% 지점까지 늘어져 있어, 안 자르면 아래 글자를 덮는다. */
+  clip-path:inset(-150% -100% 0 -100%);
 }
 
+.avatar::before {
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius:12px;
+  background:radial-gradient(circle at 50% 35%,#fff8f1,#ffe8d7);
+  border:1px solid #ffdac1;
+}
+
+/* 실측: 캔버스에서 캐릭터는 세로 25.3% 를 차지하고 발끝이 67.3% 지점에 온다.
+ * 335% 로 그리면 보통 체형이 박스 높이의 85% 가 되어 위아래로 여백이 남고,
+ * -134% 로 올리면 발끝이 바닥에서 8% 위에 놓인다. 머리가 긴 코디는 이 여백을
+ * 넘겨 박스 위로 삐져나온다 - 그러라고 남긴 여백이다.
+ * 둘 다 박스 높이 기준이라 화면 크기가 바뀌어도 비율이 따라간다. */
 .avatar img {
-  width:100%;
-  height:100%;
-  object-fit:contain;
+  position:absolute;
+  top:-134%;
+  left:50%;
+  transform:translateX(-50%);
+  height:335%;
+  width:auto;
+  max-width:none;
   image-rendering:pixelated;
+  pointer-events:none;
 }
 
 .name-line {
