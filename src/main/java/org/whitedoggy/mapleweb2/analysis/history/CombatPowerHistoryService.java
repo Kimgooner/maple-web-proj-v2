@@ -110,8 +110,7 @@ public class CombatPowerHistoryService {
 
                     return Flux.concat(Flux.just(meta), points, done);
                 })
-                .onErrorResume(error -> Flux.just(event("error",
-                        new HistoryEvents.Error(message(error)))));
+                .onErrorResume(error -> Flux.just(event("error", errorEvent(error))));
     }
 
     /** 최신 → 과거 순으로 지점을 만든다. 빈 응답을 만나면 그 앞까지만 내보낸다. */
@@ -223,7 +222,7 @@ public class CombatPowerHistoryService {
         return ocidService.getOcid(characterName)
                 // 없는 이름이면 넥슨이 400 을 준다. 업스트림 URL 이 그대로 새어 나가지 않게 바꾼다.
                 .onErrorMap(CombatPowerHistoryService::unknownCharacter,
-                        error -> new IllegalArgumentException("캐릭터를 찾을 수 없습니다: " + characterName))
+                        error -> new CharacterNotFoundException(characterName))
                 .flatMap(ocid -> snapshotService.getCurrentSnapshotByOcid(ocid, today)
                         .map(current -> buildPlan(ocid, range, today, current)));
     }
@@ -255,6 +254,11 @@ public class CombatPowerHistoryService {
                 basicParser.characterWorld(basic),
                 basicParser.characterImage(basic)
         );
+    }
+
+    private HistoryEvents.Error errorEvent(Throwable error) {
+        String code = error instanceof CharacterNotFoundException ? "NOT_FOUND" : "ERROR";
+        return new HistoryEvents.Error(code, message(error));
     }
 
     private String message(Throwable error) {

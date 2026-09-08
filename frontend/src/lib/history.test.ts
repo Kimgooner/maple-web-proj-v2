@@ -31,7 +31,7 @@ describe('applyHistoryEvent', () => {
   it('done 은 상태를 끝내고, error 는 메시지를 남긴다', () => {
     let state = applyHistoryEvent(loadingHistoryState(), { type: 'meta', data: meta });
     expect(applyHistoryEvent(state, { type: 'done', data: { loadedCount: 3, truncated: true, truncatedFrom: null } }).status).toBe('done');
-    state = applyHistoryEvent(state, { type: 'error', data: { message: '없음' } });
+    state = applyHistoryEvent(state, { type: 'error', data: { code: 'ERROR', message: '없음' } });
     expect(state.status).toBe('error');
     expect(state.error).toBe('없음');
   });

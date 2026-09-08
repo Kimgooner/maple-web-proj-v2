@@ -36,7 +36,7 @@ export function openHistoryStream(
 
   source.onerror = () => {
     if (closed) return;
-    onEvent({ type: 'error', data: { message: '서버와의 연결이 끊어졌습니다.' } });
+    onEvent({ type: 'error', data: { code: 'ERROR', message: '서버와의 연결이 끊어졌습니다.' } });
     close();
   };
 

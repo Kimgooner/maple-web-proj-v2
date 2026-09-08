@@ -45,6 +45,8 @@ export interface HistoryDone {
 }
 
 export interface HistoryError {
+  /** 'NOT_FOUND' 면 없는 캐릭터. 그 밖의 실패는 'ERROR' */
+  code: string;
   message: string;
 }
 

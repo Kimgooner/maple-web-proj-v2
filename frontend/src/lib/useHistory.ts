@@ -9,7 +9,7 @@ export function useHistory(name: string, range: HistoryRange, retry: number): Hi
 
   useEffect(() => {
     if (!name) return;
-    dispatch({ type: 'error', data: { message: '' } }); // 이전 상태 지우기용. 바로 meta 가 덮어쓴다
+    dispatch({ type: 'reset' });
     return openHistoryStream(name, range, dispatch);
   }, [name, range, retry]);
 

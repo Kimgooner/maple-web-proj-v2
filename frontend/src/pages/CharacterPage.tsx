@@ -4,7 +4,6 @@ import { fetchDetail } from '../api/detail';
 import type { DetailResponse, HistoryRange } from '../api/types';
 import { CharacterHeader } from '../components/CharacterHeader';
 import { DeltaPanel } from '../components/DeltaPanel';
-import { LoadingOverlay } from '../components/LoadingOverlay';
 import { NexonNotice } from '../components/NexonNotice';
 import { TopBar } from '../components/TopBar';
 import { TrendChart, type SelectMode } from '../components/TrendChart';
@@ -86,10 +85,14 @@ export function CharacterPage() {
 
   const info = history.meta?.characterInfo ?? null;
   const latest = latestLoadedPoint(history.points);
-  const failed = history.status === 'error' && history.error;
-  const anyLoading = daily.status === 'loading' || monthly.status === 'loading';
-  const loading = !failed && history.status !== 'done';
+  // 없는 이름은 실패가 아니라 "그런 캐릭터가 없다"로 보여준다. 어느 구간에서 걸리든 같다.
+  const notFound = daily.errorCode === 'NOT_FOUND' || monthly.errorCode === 'NOT_FOUND';
+  const failed = !notFound && history.status === 'error' && history.error;
+  const streaming = history.status === 'loading';
   const loaded = history.points.filter((p) => p.combatPower != null || p.solErdaFragments != null).length;
+  // 지점을 하나도 못 받고 끝난 경우에만 비었다고 한다. 받는 중에는 아직 모른다.
+  const noData = history.status === 'done' && loaded === 0;
+  const progress = history.total > 0 ? Math.min(100, Math.round((history.received / history.total) * 100)) : 0;
   const pinCount = changedDates(history.points).length;
   const hint = mode === 'pin'
     ? pinCount > 0
@@ -111,6 +114,16 @@ export function CharacterPage() {
     <div>
       <TopBar withSearch />
       <div className="page">
+        {notFound && (
+          <div className="card header header-missing">
+            <div>
+              <div className="header-name"><h1>{name}</h1></div>
+              <div className="header-meta">그런 이름의 캐릭터가 없습니다. 철자를 확인해 주세요.</div>
+            </div>
+            <Link to="/" className="chip-btn">처음으로</Link>
+          </div>
+        )}
+
         {failed && (
           <div className="card error-box">
             <span>{history.error}</span>
@@ -121,17 +134,11 @@ export function CharacterPage() {
           </div>
         )}
 
-        {anyLoading && (
-          <LoadingOverlay name={name} states={{ daily, monthly }} labels={RANGE_LABEL} />
-        )}
-
-        {loading && !anyLoading && (
-          <div className="skeleton" style={{ height: 134 }} />
-        )}
-
-        {!failed && !loading && info && (
+        {!notFound && !failed && (
           <>
-            <CharacterHeader info={info} latest={latest} />
+            {info
+              ? <CharacterHeader info={info} latest={latest} />
+              : <div className="skeleton" style={{ height: 134 }} />}
 
             <div className="card">
               <div className="section-head">
@@ -153,8 +160,10 @@ export function CharacterPage() {
                 </div>
               </div>
 
-              {loaded === 0 ? (
+              {noData ? (
                 <div className="empty">이 구간에는 캐릭터 데이터가 없습니다.</div>
+              ) : history.points.length === 0 ? (
+                <div className="skeleton" style={{ height: 240, margin: '8px' }} />
               ) : (
                 <TrendChart points={history.points} range={range} showFragments={showFragments} mode={mode} interval={interval} anchor={anchor} onPick={onPick} onPin={onPin} />
               )}
@@ -165,7 +174,14 @@ export function CharacterPage() {
                     ? `${formatLongDate(history.meta.truncatedFrom)} 이전은 캐릭터가 없어 잘렸습니다.`
                     : ' '}
                 </span>
-                <span className="mono">변화 지점 {pinCount}개</span>
+                {streaming ? (
+                  <span className="progress">
+                    <span className="progress-bar"><span style={{ width: `${progress}%` }} /></span>
+                    <span className="mono">{history.received}/{history.total || '…'}</span>
+                  </span>
+                ) : (
+                  <span className="mono">변화 지점 {pinCount}개</span>
+                )}
               </div>
             </div>
 

@@ -39,7 +39,12 @@ public final class HistoryEvents {
     public record Done(int loadedCount, boolean truncated, LocalDate truncatedFrom) {
     }
 
-    /** 실패. 스트림은 이 이벤트를 끝으로 정상 종료한다. */
-    public record Error(String message) {
+    /**
+     * 실패. 스트림은 이 이벤트를 끝으로 정상 종료한다.
+     *
+     * @param code {@code NOT_FOUND} 면 없는 캐릭터라 화면이 따로 그린다. 그 밖은 {@code ERROR}.
+     *             문구를 문자열로 비교하지 않도록 코드를 따로 준다.
+     */
+    public record Error(String code, String message) {
     }
 }

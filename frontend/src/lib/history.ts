@@ -2,6 +2,9 @@ import type { HistoryEvent, HistoryMeta, HistoryPoint } from '../api/types';
 
 export type HistoryStatus = 'idle' | 'loading' | 'done' | 'error';
 
+/** 스트림을 새로 열기 전 상태를 비운다. 이름이나 재시도가 바뀔 때. */
+export type HistoryAction = HistoryEvent | { type: 'reset' };
+
 export interface HistoryState {
   status: HistoryStatus;
   meta: HistoryMeta | null;
@@ -10,6 +13,8 @@ export interface HistoryState {
   received: number;
   total: number;
   error: string | null;
+  /** 'NOT_FOUND' 면 없는 캐릭터라 화면이 따로 그린다 */
+  errorCode: string | null;
 }
 
 export const initialHistoryState: HistoryState = {
@@ -19,6 +24,7 @@ export const initialHistoryState: HistoryState = {
   received: 0,
   total: 0,
   error: null,
+  errorCode: null,
 };
 
 export function loadingHistoryState(): HistoryState {
@@ -30,8 +36,10 @@ export function isPending(point: HistoryPoint): boolean {
   return point.level === null && point.combatPower === null && point.solErdaFragments === null;
 }
 
-export function applyHistoryEvent(state: HistoryState, event: HistoryEvent): HistoryState {
+export function applyHistoryEvent(state: HistoryState, event: HistoryAction): HistoryState {
   switch (event.type) {
+    case 'reset':
+      return loadingHistoryState();
     case 'meta': {
       const dates = [...event.data.dates].sort();
       return {
@@ -42,6 +50,7 @@ export function applyHistoryEvent(state: HistoryState, event: HistoryEvent): His
         received: 0,
         total: event.data.plannedCount,
         error: null,
+        errorCode: null,
       };
     }
     case 'point': {
@@ -59,7 +68,7 @@ export function applyHistoryEvent(state: HistoryState, event: HistoryEvent): His
     case 'done':
       return { ...state, status: 'done', received: state.total };
     case 'error':
-      return { ...state, status: 'error', error: event.data.message };
+      return { ...state, status: 'error', error: event.data.message, errorCode: event.data.code ?? 'ERROR' };
   }
 }
 
