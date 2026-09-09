@@ -570,75 +570,7 @@ h2 {
   stroke-width:2;
 }
 
-.chart-/* 랜딩 아래 소개. 처음 온 사람이 무엇을 보는 화면인지 알고 들어가게 한다. */
-.about {
-  padding:34px 50px 30px;
-  margin-bottom:30px;
-}
-
-.about h2 {
-  font-size:15px;
-  margin-bottom:12px;
-}
-
-.about-lead {
-  font-size:13px;
-  line-height:1.95;
-  color:#5c6472;
-  max-width:820px;
-  margin-bottom:24px;
-}
-
-.faq {
-  border-top:1px solid var(--line);
-}
-
-.faq-item {
-  border-bottom:1px solid #eef0f4;
-}
-
-.faq-item summary {
-  display:flex;
-  align-items:center;
-  gap:12px;
-  padding:15px 4px;
-  cursor:pointer;
-  font-size:13px;
-  font-weight:600;
-  color:#2b3340;
-  list-style:none;
-}
-
-.faq-item summary::-webkit-details-marker {
-  display:none;
-}
-
-.faq-item summary .chevron {
-  margin-left:auto;
-}
-
-.faq-item[open] summary {
-  color:var(--orange);
-}
-
-.faq-item[open] .chevron {
-  transform:rotate(90deg);
-}
-
-.faq-answer {
-  padding:0 4px 18px;
-  font-size:12px;
-  line-height:2;
-  color:#5c6472;
-  max-width:820px;
-}
-
-.faq-answer b {
-  color:#2b3340;
-  font-weight:650;
-}
-
-footer {
+.chart-footer {
   display:flex;
   justify-content:space-between;
   align-items:center;
@@ -1532,6 +1464,91 @@ footer {
   font-size:10px;
   margin-right:10px;
   color:#c87547;
+}
+
+/*
+ * 랜딩 아래 소개. 처음 온 사람이 무엇을 보는 화면인지 알고 들어가게 한다.
+ *
+ * 패널은 페이지 폭을 다 쓰지만 글줄까지 그러면 못 읽는다. 안쪽을 820px 로 묶어
+ * 질문과 셰브런이 한눈에 같이 들어오게 한다 - 안 그러면 둘이 1,300px 떨어진다.
+ */
+/* 위 랜딩 패널(74px 50px)과 같은 여백감으로 둔다. 글이 카드 모서리에 붙으면 답답하다. */
+.about {
+  padding:46px 50px 40px;
+  margin-bottom:30px;
+}
+
+.about-inner {
+  max-width:820px;
+}
+
+.about h2 {
+  font-size:15px;
+  margin-bottom:14px;
+}
+
+.about-lead {
+  font-size:13px;
+  line-height:1.95;
+  color:#5c6472;
+  margin-bottom:30px;
+}
+
+.faq {
+  border-top:1px solid var(--line);
+}
+
+.faq-item {
+  border-bottom:1px solid #eef0f4;
+}
+
+.faq-item summary {
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:15px 2px;
+  cursor:pointer;
+  font-size:12px;
+  font-weight:600;
+  color:#3e4756;
+  list-style:none;
+}
+
+.faq-item summary::-webkit-details-marker {
+  display:none;
+}
+
+.faq-item summary:hover {
+  color:var(--orange);
+}
+
+.faq-item summary .chevron {
+  margin-left:auto;
+  font-size:15px;
+}
+
+.faq-item[open] summary {
+  color:var(--orange);
+}
+
+.faq-item[open] .chevron {
+  transform:rotate(90deg);
+}
+
+.faq-answer {
+  padding:2px 2px 18px;
+  font-size:12px;
+  line-height:1.95;
+  color:#5c6472;
+}
+
+.faq-answer p + p {
+  margin-top:7px;
+}
+
+.faq-answer b {
+  color:#2b3340;
+  font-weight:650;
 }
 
 footer {
