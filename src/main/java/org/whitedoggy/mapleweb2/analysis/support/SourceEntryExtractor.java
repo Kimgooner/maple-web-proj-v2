@@ -10,6 +10,7 @@ import org.whitedoggy.mapleweb2.domain.set.parser.SetEffectParser;
 import org.whitedoggy.mapleweb2.domain.skill.SkillParser;
 import org.whitedoggy.mapleweb2.domain.union.raider.RaiderParser;
 import org.whitedoggy.mapleweb2.external.nexon.config.NexonEndpoint;
+import org.whitedoggy.mapleweb2.domain.hexa.HexaCoreParser;
 import org.whitedoggy.mapleweb2.global.Jsons;
 import tools.jackson.databind.JsonNode;
 
@@ -57,6 +58,7 @@ public class SourceEntryExtractor {
     private final SetEffectParser setEffectParser;
     private final RaiderParser raiderParser;
     private final StatSheetParser statSheetParser;
+    private final HexaCoreParser hexaCoreParser;
 
     public Map<String, Map<String, SourceEntry>> extract(
             Map<NexonEndpoint, JsonNode> documents,
@@ -77,6 +79,8 @@ public class SourceEntryExtractor {
         entries.put("unionArtifact", artifacts(documents.get(NexonEndpoint.UNION_ARTIFACT)));
         entries.put("unionChampion", champions(documents.get(NexonEndpoint.UNION_CHAMPION)));
         entries.put("hexaStat", hexaStats(documents.get(NexonEndpoint.HEXA_MATRIX_STAT)));
+        entries.put("hexaCore", hexaCores(
+                documents.get(NexonEndpoint.HEXA_MATRIX), documents.get(NexonEndpoint.SKILL_6)));
         return entries;
     }
 
@@ -203,6 +207,50 @@ public class SourceEntryExtractor {
             result.put(Jsons.text(c, "champion_name"), SourceEntry.of(Jsons.text(c, "champion_grade") + " · " + Jsons.text(c, "champion_class")));
         }
         return result;
+    }
+
+    /**
+     * 헥사 코어(스킬 강화). 코어 하나가 한 항목이고, 값은 종류·레벨·누적 조각이다.
+     *
+     * <p>헥사 강화는 전투력에 잡히지 않아 증감 칸이 늘 빈다. 대신 조각을 값에 넣어
+     * 그 구간에 6차로 무엇을 얼마나 올렸는지가 이전·이후 표에서 바로 읽히게 한다.
+     *
+     * <p>아이콘은 코어 문서에 없다. 6차 스킬 문서에서 걸린 스킬 이름으로 찾아 붙인다.
+     */
+    private Map<String, SourceEntry> hexaCores(JsonNode hexa, JsonNode skill6) {
+        Map<String, SourceEntry> result = new LinkedHashMap<>();
+        Map<String, String> icons = skillIcons(skill6);
+        for (HexaCoreParser.Core core : hexaCoreParser.cores(hexa)) {
+            String value = core.type() + " Lv." + core.level()
+                    + (core.spent() > 0 ? " · 조각 " + String.format("%,d", core.spent()) : "");
+            result.put(core.name(), new SourceEntry(value, iconOfCore(core, icons)));
+        }
+        return result;
+    }
+
+    private Map<String, String> skillIcons(JsonNode skill6) {
+        Map<String, String> icons = new LinkedHashMap<>();
+        if (skill6 == null) {
+            return icons;
+        }
+        for (JsonNode skill : skill6.path("character_skill")) {
+            String icon = Jsons.text(skill, "skill_icon");
+            if (!icon.isEmpty()) {
+                icons.put(Jsons.text(skill, "skill_name"), icon);
+            }
+        }
+        return icons;
+    }
+
+    /** 마스터리 코어는 이름이 "A/B/C" 로 오므로 걸린 스킬 쪽에서 먼저 찾는다. */
+    private String iconOfCore(HexaCoreParser.Core core, Map<String, String> icons) {
+        for (String skill : core.skills()) {
+            String icon = icons.get(skill);
+            if (icon != null) {
+                return icon;
+            }
+        }
+        return icons.get(core.name());
     }
 
     private Map<String, SourceEntry> hexaStats(JsonNode hexa) {

@@ -88,6 +88,55 @@ public class HexaCoreParser {
         return total;
     }
 
+    /**
+     * 코어 하나. 화면이 "무엇이 몇 레벨이고 조각을 얼마나 먹었나"를 그대로 보여주는 데 쓴다.
+     *
+     * @param spent 그 레벨까지 들어간 조각 누적
+     * @param skills 이 코어에 걸린 6차 스킬 이름들. 아이콘을 찾을 때 쓴다.
+     */
+    public record Core(String name, String type, int level, long spent, List<String> skills) {
+    }
+
+    /**
+     * 코어 목록. {@link #solErdaFragments} 와 같은 규칙으로 고른다 — 솔 야누스는 빼고,
+     * 스킬 코어는 배열 순서로 오리진·어센트·3번을 가른다. 두 곳이 다른 규칙을 쓰면
+     * 화면의 조각 합과 차트의 조각 선이 어긋난다.
+     */
+    public List<Core> cores(JsonNode hexaMatrix) {
+        if (Jsons.empty(hexaMatrix)) {
+            return List.of();
+        }
+        JsonNode cores = hexaMatrix.path("character_hexa_core_equipment");
+        if (!cores.isArray()) {
+            return List.of();
+        }
+
+        List<Core> result = new java.util.ArrayList<>();
+        int skillCoreIndex = 0;
+        for (JsonNode core : cores) {
+            String type = Jsons.text(core, "hexa_core_type");
+            int index = SKILL_CORE.equals(type) ? skillCoreIndex++ : 0;
+            String name = Jsons.text(core, "hexa_core_name");
+            if (SOL_JANUS.equals(name)) {
+                continue;
+            }
+            List<Integer> table = tableFor(type, name, index);
+            if (table == null) {
+                continue;
+            }
+            int level = core.path("hexa_core_level").asInt(0);
+            List<String> skills = new java.util.ArrayList<>();
+            for (JsonNode linked : core.path("linked_skill")) {
+                String skill = Jsons.text(linked, "hexa_skill_id");
+                if (!skill.isEmpty()) {
+                    skills.add(skill);
+                }
+            }
+            result.add(new Core(name, type, level, HexaCoreCost.cumulative(table, level), List.copyOf(skills)));
+        }
+        return List.copyOf(result);
+    }
+
     /** 모르는 종류면 {@code null}. 새 코어 종류가 생겨도 세지 않고 넘어간다. */
     private List<Integer> tableFor(String type, String name, int skillCoreIndex) {
         return switch (type) {

@@ -124,8 +124,8 @@ public class CombatPowerHistoryService {
     }
 
     /**
-     * 지점 하나. 지나간 날짜는 캐시를 먼저 본다 — 스냅샷 한 지점이 넥슨 호출 15회라,
-     * 일간 30지점을 매번 받으면 450회다.
+     * 지점 하나. 지나간 날짜는 캐시를 먼저 본다 — 스냅샷 한 지점이 넥슨 호출 16회라,
+     * 일간 30지점을 매번 받으면 480회다.
      *
      * <p>캐시에 두는 것은 43KB 짜리 {@code DataSheet} 이 아니라 숫자 네 개짜리
      * {@link CombatPowerHistoryPoint} 다. 차트가 필요한 건 그게 전부고, 구간을 눌렀을 때
@@ -136,26 +136,19 @@ public class CombatPowerHistoryService {
         // 이미 받아 둔 현재 스냅샷을 그대로 쓴다. 계속 변하는 값이라 캐시하지 않는다.
         if (date.equals(plan.today())) {
             CharacterSnapshot current = plan.current();
-            return hexaMatrix(plan.ocid(), date, false)
-                    .map(hexa -> toPoint(current, date, combatDataSheet(current), hexa));
+            return Mono.just(toPoint(current, date, combatDataSheet(current), hexaMatrix(current)));
         }
 
         String cacheKey = historyPointCacheKey(plan.ocid(), date);
         return cache.get(cacheKey, CombatPowerHistoryPoint.class)
                 .map(point -> new Loaded(true, point))
-                .switchIfEmpty(Mono.defer(() -> Mono.zip(
-                                snapshotService.getSnapshotByOcid(plan.ocid(), date),
-                                hexaMatrix(plan.ocid(), date, true))
-                        .flatMap(both -> loadAndCachePoint(cacheKey, date, both.getT1(), both.getT2()))));
+                .switchIfEmpty(Mono.defer(() -> snapshotService.getSnapshotByOcid(plan.ocid(), date)
+                        .flatMap(snapshot -> loadAndCachePoint(cacheKey, date, snapshot))));
     }
 
-    /**
-     * 헥사 코어 문서. 15종 스냅샷에 넣지 않고 여기서만 부른다 — 조각이 필요한 것은
-     * 추이 차트뿐이라, 스냅샷에 넣으면 monthly·yearly·검증까지 호출이 한 번씩 는다.
-     * 캐시가 비었을 때만 부르므로 실제로 늘어나는 것은 콜드 조회 한 번이다.
-     */
-    private Mono<JsonNode> hexaMatrix(String ocid, LocalDate date, boolean includeDateParam) {
-        return snapshotService.getDocument(NexonEndpoint.HEXA_MATRIX, ocid, date, includeDateParam);
+    /** 헥사 코어 문서는 이제 스냅샷이 들고 온다. 따로 부르면 같은 날짜를 두 번 받는다. */
+    private JsonNode hexaMatrix(CharacterSnapshot snapshot) {
+        return snapshot.document(NexonEndpoint.HEXA_MATRIX);
     }
 
     /**
@@ -163,9 +156,9 @@ public class CombatPowerHistoryService {
      * ({@code takeWhile} 이 여기서 추이를 끊는다) 그걸 굳히면 영영 끊긴 채로 남는다.
      */
     private Mono<Loaded> loadAndCachePoint(
-            String cacheKey, LocalDate date, CharacterSnapshot snapshot, JsonNode hexaMatrix) {
+            String cacheKey, LocalDate date, CharacterSnapshot snapshot) {
         DataSheet dataSheet = combatDataSheet(snapshot);
-        Loaded loaded = toPoint(snapshot, date, dataSheet, hexaMatrix);
+        Loaded loaded = toPoint(snapshot, date, dataSheet, hexaMatrix(snapshot));
         if (!loaded.exists()) {
             return Mono.just(loaded);
         }

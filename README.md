@@ -33,7 +33,7 @@ OPEN API의 `character/stat`이 주는 전투력은 **조회 시점에 끼고 �
 ```
 frontend/   React + Vite + TypeScript. 빌드하면 src/main/resources/static/app 으로 나간다
 src/        Spring Boot 4 / WebFlux (전 구간 리액티브)
-  external/nexon   OPEN API 경계 (엔드포인트 14종, 레이트 리미터)
+  external/nexon   OPEN API 경계 (엔드포인트 16종, 레이트 리미터)
   analysis         조회 유스케이스: 스냅샷 수집 → 프리셋 선택 → 시트 조립 → 계산 → 비교
   domain           원본 JSON 을 StatSheet 으로 바꾸는 파서들
   validation       랭킹 표본으로 계산식 오차를 재는 도구

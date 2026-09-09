@@ -172,13 +172,12 @@ function ItemCard({ item, label, muted }: { item: ItemDetail | null; label: stri
  * 앞머리를 블럭으로 떼어 낼 말. 지금은 헥사 코어의 주·부옵션뿐이다.
  * {@code SourceEntryExtractor} 가 붙이는 말과 짝이 맞아야 한다.
  */
-const VALUE_ROLES = ['주옵션', '부옵션'];
+const VALUE_ROLES = ['주옵션', '부옵션', '스킬 코어', '마스터리 코어', '강화 코어', '공용 코어'];
 
-/** 값에 줄바꿈이 들어 있으면 줄로 나눠 적는다. 헥사 코어는 주·부옵션이 한 항목이다. */
+/** 값의 앞머리를 블럭으로 떼고, 줄바꿈이 있으면 줄로 나눠 적는다. */
 function ValueLines({ value }: { value: string | null }) {
   if (value === null) return <>—</>;
   const lines = value.split('\n');
-  if (lines.length === 1) return <>{value}</>;
   return (
     <>
       {lines.map((line, index) => {

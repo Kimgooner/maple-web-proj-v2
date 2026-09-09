@@ -20,7 +20,7 @@ export const CATEGORIES: [ChangeCategory, string][] = [
  */
 const SOURCE_CATEGORY: Record<string, ChangeCategory> = {
   skill: 'skill',
-  hexaStat: 'hexa',
+  hexaStat: 'hexa', hexaCore: 'hexa',
   unionRaider: 'union', unionOccupied: 'union', unionArtifact: 'union', unionChampion: 'union',
   ability: 'ability', hyperStat: 'hyperStat', symbol: 'symbol',
   setEffect: 'setEffect', abilityPoint: 'abilityPoint',

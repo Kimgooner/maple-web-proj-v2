@@ -10,6 +10,8 @@ const STAT_LABELS: Record<string, string> = {
   HP_PERCENT: 'HP', ALL_STAT_PERCENT: '올스탯',
   ATTACK_POWER_PERCENT: '공격력', MAGIC_POWER_PERCENT: '마력',
   DAMAGE: '데미지', BOSS_DAMAGE: '보공', CRITICAL_DAMAGE: '크뎀', FINAL_DAMAGE: '최종뎀',
+  // 전투력 스탯이 아니다. 헥사 강화가 전투력에 안 잡혀 비는 증감 칸을 이걸로 채운다.
+  SOL_ERDA_FRAGMENT: '조각',
 };
 
 export function statLabel(statName: string): string {
@@ -17,7 +19,7 @@ export function statLabel(statName: string): string {
 }
 
 const SOURCE_LABELS: Record<string, string> = {
-  abilityPoint: 'AP 배분', symbol: '심볼', skill: '스킬', hexaStat: '헥사스탯',
+  abilityPoint: 'AP 배분', symbol: '심볼', skill: '스킬', hexaStat: '헥사스탯', hexaCore: '헥사 코어',
   ability: '어빌리티', hyperStat: '하이퍼스탯', setEffect: '세트효과',
   unionOccupied: '유니온 점령 효과', unionRaider: '유니온 공격대', unionArtifact: '유니온 아티팩트',
   unionChampion: '유니온 챔피언',

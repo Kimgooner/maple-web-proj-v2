@@ -34,6 +34,13 @@ public class DataSheet {
     StatSheet conversionStarforce;
 
     /**
+     * HEXA 코어에 그때까지 들어간 솔 에르다 조각. 전투력에는 한 톨도 안 들어간다 —
+     * 두 시점 사이에 6차로 얼마를 썼는지를 화면이 보여주려고 들고 있다.
+     * 6차 전이거나 문서를 못 받았으면 {@code null} 이고, 0(6차인데 아직 안 올림)과 구분해야 한다.
+     */
+    Long solErdaFragments;
+
+    /**
      * 핵심 소스별 "이름 있는 항목" (시트 이름 → 항목 이름 → 값). 스킬명·심볼명·세트명처럼
      * 두 시점을 비교할 때 무엇이 바뀌었는지 이름으로 말하기 위한 것이다. 계산에는 쓰지 않는다.
      */
@@ -147,6 +154,7 @@ public class DataSheet {
         this.unknownWeapon = other.unknownWeapon;
         this.inactiveCharacter = other.inactiveCharacter;
         this.incompleteSnapshot = other.incompleteSnapshot;
+        this.solErdaFragments = other.solErdaFragments;
     }
 
     public void buildSum(){

@@ -10,7 +10,8 @@ public enum NexonEndpoint {
     PET_EQUIPMENT("/maplestory/v1/character/pet-equipment"),
     HYPER_STAT("/maplestory/v1/character/hyper-stat"),
     ABILITY("/maplestory/v1/character/ability"),
-    SKILL_0("/maplestory/v1/character/skill"),
+    SKILL_0("/maplestory/v1/character/skill", "0"),
+    SKILL_6("/maplestory/v1/character/skill", "6"),
     HEXA_MATRIX_STAT("/maplestory/v1/character/hexamatrix-stat"),
     HEXA_MATRIX("/maplestory/v1/character/hexamatrix"),
     OTHER_STAT("/maplestory/v1/character/other-stat"),
@@ -19,10 +20,24 @@ public enum NexonEndpoint {
     UNION_ARTIFACT("/maplestory/v1/user/union-artifact");
 
     private final String path;
+
+    /** 스킬 엔드포인트만 쓰는 필수 파라미터. 나머지는 {@code null}. */
+    private final String skillGrade;
+
     NexonEndpoint(String path) {
-        this.path = path;
+        this(path, null);
     }
+
+    NexonEndpoint(String path, String skillGrade) {
+        this.path = path;
+        this.skillGrade = skillGrade;
+    }
+
     public String path() {
         return path;
+    }
+
+    public String skillGrade() {
+        return skillGrade;
     }
 }

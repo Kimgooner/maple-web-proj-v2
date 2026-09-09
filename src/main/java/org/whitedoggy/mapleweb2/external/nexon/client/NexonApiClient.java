@@ -37,22 +37,10 @@ public class NexonApiClient {
                         .uri(uriBuilder -> {
                             uriBuilder.path(endpoint.path())
                                     .queryParam("ocid", ocid);
-                            if (includeDateParam) {
-                                uriBuilder.queryParam("date", date);
+                            // 스킬은 등급이 없으면 400 이다. 경로가 같고 등급만 다른 엔드포인트가 둘 있다.
+                            if (endpoint.skillGrade() != null) {
+                                uriBuilder.queryParam("character_skill_grade", endpoint.skillGrade());
                             }
-                            return uriBuilder.build();
-                        })
-                        .retrieve()
-                        .bodyToMono(JsonNode.class));
-    }
-
-    public Mono<JsonNode> getSkill0(String ocid, LocalDate date, boolean includeDateParam) {
-        return nexonRateLimiter.acquire()
-                .then(nexonWebClient.get()
-                        .uri(uriBuilder -> {
-                            uriBuilder.path(NexonEndpoint.SKILL_0.path())
-                                    .queryParam("ocid", ocid)
-                                    .queryParam("character_skill_grade", "0");
                             if (includeDateParam) {
                                 uriBuilder.queryParam("date", date);
                             }
@@ -94,7 +82,7 @@ public class NexonApiClient {
                 .zipWith(Mono.zip(
                         get(NexonEndpoint.HYPER_STAT, ocid, date, includeDateParam).onErrorResume(throwable -> Mono.empty()).defaultIfEmpty(nullNode()),
                         get(NexonEndpoint.ABILITY, ocid, date, includeDateParam).onErrorResume(throwable -> Mono.empty()).defaultIfEmpty(nullNode()),
-                        getSkill0(ocid, date, includeDateParam).onErrorResume(throwable -> Mono.empty()).defaultIfEmpty(nullNode()),
+                        get(NexonEndpoint.SKILL_0, ocid, date, includeDateParam).onErrorResume(throwable -> Mono.empty()).defaultIfEmpty(nullNode()),
                         get(NexonEndpoint.HEXA_MATRIX_STAT, ocid, date, includeDateParam).onErrorResume(throwable -> Mono.empty()).defaultIfEmpty(nullNode()),
                         get(NexonEndpoint.UNION_RAIDER, ocid, date, includeDateParam).onErrorResume(throwable -> Mono.empty()).defaultIfEmpty(nullNode()),
                         get(NexonEndpoint.UNION_CHAMPION, ocid, date, includeDateParam).onErrorResume(throwable -> Mono.empty()).defaultIfEmpty(nullNode()),

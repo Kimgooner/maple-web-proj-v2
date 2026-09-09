@@ -14,6 +14,7 @@ import org.whitedoggy.mapleweb2.domain.cash.CashItemParser;
 import org.whitedoggy.mapleweb2.domain.common.stat.GameData;
 import org.whitedoggy.mapleweb2.domain.common.stat.StatSheet;
 import org.whitedoggy.mapleweb2.domain.common.stat.StatSheetParser;
+import org.whitedoggy.mapleweb2.domain.hexa.HexaCoreParser;
 import org.whitedoggy.mapleweb2.domain.hexa.HexaParser;
 import org.whitedoggy.mapleweb2.domain.hyper.HyperStatParser;
 import org.whitedoggy.mapleweb2.domain.item.data.ItemRecord;
@@ -68,6 +69,7 @@ public class DataSheetService {
     private final SetEffectParser setEffectParser;
     private final StatSheetParser statSheetParser;
     private final HexaParser hexaParser;
+    private final HexaCoreParser hexaCoreParser;
     private final OtherStatParser otherStatParser;
     private final CashItemParser cashItemParser;
     private final PresetSelector presetSelector;
@@ -137,6 +139,8 @@ public class DataSheetService {
 
         DataSheet dataSheet = getDataSheetFromSnapshot(snapshot.documents(), characterClass, presetSelection, referenceDate);
         dataSheet.setIncompleteSnapshot(snapshot.hasMissingDocuments());
+        dataSheet.setSolErdaFragments(
+                hexaCoreParser.solErdaFragments(snapshot.document(NexonEndpoint.HEXA_MATRIX)));
         long combatPower = combatCalculationService.estimateCombatPower(dataSheet, characterClass, characterLevel);
         combatPower = applyPirateBlessIfBetter(dataSheet, characterClass, characterLevel, combatPower);
         dataSheet.setCombatPower(combatPower);
@@ -500,7 +504,7 @@ public class DataSheetService {
 
     /** 직렬화 형식이 바뀌면 접두사 버전을 올려 옛 값과 섞이지 않게 한다. */
     private String dataSheetCacheKey(String ocid, LocalDate date) {
-        return "maple:datasheet:v7:" + normalizeOcid(ocid) + ":" + date;
+        return "maple:datasheet:v8:" + normalizeOcid(ocid) + ":" + date;
     }
 
     private String normalizeOcid(String ocid) {

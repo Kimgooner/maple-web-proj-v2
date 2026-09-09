@@ -97,12 +97,39 @@ public class DataSheetCompareService {
         addSheetSummary(summaries, "unionOccupied", previous.getUnionOccupied(), current.getUnionOccupied(), previous, current);
         addSheetSummary(summaries, "unionRaider", previous.getUnionRaider(), current.getUnionRaider(), previous, current);
         addSheetSummary(summaries, "unionArtifact", previous.getUnionArtifact(), current.getUnionArtifact(), previous, current);
+        addEntryOnlySummary(summaries, "hexaCore", previous, current, solErdaFragmentDelta(previous, current));
         addSheetSummary(summaries, "unionChampion", previous.getUnionChampion(), current.getUnionChampion(), previous, current);
 
         return summaries.stream()
                 .sorted((left, right) -> Integer.compare(right.weight(), left.weight()))
                 .limit(limit)
                 .toList();
+    }
+
+    /**
+     * 스탯 시트가 없는 소스. 헥사 코어 강화는 전투력에 한 톨도 안 들어가 시트 자체가 없고,
+     * {@link #addSheetSummary} 는 델타가 0 이면 줄을 만들지 않는다. 이름 있는 항목이
+     * 바뀐 것만으로 한 줄을 세운다.
+     */
+    private void addEntryOnlySummary(List<ChangeSummary> summaries, String label,
+                                     DataSheet previous, DataSheet current, List<StatDelta> deltas) {
+        List<EntryChange> changes = entryChanges(label, previous, current);
+        if (!changes.isEmpty()) {
+            summaries.add(new ChangeSummary(label, deltas, changes, weight(deltas)));
+        }
+    }
+
+    /**
+     * 그 구간에 6차로 쓴 솔 에르다 조각. 헥사 강화는 전투력에 안 잡혀 증감 칸이 늘 비는데,
+     * 정작 사람이 궁금한 건 "얼마나 부었나"다. 스탯 자리에 조각을 넣어 그 칸을 채운다.
+     */
+    private List<StatDelta> solErdaFragmentDelta(DataSheet previous, DataSheet current) {
+        Long before = previous.getSolErdaFragments();
+        Long after = current.getSolErdaFragments();
+        if (before == null || after == null || before.equals(after)) {
+            return List.of();
+        }
+        return List.of(new StatDelta("SOL_ERDA_FRAGMENT", after - before));
     }
 
     private void addSheetSummary(List<ChangeSummary> summaries, String label, StatSheet before, StatSheet after,
