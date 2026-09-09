@@ -504,7 +504,7 @@ public class DataSheetService {
 
     /** 직렬화 형식이 바뀌면 접두사 버전을 올려 옛 값과 섞이지 않게 한다. */
     private String dataSheetCacheKey(String ocid, LocalDate date) {
-        return "maple:datasheet:v8:" + normalizeOcid(ocid) + ":" + date;
+        return "maple:datasheet:v9:" + normalizeOcid(ocid) + ":" + date;
     }
 
     private String normalizeOcid(String ocid) {

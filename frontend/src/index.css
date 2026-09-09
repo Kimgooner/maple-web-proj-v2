@@ -1361,6 +1361,25 @@ h2 {
   gap:8px;
 }
 
+.entry-label-text {
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:3px;
+  min-width:0;
+}
+
+/* 헥사 코어 종류. 이름 옆에 붙이면 긴 이름에 밀려 줄이 어긋난다. */
+.entry-badge {
+  padding:1px 6px;
+  border-radius:4px;
+  background:#f1f3f5;
+  color:#6d7685;
+  font-size:9px;
+  font-weight:650;
+  white-space:nowrap;
+}
+
 /* 이후에 없어진 항목. 색을 빼고 바래게 두면 남아 있는 줄과 한눈에 갈린다. */
 .entry-label.gone img {
   opacity:.38;

@@ -176,7 +176,7 @@ function ItemCard({ item, label, muted }: { item: ItemDetail | null; label: stri
  * 앞머리를 블럭으로 떼어 낼 말. 지금은 헥사 코어의 주·부옵션뿐이다.
  * {@code SourceEntryExtractor} 가 붙이는 말과 짝이 맞아야 한다.
  */
-const VALUE_ROLES = ['주옵션', '부옵션', '스킬 코어', '마스터리 코어', '강화 코어', '공용 코어'];
+const VALUE_ROLES = ['주옵션', '부옵션'];
 
 /** 값의 앞머리를 블럭으로 떼고, 줄바꿈이 있으면 줄로 나눠 적는다. */
 function ValueLines({ value }: { value: string | null }) {
@@ -218,7 +218,11 @@ function EntryTable({ entries }: { entries: EntryChange[] }) {
               {/* 사라진 항목은 아이콘을 바래게 둔다. 훑어볼 때 없어진 줄이 먼저 눈에 들어온다. */}
               <span className={entry.current == null ? 'entry-label gone' : 'entry-label'}>
                 {entry.icon && <img src={entry.icon} alt="" loading="lazy" />}
-                {entry.name}
+                <span className="entry-label-text">
+                  {entry.name}
+                  {/* 헥사 코어 종류. 이름이 긴 것이 있어 옆이 아니라 밑에 둔다. */}
+                  {entry.badge && <span className="entry-badge">{entry.badge}</span>}
+                </span>
               </span>
             </td>
             {/* 설명은 그 값이 살아 있는 쪽에 붙인다. 사라진 항목의 효과를

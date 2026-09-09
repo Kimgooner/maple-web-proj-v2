@@ -221,9 +221,9 @@ public class SourceEntryExtractor {
         Map<String, SourceEntry> result = new LinkedHashMap<>();
         Map<String, String> icons = skillIcons(skill6);
         for (HexaCoreParser.Core core : hexaCoreParser.cores(hexa)) {
-            String value = core.type() + " Lv." + core.level()
+            String value = "Lv." + core.level()
                     + (core.spent() > 0 ? " · 조각 " + String.format("%,d", core.spent()) : "");
-            result.put(core.name(), new SourceEntry(value, iconOfCore(core, icons)));
+            result.put(core.name(), new SourceEntry(value, iconOfCore(core, icons), null, core.type()));
         }
         return result;
     }

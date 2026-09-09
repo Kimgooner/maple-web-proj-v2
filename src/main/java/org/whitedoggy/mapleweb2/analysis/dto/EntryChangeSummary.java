@@ -8,6 +8,8 @@ public record EntryChangeSummary(
         /** 넥슨 아이콘 URL. 스킬·심볼만 있고 나머지는 null */
         String icon,
         /** 펼쳐 봤을 때 보여줄 여러 줄 설명. 세트 효과 문구 등. 없으면 null */
-        String detail
+        String detail,
+        /** 이름 밑에 붙일 블럭. 헥사 코어의 종류. 없으면 null */
+        String badge
 ) {
 }

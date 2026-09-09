@@ -88,6 +88,8 @@ export interface EntryChange {
   icon: string | null;
   /** 펼쳐 봤을 때 보여줄 여러 줄 설명. 세트 효과 문구 등. 줄바꿈으로 구분된다 */
   detail: string | null;
+  /** 이름 밑에 붙일 블럭. 헥사 코어의 종류 */
+  badge: string | null;
 }
 
 export interface SourceChange {

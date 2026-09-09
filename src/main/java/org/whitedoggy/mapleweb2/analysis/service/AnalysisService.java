@@ -240,7 +240,8 @@ public class AnalysisService {
                 changeSummary.source(),
                 changeSummary.deltas().stream().map(this::toStatDeltaSummary).toList(),
                 changeSummary.entries().stream()
-                        .map(e -> new EntryChangeSummary(e.name(), e.previous(), e.current(), e.icon(), e.detail()))
+                        .map(e -> new EntryChangeSummary(
+                                e.name(), e.previous(), e.current(), e.icon(), e.detail(), e.badge()))
                         .toList()
         );
     }
