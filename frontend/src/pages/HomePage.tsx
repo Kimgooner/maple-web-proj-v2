@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AboutPanel } from '../components/AboutPanel';
+import { SearchForm } from '../components/SearchForm';
 import { TopBar } from '../components/TopBar';
 import { loadRecent, pushRecent } from '../lib/recent';
 
@@ -24,13 +26,10 @@ export function HomePage() {
             보스 프리셋 기준의 실전 전투력부터 장비와 스킬의 변화까지.<br />
             캐릭터 닉네임을 검색하고 성장의 기록을 살펴보세요.
           </p>
-          <button
-            type="button"
-            className="primary"
-            onClick={() => document.getElementById('character-input')?.focus()}
-          >
-            내 캐릭터 조회하기 <span aria-hidden="true">↗</span>
-          </button>
+          {/* 위 줄에도 검색창이 있지만 그쪽은 navbar 다. 여기서 바로 칠 수 있어야 한다. */}
+          <div className="welcome-search">
+            <SearchForm id="home-character-input" />
+          </div>
           {recent.length > 0 && (
             <div className="recent">
               <span className="recent-label">최근 조회</span>
@@ -45,6 +44,7 @@ export function HomePage() {
             <span><b>03</b> 변경 내역 확인</span>
           </div>
         </section>
+        <AboutPanel />
         <footer>
           <span>Data based on NEXON Open API</span>
           <span>MapleDelta <span className="footer-dot">·</span> 성장의 순간을 기록하다</span>
