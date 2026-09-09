@@ -31,6 +31,23 @@ export function loadingHistoryState(): HistoryState {
   return { ...initialHistoryState, status: 'loading' };
 }
 
+/**
+ * 전투력 0 은 값이 아니라 "못 구했다"로 본다.
+ *
+ * <p>캐릭터가 아직 없던 날짜나 계산이 서지 않는 캐릭터에서 0 이 온다. 그대로 두면
+ * 그래프가 바닥에 한 점 찍히고, 축이 0 을 품느라 왼쪽 눈금이 음수까지 벌어진다.
+ * null 로 바꿔 두면 선이 끊기고 구간 선택·변화 핀도 그 지점을 건너뛴다 —
+ * 아래 로직이 전부 {@code combatPower !== null} 로 거르기 때문이다.
+ */
+function withoutZero(point: HistoryPoint): HistoryPoint {
+  if (point.combatPower !== 0 && point.apiCombatPower !== 0) return point;
+  return {
+    ...point,
+    combatPower: point.combatPower === 0 ? null : point.combatPower,
+    apiCombatPower: point.apiCombatPower === 0 ? null : point.apiCombatPower,
+  };
+}
+
 /** 아직 point 가 오지 않은 자리 */
 export function isPending(point: HistoryPoint): boolean {
   return point.level === null && point.combatPower === null && point.solErdaFragments === null;
@@ -54,7 +71,7 @@ export function applyHistoryEvent(state: HistoryState, event: HistoryAction): Hi
       };
     }
     case 'point': {
-      const incoming = event.data.point;
+      const incoming = withoutZero(event.data.point);
       const points = state.points.some((p) => p.date === incoming.date)
         ? state.points.map((p) => (p.date === incoming.date ? incoming : p))
         : [...state.points, incoming].sort((a, b) => a.date.localeCompare(b.date));

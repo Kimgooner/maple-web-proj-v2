@@ -1283,6 +1283,10 @@ h2 {
   line-height:18px;
 }
 
+/* 솔 에르다 조각. 전투력 증감이 아니라서 초록·빨강 대신 차트의 조각 색을 쓴다. */
+.stat-chip.fragment { background:#f4f1fe; }
+.stat-chip.fragment .stat-chip-value { color:var(--fragment); }
+
 .stat-chip.up { background:#f2faf5; }
 .stat-chip.down { background:#fdf4f3; }
 .stat-chip.flat { background:#f6f7f9; }

@@ -25,8 +25,12 @@ function StatChips({ deltas }: { deltas: StatDelta[] }) {
           <Fragment key={side.key}>
             <span className={`stat-side ${side.key}`}>{side.label}</span>
             <div className="stat-chips">
+              {/* 조각은 전투력 스탯이 아니다. 차트의 조각 선과 같은 색으로 두어 같은 것임을 알린다. */}
               {items.map((delta) => (
-                <span className={`stat-chip ${side.key}`} key={delta.statName}>
+                <span
+                  className={`stat-chip ${delta.statName === 'SOL_ERDA_FRAGMENT' ? 'fragment' : side.key}`}
+                  key={delta.statName}
+                >
                   <span className="stat-chip-name">{statLabel(delta.statName)}</span>
                   <span className="stat-chip-value">{formatStatDelta(delta.statName, delta.delta)}</span>
                 </span>

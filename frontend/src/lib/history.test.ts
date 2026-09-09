@@ -46,3 +46,24 @@ describe('latestLoadedPoint', () => {
     expect(point?.date).toBe('2026-09-01');
   });
 });
+
+describe('전투력 0 인 지점', () => {
+  it('캐릭터가 없던 날짜의 0 은 값으로 세지 않는다 - 그래야 선이 끊기고 축이 음수로 안 벌어진다', () => {
+    const state = applyHistoryEvent(loadingHistoryState(), {
+      type: 'point',
+      data: {
+        index: 1,
+        total: 1,
+        point: {
+          date: '2026-01-01', level: 210, combatPower: 0, apiCombatPower: 0,
+          solErdaFragments: null, solErdaFragmentsRequired: null, expired: null,
+        },
+      },
+    });
+
+    expect(state.points[0].combatPower).toBeNull();
+    expect(state.points[0].apiCombatPower).toBeNull();
+    // 레벨은 남는다. 아직 안 받은 자리(pending)와는 다른 것이다.
+    expect(state.points[0].level).toBe(210);
+  });
+});

@@ -31,12 +31,17 @@ function progressScale(required: number): Scale {
   return at;
 }
 
-/** 값이 하나뿐이거나 모두 같아도 선이 납작해지지 않게 최소 폭을 준다. */
+/**
+ * 값이 하나뿐이거나 모두 같아도 선이 납작해지지 않게 최소 폭을 준다.
+ *
+ * <p>아래쪽 여백이 0 밑으로 내려가지 않게 자른다. 전투력도 조각도 음수가 없는데,
+ * 값이 작으면 여백이 부호를 넘어 "-2억" 같은 눈금이 찍혔다.
+ */
 function scale(values: number[]): Scale {
   const rawMin = values.length ? Math.min(...values) : 0;
   const rawMax = values.length ? Math.max(...values) : 1;
   const span = Math.max(rawMax - rawMin, Math.max(rawMax, 1) * 0.02);
-  const min = rawMin - span * 0.15;
+  const min = Math.max(0, rawMin - span * 0.15);
   const max = rawMax + span * 0.15;
   const at = ((value: number) =>
     TOP + (HEIGHT - TOP - BOTTOM) * (1 - (value - min) / (max - min))) as Scale;
@@ -52,17 +57,27 @@ export function TrendChart({ points, range, showFragments, interval, anchor, int
   const y = scale(points.map((p) => p.combatPower).filter((v): v is number => v != null));
   const fragValues = points.map((p) => p.solErdaFragments).filter((v): v is number => v != null);
   /**
-   * 조각 축은 데이터 범위로 확대하지 않는다. 맨 아래가 0, 맨 위가 "가진 코어를 모두
-   * 만렙까지 올리는 데 드는 조각"이다. 범위로 확대하면 100개 올린 것과 3000개 올린 것이
-   * 똑같은 기울기로 보여, 얼마나 왔는지가 아니라 그 구간의 들쭉날쭉함만 남는다.
+   * 조각 축은 기간에 따라 다르게 잰다.
    *
-   * 분모는 가장 마지막에 아는 값을 쓴다 — 코어를 새로 열면 분모가 늘어나므로,
+   * <p>12개월은 완성도로 본다 — 맨 아래 0, 맨 위가 "가진 코어를 모두 만렙까지 올리는 데
+   * 드는 조각"이다. 그 정도 기간이면 실제로 눈에 보이게 오른다.
+   *
+   * <p>30일은 데이터 범위로 확대한다. 한 달에 오르는 양은 완성도로 치면 1~2%뿐이라
+   * 0~100% 축에 얹으면 선이 바닥에 붙어 아무것도 안 보인다. 그 대신 축 눈금을
+   * 개수로 적어, 늘어난 폭이 과장돼 보이지 않게 숫자로 확인할 수 있게 한다.
+   *
+   * <p>분모는 가장 마지막에 아는 값을 쓴다 — 코어를 새로 열면 분모가 늘어나므로,
    * 지금 기준으로 그려야 축이 구간마다 흔들리지 않는다.
    */
-  const required = [...points].reverse()
-    .map((p) => p.solErdaFragmentsRequired)
-    .find((v): v is number => v != null && v > 0) ?? null;
+  const required = range === 'monthly'
+    ? [...points].reverse()
+        .map((p) => p.solErdaFragmentsRequired)
+        .find((v): v is number => v != null && v > 0) ?? null
+    : null;
   const fy = required != null ? progressScale(required) : scale(fragValues);
+  // 조각이 한 번도 안 변한 캐릭터(만렙)는 축을 다섯 칸으로 늘려 봐야 같은 숫자만 반복된다.
+  const fragFlat = required == null && fragValues.length > 0
+    && Math.min(...fragValues) === Math.max(...fragValues);
 
   const line = (pick: (point: HistoryPoint) => number | null, at: Scale): string => {
     let path = '';
@@ -78,8 +93,9 @@ export function TrendChart({ points, range, showFragments, interval, anchor, int
 
   /**
    * 조각은 누적이라 줄지 않는다. 선만 그으면 전투력과 겹쳐 읽기 어려워 아래를 옅게 깐다.
-   * 축이 0부터 시작하므로 이 면적은 실제로 "0부터 쌓인 양"이 맞다. 그래도 전투력 선을
-   * 가리지 않게 아래로 사라지는 그라디언트를 쓴다.
+   * 12개월은 축이 0부터라 이 면적이 실제로 "0부터 쌓인 양"이 맞고, 30일은 축이 범위로
+   * 확대돼 있어 면적으로 읽으면 안 된다 — 어느 쪽이든 아래로 사라지는 그라디언트라야
+   * 면적이 아니라 강조로 보인다.
    */
   const fragmentRuns = (): { line: string; area: string }[] => {
     const runs: { i: number; v: number }[][] = [];
@@ -119,13 +135,19 @@ export function TrendChart({ points, range, showFragments, interval, anchor, int
           <g key={value}>
             <line x1={LEFT} x2={WIDTH - RIGHT} y1={y(value)} y2={y(value)} stroke="#eef0f4" strokeWidth="1" />
             <text x={LEFT - 10} y={y(value) + 4} textAnchor="end">{compact(Math.round(value))}</text>
-            {showFragments && required == null && fy.ticks.length > k && (
+            {showFragments && required == null && !fragFlat && fy.ticks.length > k && (
               <text className="fragment-axis" x={WIDTH - RIGHT + 10} y={y(value) + 4} textAnchor="start">
                 {formatNumber(Math.round(fy.ticks[k]))}
               </text>
             )}
           </g>
         ))}
+
+        {showFragments && fragFlat && (
+          <text className="fragment-axis" x={WIDTH - RIGHT + 10} y={fy(fragValues[0]) + 4} textAnchor="start">
+            {formatNumber(fragValues[0])}
+          </text>
+        )}
 
         {/* 조각 축의 눈금은 전투력 격자와 자리가 다르다. 0%가 바닥에 딱 붙어야 뜻이 산다. */}
         {showFragments && required != null && [0, 25, 50, 75, 100].map((percent) => (
