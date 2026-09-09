@@ -12,7 +12,9 @@ import org.whitedoggy.mapleweb2.domain.union.raider.RaiderParser;
 import org.whitedoggy.mapleweb2.external.nexon.config.NexonEndpoint;
 import org.whitedoggy.mapleweb2.domain.hexa.HexaCoreParser;
 import org.whitedoggy.mapleweb2.global.Jsons;
+import org.whitedoggy.mapleweb2.domain.otherstat.OtherStatParser;
 import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -59,6 +61,12 @@ public class SourceEntryExtractor {
     private final RaiderParser raiderParser;
     private final StatSheetParser statSheetParser;
     private final HexaCoreParser hexaCoreParser;
+    private final OtherStatParser otherStatParser;
+
+    /** 전투력에 반영되지 않는 기타 능력치 그룹. OtherStatParser 와 같은 기준이어야 한다. */
+    private static final String OTHER_STAT_EXCLUDED_GROUP = "[제네시스 패스]";
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     public Map<String, Map<String, SourceEntry>> extract(
             Map<NexonEndpoint, JsonNode> documents,
@@ -79,6 +87,8 @@ public class SourceEntryExtractor {
         entries.put("unionArtifact", artifacts(documents.get(NexonEndpoint.UNION_ARTIFACT)));
         entries.put("unionChampion", champions(documents.get(NexonEndpoint.UNION_CHAMPION)));
         entries.put("hexaStat", hexaStats(documents.get(NexonEndpoint.HEXA_MATRIX_STAT)));
+        entries.put("otherStat", otherStats(
+                documents.get(NexonEndpoint.OTHER_STAT), documents.get(NexonEndpoint.SKILL_0)));
         entries.put("hexaCore", hexaCores(
                 documents.get(NexonEndpoint.HEXA_MATRIX), documents.get(NexonEndpoint.SKILL_6)));
         return entries;
@@ -207,6 +217,78 @@ public class SourceEntryExtractor {
             result.put(Jsons.text(c, "champion_name"), SourceEntry.of(Jsons.text(c, "champion_grade") + " · " + Jsons.text(c, "champion_class")));
         }
         return result;
+    }
+
+    /**
+     * 기타 능력치 영향 요소. 챌린저스 월드의 의문의 결계, 마스터라벨 플러스가 여기로 온다.
+     *
+     * <p>계산이 세는 것과 같은 것만 보여준다 — 제네시스 패스는 전투력에 안 들어가므로
+     * ({@link OtherStatParser} 가 통째로 건너뛴다) 여기서도 뺀다. 화면과 계산이 다르면
+     * "이건 왜 안 오르지"를 설명할 길이 없어진다.
+     *
+     * <p>아이콘은 이 문서에 없다. 이름이 스킬에도 있는 것(마스터라벨 전투 플러스)만
+     * 거기서 찾아 붙이고, 의문의 결계처럼 어디에도 없는 것은 아이콘 없이 둔다.
+     */
+    private Map<String, SourceEntry> otherStats(JsonNode otherStat, JsonNode skill0) {
+        Map<String, SourceEntry> result = new LinkedHashMap<>();
+        if (otherStat == null) {
+            return result;
+        }
+        Map<String, String> icons = skillIcons(skill0);
+        for (JsonNode group : Jsons.array(otherStat, "other_stat")) {
+            String type = Jsons.text(group, "other_stat_type");
+            if (type.isEmpty() || type.startsWith(OTHER_STAT_EXCLUDED_GROUP)) {
+                continue;
+            }
+            List<String> effects = new ArrayList<>();
+            for (JsonNode info : Jsons.array(group, "stat_info")) {
+                effects.add(Jsons.text(info, "stat_name") + " " + Jsons.text(info, "stat_value"));
+            }
+            // 경험치뿐인 그룹(성장 플러스)은 파싱하면 비어 스스로 빠진다.
+            String value = summarize(statSheetParser.parse(otherStatParser.getOtherStatEffects(
+                    onlyGroup(group))));
+            if (value.isEmpty()) {
+                continue;
+            }
+            result.put(type, new SourceEntry(value, iconOfOtherStat(type, icons)));
+        }
+        return result;
+    }
+
+    /** 그룹 하나만 담은 문서 모양. 파서가 문서 단위로만 읽어서 감싸 준다. */
+    private JsonNode onlyGroup(JsonNode group) {
+        tools.jackson.databind.node.ObjectNode wrapper = MAPPER.createObjectNode();
+        wrapper.putArray("other_stat").add(group);
+        return wrapper;
+    }
+
+    /**
+     * 아이콘을 빌려 오는 이름. 넥슨은 의문의 결계에 아이콘을 주지 않고, 그 이름의 스킬도 없다
+     * (챌린저스 캐릭터의 0차 스킬 23개를 훑어 확인). 같은 결계 계열인 "결계의 핵 소환" 것을
+     * 대신 쓴다 — 다른 스킬의 그림이지만 빈 자리로 두는 것보다 낫다고 봤다.
+     */
+    private static final Map<String, String> OTHER_STAT_ICON_ALIAS = Map.of("의문의 결계", "결계의 핵 소환");
+
+    /**
+     * 빌려 쓰기로 정한 이름을 먼저 보고, 없으면
+     * {@code [마스터라벨 플러스] 전투 플러스} 의 뒷부분이 스킬 이름 안에 들어 있는지로 찾는다.
+     */
+    private String iconOfOtherStat(String type, Map<String, String> icons) {
+        String bare = type.substring(type.indexOf(']') + 1).trim();
+        if (bare.isEmpty()) {
+            return null;
+        }
+        String alias = OTHER_STAT_ICON_ALIAS.get(bare);
+        if (alias != null && icons.containsKey(alias)) {
+            return icons.get(alias);
+        }
+        String packed = bare.replace(" ", "");
+        for (Map.Entry<String, String> icon : icons.entrySet()) {
+            if (icon.getKey().replace(" ", "").contains(packed)) {
+                return icon.getValue();
+            }
+        }
+        return null;
     }
 
     /**

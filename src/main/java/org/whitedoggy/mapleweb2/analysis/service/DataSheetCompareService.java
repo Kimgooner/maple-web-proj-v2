@@ -97,6 +97,7 @@ public class DataSheetCompareService {
         addSheetSummary(summaries, "unionOccupied", previous.getUnionOccupied(), current.getUnionOccupied(), previous, current);
         addSheetSummary(summaries, "unionRaider", previous.getUnionRaider(), current.getUnionRaider(), previous, current);
         addSheetSummary(summaries, "unionArtifact", previous.getUnionArtifact(), current.getUnionArtifact(), previous, current);
+        addSheetSummary(summaries, "otherStat", previous.getOtherStat(), current.getOtherStat(), previous, current);
         addEntryOnlySummary(summaries, "hexaCore", previous, current, solErdaFragmentDelta(previous, current));
         addSheetSummary(summaries, "unionChampion", previous.getUnionChampion(), current.getUnionChampion(), previous, current);
 

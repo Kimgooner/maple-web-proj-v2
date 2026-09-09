@@ -2,14 +2,14 @@ import type { ChangeSummary, EntryChange, SlotChange, SourceChange, StatDelta } 
 
 export type ChangeCategory =
   | 'items' | 'cash' | 'pet' | 'skill' | 'hexa' | 'union'
-  | 'ability' | 'hyperStat' | 'symbol' | 'setEffect' | 'abilityPoint';
+  | 'ability' | 'hyperStat' | 'symbol' | 'setEffect' | 'abilityPoint' | 'etc';
 
 /** 탭에 놓이는 순서와 이름. 여기 없는 소스가 생기면 'etc' 로 떨어져 맨 뒤에 붙는다. */
 export const CATEGORIES: [ChangeCategory, string][] = [
   ['items', '장비'], ['cash', '캐시'], ['pet', '펫'], ['skill', '스킬'],
   ['hexa', '헥사'], ['union', '유니온'],
   ['ability', '어빌리티'], ['hyperStat', '하이퍼스탯'], ['symbol', '심볼'],
-  ['setEffect', '세트효과'], ['abilityPoint', 'AP 배분'],
+  ['setEffect', '세트효과'], ['abilityPoint', 'AP 배분'], ['etc', '기타'],
 ];
 
 /**
@@ -23,7 +23,7 @@ const SOURCE_CATEGORY: Record<string, ChangeCategory> = {
   hexaStat: 'hexa', hexaCore: 'hexa',
   unionRaider: 'union', unionOccupied: 'union', unionArtifact: 'union', unionChampion: 'union',
   ability: 'ability', hyperStat: 'hyperStat', symbol: 'symbol',
-  setEffect: 'setEffect', abilityPoint: 'abilityPoint',
+  setEffect: 'setEffect', abilityPoint: 'abilityPoint', otherStat: 'etc',
 };
 
 /** 표에 한 줄로 놓이는 변화. 장비·캐시·펫은 슬롯, 스킬·심볼 등은 소스다. */
