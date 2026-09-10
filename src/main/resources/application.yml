@@ -26,6 +26,11 @@ spring:
       connect-timeout: 2s
 
 maple:
+  # 정확도 진단 엔드포인트(/api/validation/**). 한 번에 넥슨 API 를 900회 쓰는데
+  # nginx 가 /api/ 를 통째로 넘겨 누구나 부를 수 있다. 프로덕션에서는 끈다.
+  validation:
+    enabled: ${MAPLE_VALIDATION_ENABLED:false}
+
   # 레벨 구간별 전투력 분포 배치. 매주 월요일 00시에 8,000명을 재느라 API 를 14만 회 쓴다.
   # 로컬·테스트가 이걸 돌리는 일이 없게 기본은 꺼짐이고, 프로덕션에서만 켠다.
   level-band:
@@ -44,5 +49,4 @@ nexon:
     # 안 그러면 키 없이 떠서 조용히 400 이 나고 "그런 캐릭터가 없습니다"로만 보인다.
     api-key: ${NEXON_API_KEY:${MAPLE_OPEN_API_KEY:}}
     request-timeout: 5s
-    max-concurrency: 8
     requests-per-second: 300

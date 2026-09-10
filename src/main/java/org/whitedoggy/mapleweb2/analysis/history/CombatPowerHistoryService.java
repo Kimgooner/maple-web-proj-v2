@@ -1,6 +1,7 @@
 package org.whitedoggy.mapleweb2.analysis.history;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
@@ -45,6 +46,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * {@code character_date_create} 로 구간을 먼저 자른다. 그래도 빈 응답이 나오면
  * 그 지점에서 멈춘다.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CombatPowerHistoryService {
@@ -52,6 +54,9 @@ public class CombatPowerHistoryService {
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     /** 넥슨 API 가 값을 주기 시작하는 첫 날. 이보다 이전은 전 필드 null 로 온다. */
+    /** 오늘치 앞머리를 들고 있는 시간. 넥슨 반영 지연(평균 15분)보다 짧게 잡는다. */
+    private static final Duration TODAY_HEAD_TTL = Duration.ofMinutes(5);
+
     private static final LocalDate API_FIRST_DATE = LocalDate.of(2023, 12, 21);
 
     /** 동시에 진행할 날짜 수. flatMapSequential 이라 순서는 그대로다. */
@@ -225,8 +230,8 @@ public class CombatPowerHistoryService {
         // 오늘은 date 파라미터를 붙이면 API 가 거절한다(OPENAPI00004). 계획을 세울 때
         // 이미 받아 둔 현재 스냅샷을 그대로 쓴다. 계속 변하는 값이라 캐시하지 않는다.
         if (date.equals(plan.today())) {
-            CharacterSnapshot current = plan.current();
-            return Mono.just(toPoint(current, date, combatDataSheet(current), hexaMatrix(current)));
+            CombatPowerHistoryPoint point = plan.head().today();
+            return Mono.just(point == null ? Loaded.missing() : new Loaded(true, point));
         }
 
         String cacheKey = historyPointCacheKey(plan.ocid(), date);
@@ -353,24 +358,26 @@ public class CombatPowerHistoryService {
 
     /** ocid 와 현재 스냅샷을 받아 조회할 날짜를 확정한다. */
     private Mono<Plan> plan(String characterName, HistoryRange range) {
+        // 빈 이름은 넥슨까지 갈 것도 없다. 그쪽도 400 을 주는데, 우리가 먼저 끊으면
+        // 호출 한 번과 500 로그 한 줄을 아낀다.
+        if (characterName == null || characterName.isBlank()) {
+            return Mono.error(new IllegalArgumentException("캐릭터 이름이 비어 있습니다."));
+        }
         LocalDate today = LocalDate.now(KST);
         return ocidService.getOcid(characterName)
                 // 없는 이름이면 넥슨이 400 을 준다. 업스트림 URL 이 그대로 새어 나가지 않게 바꾼다.
                 .onErrorMap(CombatPowerHistoryService::unknownCharacter,
                         error -> new CharacterNotFoundException(characterName))
-                .flatMap(ocid -> snapshotService.getCurrentSnapshotByOcid(ocid, today)
-                        .map(current -> {
-                            requireHighEnoughLevel(characterName, current);
-                            return buildPlan(ocid, range, today, current);
-                        }));
+                .flatMap(ocid -> todayHead(characterName, ocid, today)
+                        .map(head -> buildPlan(ocid, range, today, head)));
     }
 
     /**
      * 레벨이 낮으면 여기서 끊는다. 30지점을 다 긁고 나서 틀린 값을 보여주느니, 첫 스냅샷에서
      * 알 수 있는 것으로 바로 답한다 — 넥슨 호출 30번을 아끼는 일이기도 하다.
      */
-    private void requireHighEnoughLevel(String characterName, CharacterSnapshot current) {
-        Integer level = basicParser.characterLevel(current.document(NexonEndpoint.BASIC));
+    private void requireHighEnoughLevel(String characterName, TodayHead head) {
+        Integer level = head.characterInfo() == null ? null : head.characterInfo().level();
         if (level != null && level < CharacterTooLowException.MINIMUM_LEVEL) {
             throw new CharacterTooLowException(characterName, level);
         }
@@ -381,9 +388,42 @@ public class CombatPowerHistoryService {
                 && response.getStatusCode().value() == 400;
     }
 
-    private Plan buildPlan(String ocid, HistoryRange range, LocalDate today, CharacterSnapshot current) {
+    /**
+     * 오늘치 앞머리. 5분 캐시라 같은 캐릭터를 다시 열거나 구간을 오갈 때는 호출이 없다.
+     *
+     * <p>레벨이 낮으면 여기서 끊는다. 캐시에서 꺼낸 경우에도 검사해야 한다 - 안 그러면
+     * 5분 안에는 260 미만 캐릭터가 그냥 통과한다.
+     */
+    private Mono<TodayHead> todayHead(String characterName, String ocid, LocalDate today) {
+        return cache.getOrLoad(todayHeadCacheKey(ocid), TodayHead.class, TODAY_HEAD_TTL,
+                        () -> snapshotService.getCurrentSnapshotByOcid(ocid, today)
+                                .map(current -> buildHead(current, today)))
+                .doOnNext(head -> requireHighEnoughLevel(characterName, head));
+    }
+
+    private TodayHead buildHead(CharacterSnapshot current, LocalDate today) {
         JsonNode basic = current.document(NexonEndpoint.BASIC);
-        LocalDate created = basicParser.characterCreatedAt(basic);
+        Loaded loaded = toPoint(current, today, combatDataSheet(current), hexaMatrix(current));
+        return new TodayHead(
+                characterInfo(basic),
+                presetOf(current),
+                basicParser.characterCreatedAt(basic),
+                loaded.exists() ? loaded.point() : null);
+    }
+
+    private CurrentPresetInfo presetOf(CharacterSnapshot current) {
+        PresetSelection chosen = dataSheetService.getCombatPresetSelection(current);
+        return new CurrentPresetInfo(
+                chosen.itemPreset(), chosen.abilityPreset(),
+                chosen.hyperStatPreset(), chosen.unionRaiderPreset());
+    }
+
+    private static String todayHeadCacheKey(String ocid) {
+        return "maple:todayhead:v1:" + (ocid == null ? "" : ocid.trim());
+    }
+
+    private Plan buildPlan(String ocid, HistoryRange range, LocalDate today, TodayHead head) {
+        LocalDate created = head.createdAt();
         LocalDate floor = created == null || created.isBefore(API_FIRST_DATE) ? API_FIRST_DATE : created;
 
         List<LocalDate> all = range.dates(today);
@@ -391,12 +431,7 @@ public class CombatPowerHistoryService {
         boolean truncated = kept.size() < all.size();
         LocalDate truncatedFrom = truncated ? all.get(kept.size()) : null;
 
-        // 계산에 실제로 쓴 프리셋. 화면이 "보스 프리셋 기준" 대신 번호를 적는다.
-        PresetSelection chosen = dataSheetService.getCombatPresetSelection(current);
-        CurrentPresetInfo preset = new CurrentPresetInfo(
-                chosen.itemPreset(), chosen.abilityPreset(),
-                chosen.hyperStatPreset(), chosen.unionRaiderPreset());
-        return new Plan(ocid, today, current, characterInfo(basic), preset, kept, truncated, truncatedFrom);
+        return new Plan(ocid, today, head, head.characterInfo(), head.preset(), kept, truncated, truncatedFrom);
     }
 
     private CharacterInfo characterInfo(JsonNode basic) {
@@ -418,8 +453,20 @@ public class CombatPowerHistoryService {
         return new HistoryEvents.Error(code, message(error));
     }
 
+    /**
+     * 화면에 내보낼 문구.
+     *
+     * <p><b>우리가 만든 예외만 그대로 쓴다.</b> 그 밖(넥슨 5xx·타임아웃)은 고정 문구로 바꾼다 —
+     * {@code WebClientResponseException} 의 메시지에는 요청 URI 가 통째로 들어 있어서,
+     * 넥슨이 흔들릴 때 아무나 우리 업스트림 구성을 그대로 볼 수 있다. 키는 헤더라 안 새지만
+     * 굳이 알릴 것도 아니다. 원문은 로그에만 남긴다.
+     */
     private String message(Throwable error) {
-        return error.getMessage() == null ? error.getClass().getSimpleName() : error.getMessage();
+        if (error instanceof CharacterNotFoundException || error instanceof CharacterTooLowException) {
+            return error.getMessage();
+        }
+        log.warn("추이 조회 실패", error);
+        return "조회에 실패했습니다. 잠시 뒤 다시 시도해 주세요.";
     }
 
     private ServerSentEvent<Object> event(String name, Object payload) {
@@ -429,7 +476,7 @@ public class CombatPowerHistoryService {
     private record Plan(
             String ocid,
             LocalDate today,
-            CharacterSnapshot current,
+            TodayHead head,
             CharacterInfo characterInfo,
             CurrentPresetInfo preset,
             List<LocalDate> dates,

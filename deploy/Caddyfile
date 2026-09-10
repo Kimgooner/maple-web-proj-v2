@@ -3,6 +3,11 @@
 mapledelta.kr, www.mapledelta.kr, http://140.245.77.108 {
 	encode zstd gzip
 
+	# HSTS. Caddy 는 이걸 자동으로 붙이지 않는다. 한 번 https 로 온 브라우저는
+	# 그다음부터 http 로 시도조차 하지 않는다.
+	header Strict-Transport-Security "max-age=31536000; includeSubDomains"
+
+
 	# 정적 파일과 /api 프록시는 nginx(web) 가 맡는다. Caddy 는 TLS 만 맡는다.
 	# SSE 는 버퍼링 없이 흘려보낸다 (web 쪽 proxy_buffering off 와 짝이다).
 	reverse_proxy web:80 {

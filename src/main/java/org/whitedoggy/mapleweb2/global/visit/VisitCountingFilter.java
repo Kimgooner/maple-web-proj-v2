@@ -46,10 +46,18 @@ public class VisitCountingFilter implements WebFilter {
      * 따라갈 수 없다. 하루치 고유 방문자를 세는 데는 충분하고 그 이상은 못 한다.
      */
     private String clientKey(ServerWebExchange exchange) {
+        // XFF 의 마지막 값을 쓴다. nginx 가 $proxy_add_x_forwarded_for 로 뒤에 덧붙이므로
+        // 앞쪽은 클라이언트가 마음대로 적어 보낼 수 있고, 마지막 하나만 우리 프록시가 적은 것이다.
+        // 지금은 집계만 왜곡되지만, 나중에 이 값으로 제한을 걸면 그대로 우회 통로가 된다.
         String forwarded = exchange.getRequest().getHeaders().getFirst("X-Forwarded-For");
-        String ip = forwarded != null && !forwarded.isBlank()
-                ? forwarded.split(",")[0].trim()
-                : remoteAddress(exchange);
+        String ip = null;
+        if (forwarded != null && !forwarded.isBlank()) {
+            String[] hops = forwarded.split(",");
+            ip = hops[hops.length - 1].trim();
+        }
+        if (ip == null || ip.isBlank()) {
+            ip = remoteAddress(exchange);
+        }
         if (ip == null || ip.isBlank()) {
             return null;
         }
