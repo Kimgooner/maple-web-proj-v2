@@ -189,10 +189,12 @@ public class DataSheetService {
         dataSheet.setInactiveCharacter(basicParser.isInactive(documents.get(NexonEndpoint.BASIC)));
         dataSheet.setUnionChampion(setUnionChampion(unionChampion,
                 basicParser.characterName(documents.get(NexonEndpoint.BASIC))));
+        dataSheet.setUnionChampionUnverified(championParser.badgeUnverified(unionChampion));
 
         JsonNode presetItems = itemEquipmentParser.getItemEquipmentByPreset(itemEquip, presetSelection.itemPreset());
         DataSheet result = buildDataSheet(presetItems, itemEquip, setEffect, ability, hyper, unionRaider, characterClass, presetSelection, dataSheet, referenceDate);
-        result.setSourceEntries(sourceEntryExtractor.extract(documents, presetItems, presetSelection, characterClass, worldName));
+        result.setSourceEntries(sourceEntryExtractor.extract(
+                documents, presetItems, presetSelection, characterClass, worldName, referenceDate));
         return result;
     }
 
@@ -504,7 +506,7 @@ public class DataSheetService {
 
     /** 직렬화 형식이 바뀌면 접두사 버전을 올려 옛 값과 섞이지 않게 한다. */
     private String dataSheetCacheKey(String ocid, LocalDate date) {
-        return "maple:datasheet:v10:" + normalizeOcid(ocid) + ":" + date;
+        return "maple:datasheet:v11:" + normalizeOcid(ocid) + ":" + date;
     }
 
     private String normalizeOcid(String ocid) {

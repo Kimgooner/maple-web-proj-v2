@@ -214,7 +214,7 @@ public class CombatPowerHistoryService {
      * v4 부터 조각 진행률의 분모가 들어 있다.
      */
     private static String historyPointCacheKey(String ocid, LocalDate date) {
-        return "maple:history:v4:" + (ocid == null ? "" : ocid.trim()) + ":" + date;
+        return "maple:history:v5:" + (ocid == null ? "" : ocid.trim()) + ":" + date;
     }
 
     private Long apiCombatPower(CharacterSnapshot snapshot) {

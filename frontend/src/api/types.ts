@@ -96,6 +96,11 @@ export interface SourceChange {
   source: string;
   deltas: StatDelta[];
   entries: EntryChange[];
+  /**
+   * 캐릭터가 아니라 넥슨 데이터가 바뀐 것일 때 줄에 붙일 말. 아니면 null.
+   * 유니온 공격대 문서가 비어 오는 날이 그렇다 - 성장으로 읽히면 안 된다.
+   */
+  notice: string | null;
 }
 
 export type ChangeType = 'ADDED' | 'REMOVED' | 'REPLACED' | 'STAT_CHANGED';

@@ -33,6 +33,12 @@ public class InMemoryMapleCache implements MapleCache {
         return Mono.just(value);
     }
 
+    @Override
+    public <T> Mono<T> put(String key, T value) {
+        cache.put(key, new CacheEntry(value, Long.MAX_VALUE));
+        return Mono.just(value);
+    }
+
     private record CacheEntry(
             Object value,
             long expiresAtMillis

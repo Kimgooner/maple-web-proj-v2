@@ -8,12 +8,17 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import org.whitedoggy.mapleweb2.analysis.data.CharacterSnapshot;
 import org.whitedoggy.mapleweb2.external.nexon.client.NexonApiClient;
 import org.whitedoggy.mapleweb2.external.nexon.config.NexonEndpoint;
+import org.whitedoggy.mapleweb2.global.cache.MapleCache;
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
 import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.JsonNodeFactory;
+import tools.jackson.databind.node.ObjectNode;
 
 import java.time.Duration;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -23,7 +28,14 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 @RequiredArgsConstructor
 public class SnapshotService {
+    /**
+     * 챔피언 명단은 계정 성질이라 자주 바뀌지 않는다. 추이 한 번이 서른 날짜를 부르므로,
+     * 명단이 빈 날마다 현재 문서를 다시 부르지 않도록 ocid 로 짧게 들고 있는다.
+     */
+    private static final Duration CHAMPION_ROSTER_TTL = Duration.ofHours(6);
+
     private final NexonApiClient nexonApiClient;
+    private final MapleCache cache;
 
     public Mono<CharacterSnapshot> getSnapshotByOcid(String ocid, LocalDate date) {
         return fetchSnapshot(ocid, date, true);
@@ -75,7 +87,83 @@ public class SnapshotService {
                 documents.put(SNAPSHOT_ENDPOINTS.get(index), (JsonNode) values[index]);
             }
             return new CharacterSnapshot(ocid, date, documents, Set.copyOf(missing));
-        });
+        }).flatMap(snapshot -> includeDateParam ? repairChampionRoster(snapshot) : Mono.just(snapshot));
+    }
+
+    /**
+     * 그날만 비어 온 유니온 챔피언 명단을 현재 명단으로 채운다.
+     *
+     * <p>넥슨이 배지 총합은 그대로 주면서 명단만 빼고 주는 날이 있다. 배지는 챔피언으로
+     * 등록된 캐릭터에게만 붙는데 명단이 없으면 그걸 가릴 수 없어, 챔피언이 아닌 캐릭터가
+     * 하루치 배지를 받아 전투력이 솟았다가 다음 날 되돌아온다.
+     *
+     * <p>챔피언인지 아닌지는 계정 성질이라 날짜마다 뒤집히지 않는다. 그래서 빈 날에는
+     * 날짜 없는 문서의 명단을 끌어와 채운다. <b>배지 총합은 그날 것을 그대로 둔다</b> —
+     * 고치는 것은 "이 캐릭터가 챔피언인가" 하나뿐이다.
+     *
+     * <p>표본 700명 중 11명(1.6%)에서 걸렸고, 그 11명은 모두 다른 날짜에는 자기 명단에
+     * 들어 있었다. 명단이 영영 비는 계정은 없었다. 현재 문서도 비어 있으면 판단할 근거가
+     * 여전히 없으므로 손대지 않고 둔다 - 그때는 {@code ChampionParser} 의 기존 규칙을 따른다.
+     */
+    private Mono<CharacterSnapshot> repairChampionRoster(CharacterSnapshot snapshot) {
+        JsonNode champion = snapshot.document(NexonEndpoint.UNION_CHAMPION);
+        if (!rosterMissing(champion)) {
+            return Mono.just(snapshot);
+        }
+        return currentRoster(snapshot.ocid())
+                .filter(roster -> !roster.names().isEmpty())
+                .map(roster -> withRoster(snapshot, champion, roster.names()))
+                .defaultIfEmpty(snapshot);
+    }
+
+    /** 배지 총합은 왔는데 명단만 빈 상태. 둘 다 없으면 챔피언 자체를 안 쓰는 계정이라 손댈 것이 없다. */
+    private boolean rosterMissing(JsonNode champion) {
+        if (champion == null || champion.isNull()) {
+            return false;
+        }
+        return champion.path("union_champion").isEmpty()
+                && !champion.path("champion_badge_total_info").isEmpty();
+    }
+
+    private Mono<ChampionRoster> currentRoster(String ocid) {
+        return cache.getOrLoad(
+                championRosterCacheKey(ocid), ChampionRoster.class, CHAMPION_ROSTER_TTL,
+                () -> nexonApiClient.get(NexonEndpoint.UNION_CHAMPION, ocid, null, false)
+                        .retryWhen(retrySpec())
+                        .map(SnapshotService::rosterOf)
+                        .onErrorReturn(new ChampionRoster(List.of())));
+    }
+
+    private static ChampionRoster rosterOf(JsonNode champion) {
+        List<String> names = new ArrayList<>();
+        for (JsonNode entry : champion.path("union_champion")) {
+            String name = entry.path("champion_name").asString("");
+            if (!name.isBlank()) {
+                names.add(name);
+            }
+        }
+        return new ChampionRoster(List.copyOf(names));
+    }
+
+    /** 원본을 건드리지 않고 명단만 채운 문서로 갈아 끼운다. */
+    private CharacterSnapshot withRoster(CharacterSnapshot snapshot, JsonNode champion, List<String> names) {
+        ObjectNode repaired = (ObjectNode) champion.deepCopy();
+        ArrayNode roster = JsonNodeFactory.instance.arrayNode();
+        names.forEach(name -> roster.add(JsonNodeFactory.instance.objectNode().put("champion_name", name)));
+        repaired.set("union_champion", roster);
+
+        Map<NexonEndpoint, JsonNode> documents = new EnumMap<>(snapshot.documents());
+        documents.put(NexonEndpoint.UNION_CHAMPION, repaired);
+        return new CharacterSnapshot(
+                snapshot.ocid(), snapshot.date(), documents, snapshot.missingDocuments());
+    }
+
+    private String championRosterCacheKey(String ocid) {
+        return "maple:championroster:v1:" + (ocid == null ? "" : ocid.trim());
+    }
+
+    /** 캐시에 담기는 현재 챔피언 명단. */
+    public record ChampionRoster(List<String> names) {
     }
 
     private Mono<JsonNode> fetchEndpoint(NexonEndpoint endpoint, String ocid, LocalDate date,

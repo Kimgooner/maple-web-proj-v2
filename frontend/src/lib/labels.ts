@@ -19,7 +19,7 @@ export function statLabel(statName: string): string {
 }
 
 const SOURCE_LABELS: Record<string, string> = {
-  abilityPoint: 'AP 배분', symbol: '심볼', skill: '스킬', hexaStat: '헥사스탯', hexaCore: '헥사 코어', otherStat: '기타 능력치',
+  abilityPoint: '레벨 상승', symbol: '심볼', skill: '스킬', hexaStat: '헥사스탯', hexaCore: '헥사 코어', otherStat: '기타 능력치',
   ability: '어빌리티', hyperStat: '하이퍼스탯', setEffect: '세트효과',
   unionOccupied: '유니온 점령 효과', unionRaider: '유니온 공격대', unionArtifact: '유니온 아티팩트',
   unionChampion: '유니온 챔피언',

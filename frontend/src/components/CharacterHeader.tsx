@@ -1,7 +1,6 @@
 import type { CharacterInfo, HistoryPoint } from '../api/types';
 import { dateLabel, formatNumber, formatPercentChange, formatSigned, shortDate } from '../lib/format';
 import { INCOMPLETE_CLASSES } from '../lib/labels';
-import { expiredLabel, latestExpired } from '../lib/expired';
 
 interface Props {
   info: CharacterInfo | null;
@@ -23,7 +22,6 @@ export function CharacterHeader({ info, name, points, loading }: Props) {
   const level = latest?.level ?? info?.level;
   const meta = [level == null ? null : `Lv. ${level}`, info?.className, info?.guild].filter(Boolean).join(' · ');
 
-  const expired = expiredLabel(latestExpired(points));
   const comparable = !loading && valid.length >= 2;
   const delta = comparable ? latest.combatPower! - first.combatPower! : null;
 
@@ -41,14 +39,6 @@ export function CharacterHeader({ info, name, points, loading }: Props) {
           <p className="muted">{meta}</p>
           {info?.className && INCOMPLETE_CLASSES.has(info.className) && (
             <span className="warning">계산 정확도 낮음 · {info.className}</span>
-          )}
-          {expired && (
-            <span
-              className="expired-warning"
-              title="기간이 지나 스탯이 빠진 항목입니다. 게임에는 아직 붙어 보일 수 있지만 계산에서는 빠졌습니다."
-            >
-              만료됨 · {expired}
-            </span>
           )}
         </div>
       </div>

@@ -120,6 +120,12 @@ public class DataSheet {
      */
     boolean incompleteSnapshot;
 
+    /**
+     * 유니온 챔피언 배지를 적용했지만 챔피언 명단이 안 와서 맞는지 확인하지 못했다.
+     * 명단만 비어 오는 날이 있어, 챔피언이 아닌 캐릭터의 전투력이 하루만 솟는다.
+     */
+    boolean unionChampionUnverified;
+
     public void copy(DataSheet other) {
         this.abilityPoint = other.abilityPoint;
         this.symbol = other.symbol;
@@ -154,6 +160,7 @@ public class DataSheet {
         this.unknownWeapon = other.unknownWeapon;
         this.inactiveCharacter = other.inactiveCharacter;
         this.incompleteSnapshot = other.incompleteSnapshot;
+        this.unionChampionUnverified = other.unionChampionUnverified;
         this.solErdaFragments = other.solErdaFragments;
     }
 

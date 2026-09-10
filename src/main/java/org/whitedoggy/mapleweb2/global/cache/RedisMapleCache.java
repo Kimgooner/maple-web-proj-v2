@@ -55,6 +55,17 @@ public class RedisMapleCache implements MapleCache {
                 });
     }
 
+    @Override
+    public <T> Mono<T> put(String key, T value) {
+        return Mono.fromCallable(() -> mapper.writeValueAsString(value))
+                .flatMap(json -> redis.opsForValue().set(key, json))
+                .thenReturn(value)
+                .onErrorResume(error -> {
+                    warnOnce("캐시에 쓰지 못했습니다", error);
+                    return Mono.just(value);
+                });
+    }
+
     /**
      * 직렬화 형식이 바뀌어 못 읽는 옛 값은 미스로 두고 지운다. 키 접두사 버전을 올리면
      * 이런 값을 마주칠 일이 없지만, 남아 있는 것을 계속 붙들고 있을 이유도 없다.

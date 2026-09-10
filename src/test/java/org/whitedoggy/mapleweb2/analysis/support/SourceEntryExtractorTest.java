@@ -15,6 +15,8 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.LocalDate;
+
 @SpringBootTest
 class SourceEntryExtractorTest {
 
@@ -38,7 +40,10 @@ class SourceEntryExtractorTest {
                 {"union_raider_stat":["LUK 100 증가"],"union_state_stat":["보스 몬스터 공격 시 데미지 5.00% 증가"],
                  "use_preset_no":1}"""));
         docs.put(NexonEndpoint.UNION_ARTIFACT, json("""
-                {"union_artifact_effect":[{"name":"올스탯 150 증가","level":10}]}"""));
+                {"union_artifact_effect":[{"name":"올스탯 150 증가","level":10}],
+                 "union_artifact_crystal":[{"date_expire":"2026-09-01T00:00+09:00"},
+                                           {"validity_flag":"1"},
+                                           {"date_expire":"2027-01-01T00:00+09:00"}]}"""));
         docs.put(NexonEndpoint.HEXA_MATRIX_STAT, json("""
                 {"character_hexa_stat_core":[{"main_stat_name":"주력 스탯 증가","sub_stat_name_1":"공격력 증가",
                   "sub_stat_name_2":"크리티컬 데미지 증가","main_stat_level":5,"sub_stat_level_1":8,"sub_stat_level_2":7}]}"""));
@@ -47,7 +52,8 @@ class SourceEntryExtractorTest {
                                     {"skill_name":"Lv.2 궁디팡팡 멍뭉이","skill_level":1,"skill_effect":"공격력 20, 마력 20증가","skill_icon":"https://x/skill.png"}]}"""));
 
         Map<String, Map<String, SourceEntry>> entries = extractor.extract(
-                docs, MAPPER.createArrayNode(), new PresetSelection(1, 3, 2, 1), "나이트로드", "스카니아");
+                docs, MAPPER.createArrayNode(), new PresetSelection(1, 3, 2, 1), "나이트로드", "스카니아",
+                LocalDate.of(2026, 9, 9));
 
         assertThat(entries.get("symbol")).containsEntry("아케인심볼 : 소멸의 여로", new SourceEntry("Lv.20", "https://x/sym.png"));
         assertThat(entries.get("hyperStat")).containsOnly(Map.entry("보스 몬스터 공격 시 데미지 증가", SourceEntry.of("Lv.12")));
@@ -55,6 +61,10 @@ class SourceEntryExtractorTest {
         assertThat(entries.get("unionRaider")).containsEntry("LUK 증가", SourceEntry.of("100"));
         assertThat(entries.get("unionOccupied")).containsEntry("보스 몬스터 공격 시 데미지 증가", SourceEntry.of("5.00%"));
         assertThat(entries.get("unionArtifact")).containsEntry("올스탯 증가", SourceEntry.of("150 (Lv.10)"));
+        // 만료된 크리스탈은 효과 목록에 아무 흔적이 없다. 세어 두지 않으면 전투력이
+        // 왜 줄었는지 화면에서 답할 자리가 없다.
+        assertThat(entries.get("unionArtifact"))
+                .containsEntry("만료된 크리스탈", new SourceEntry("2개", null, null, "만료"));
         // 코어 하나가 한 항목이다. 셋을 따로 두면 코어를 갈아 끼웠을 때 세 줄이 각각 바뀐 것처럼 나온다.
         assertThat(entries.get("hexaStat")).containsEntry("헥사 스탯I", SourceEntry.of("""
                 주옵션 주력 스탯 증가 Lv.5

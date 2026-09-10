@@ -21,6 +21,11 @@ spring:
       connect-timeout: 2s
 
 maple:
+  # 레벨 구간별 전투력 분포 배치. 매주 월요일 00시에 8,000명을 재느라 API 를 14만 회 쓴다.
+  # 로컬·테스트가 이걸 돌리는 일이 없게 기본은 꺼짐이고, 프로덕션에서만 켠다.
+  level-band:
+    enabled: ${MAPLE_LEVEL_BAND_ENABLED:false}
+
   # memory: 프로세스 안에만 사는 캐시 (로컬·테스트 기본).
   # redis:  재시작에도 남는 캐시. 프로덕션은 MAPLE_CACHE_TYPE=redis 로 켠다.
   cache:

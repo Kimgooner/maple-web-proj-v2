@@ -242,7 +242,8 @@ public class AnalysisService {
                 changeSummary.entries().stream()
                         .map(e -> new EntryChangeSummary(
                                 e.name(), e.previous(), e.current(), e.icon(), e.detail(), e.badge()))
-                        .toList()
+                        .toList(),
+                changeSummary.notice()
         );
     }
 

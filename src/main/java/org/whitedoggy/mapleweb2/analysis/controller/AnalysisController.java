@@ -15,6 +15,8 @@ import org.whitedoggy.mapleweb2.analysis.dto.CurrentCombatPowerDebugResponse;
 import org.whitedoggy.mapleweb2.analysis.history.CombatPowerHistoryResponse;
 import org.whitedoggy.mapleweb2.analysis.history.CombatPowerHistoryService;
 import org.whitedoggy.mapleweb2.analysis.history.HistoryRange;
+import org.whitedoggy.mapleweb2.analysis.ranking.LevelBandStatsResponse;
+import org.whitedoggy.mapleweb2.analysis.ranking.LevelBandStatsService;
 import org.whitedoggy.mapleweb2.analysis.service.AnalysisService;
 import org.whitedoggy.mapleweb2.validation.CurrentCombatPowerDebugService;
 import reactor.core.publisher.Flux;
@@ -29,6 +31,7 @@ public class AnalysisController {
     private final AnalysisService analysisService;
     private final CurrentCombatPowerDebugService currentCombatPowerDebugService;
     private final CombatPowerHistoryService combatPowerHistoryService;
+    private final LevelBandStatsService levelBandStatsService;
 
     @GetMapping("/api/analysis/combat-power")
     public Mono<AnalysisResponse> getCombatPower(
@@ -78,6 +81,15 @@ public class AnalysisController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate currentDate
     ) {
         return analysisService.getCombatPowerDetail(ocid, previousDate, currentDate);
+    }
+
+    /**
+     * 레벨 구간별 전투력 분포. 매주 월요일에 랭킹 표본으로 다시 재고, 가지고 있는 주를
+     * 모두 준다 — 화면이 추이의 지점마다 그 시점의 주를 골라 기준선을 긋는다.
+     */
+    @GetMapping("/api/analysis/level-band-stats")
+    public Mono<LevelBandStatsResponse> getLevelBandStats() {
+        return levelBandStatsService.getStats();
     }
 
     @GetMapping("/api/analysis/combat-power/current-debug")

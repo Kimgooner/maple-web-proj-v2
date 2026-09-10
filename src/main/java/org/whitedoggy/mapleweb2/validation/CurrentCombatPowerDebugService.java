@@ -72,6 +72,18 @@ public class CurrentCombatPowerDebugService {
                 difference,
                 errorRatePercent,
                 currentDataSheet.isLucidTransformSuspected(),
+                new CurrentCombatPowerDebugResponse.DataQuality(
+                        currentDataSheet.isInactiveCharacter(),
+                        currentDataSheet.isIncompleteSnapshot(),
+                        currentDataSheet.isWeaponMissing(),
+                        currentDataSheet.isUnknownWeapon(),
+                        currentDataSheet.isWeaponNormalizationFailed(),
+                        currentDataSheet.isUnionRaiderDataMissing(),
+                        currentDataSheet.getExpiredArtifactCrystals(),
+                        currentDataSheet.getExpiredCashItems(),
+                        currentDataSheet.getExpiredPetEquipments(),
+                        currentDataSheet.isExpiredTitleOption()
+                ),
                 statSheets(currentDataSheet)
         );
     }

@@ -116,7 +116,8 @@ public class DataSheetCompareService {
                                      DataSheet previous, DataSheet current, List<StatDelta> deltas) {
         List<EntryChange> changes = entryChanges(label, previous, current);
         if (!changes.isEmpty()) {
-            summaries.add(new ChangeSummary(label, deltas, changes, weight(deltas)));
+            summaries.add(new ChangeSummary(
+                    label, deltas, changes, weight(deltas), notice(label, previous, current)));
         }
     }
 
@@ -133,6 +134,9 @@ public class DataSheetCompareService {
         return List.of(new StatDelta("SOL_ERDA_FRAGMENT", after - before));
     }
 
+    /** 넥슨 유니온 문서가 덜 와서 생긴 증감에 붙이는 말. 성장으로 읽히면 안 된다. */
+    private static final String UNION_DATA_NOTICE = "유니온 업데이트 반영 X";
+
     private void addSheetSummary(List<ChangeSummary> summaries, String label, StatSheet before, StatSheet after,
                                  DataSheet previous, DataSheet current) {
         if (before == null || after == null) {
@@ -145,7 +149,31 @@ public class DataSheetCompareService {
         }
 
         List<StatDelta> statDeltas = summarizeStatDelta(delta);
-        summaries.add(new ChangeSummary(label, statDeltas, entryChanges(label, previous, current), weight(statDeltas)));
+        summaries.add(new ChangeSummary(
+                label, statDeltas, entryChanges(label, previous, current), weight(statDeltas),
+                notice(label, previous, current)));
+    }
+
+    /**
+     * 이 변화가 캐릭터가 아니라 넥슨 데이터에서 온 것일 때 붙이는 말.
+     *
+     * <p>유니온 공격대 문서가 통째로 비어 오는 날이 있다. 그러면 공격대·점령 효과가 한꺼번에
+     * 사라져 전투력이 20~30% 떨어진 것처럼 보이는데, 게임 안에서는 아무 일도 없었다.
+     * 반대로 다시 채워져 오는 날은 같은 폭으로 오른 것처럼 보인다. 어느 쪽이든 성장으로
+     * 읽히면 안 되므로 줄에 표를 달아 둔다. 두 소스가 같은 문서에서 나오므로 함께 본다.
+     */
+    private String notice(String source, DataSheet previous, DataSheet current) {
+        boolean fromRaiderDocument = "unionRaider".equals(source) || "unionOccupied".equals(source);
+        if (fromRaiderDocument
+                && (previous.isUnionRaiderDataMissing() || current.isUnionRaiderDataMissing())) {
+            return UNION_DATA_NOTICE;
+        }
+        // 챔피언은 반대 방향이다 - 명단이 비어 오면 배지를 못 걷어내 하루만 솟는다.
+        if ("unionChampion".equals(source)
+                && (previous.isUnionChampionUnverified() || current.isUnionChampionUnverified())) {
+            return UNION_DATA_NOTICE;
+        }
+        return null;
     }
 
     /** 이름 있는 항목의 변화 목록. 생김·사라짐·값 변경만 남기고, 같은 것은 뺀다. */
@@ -526,7 +554,9 @@ public class DataSheetCompareService {
             String source,
             List<StatDelta> deltas,
             List<EntryChange> entries,
-            int weight
+            int weight,
+            /** 캐릭터가 아니라 넥슨 데이터가 바뀐 것일 때 화면에 대신 적을 말. 아니면 null. */
+            String notice
     ) {
     }
 

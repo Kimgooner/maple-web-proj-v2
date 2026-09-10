@@ -10,6 +10,7 @@ services:
       NEXON_API_KEY: ${NEXON_API_KEY:?NEXON_API_KEY 가 .env 에 없다}
       SPRING_PROFILES_ACTIVE: prod
       MAPLE_CACHE_TYPE: redis
+      MAPLE_LEVEL_BAND_ENABLED: "true"
       SPRING_DATA_REDIS_HOST: redis
     expose:
       - "8080"
@@ -35,10 +36,14 @@ services:
 
   # 데이터시트 캐시. 지나간 날짜는 넥슨이 같은 값을 주므로 길게 들고 있는다.
   # RDB 를 남겨 컨테이너를 재시작해도 캐시가 산다. 포트는 밖으로 내지 않는다.
+  #
+  # volatile-lru 는 만료가 걸린 키만 밀어낸다. 캐시는 전부 TTL 이 있어 그대로 밀려나고,
+  # 레벨 구간 표본처럼 만료 없이 넣은 값은 메모리가 차도 남는다. allkeys-lru 로 두면
+  # 이게 쓸려 나갔을 때 부팅하며 다시 긁어, 배포할 때마다 8,000명을 다시 재게 된다.
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    command: ["redis-server", "--maxmemory", "1gb", "--maxmemory-policy", "allkeys-lru", "--save", "300", "1"]
+    command: ["redis-server", "--maxmemory", "1gb", "--maxmemory-policy", "volatile-lru", "--save", "300", "1"]
     volumes:
       - redis_data:/data
     logging:

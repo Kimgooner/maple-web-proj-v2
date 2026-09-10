@@ -9,7 +9,7 @@ export const CATEGORIES: [ChangeCategory, string][] = [
   ['items', '장비'], ['cash', '캐시'], ['pet', '펫'], ['skill', '스킬'],
   ['hexa', '헥사'], ['union', '유니온'],
   ['ability', '어빌리티'], ['hyperStat', '하이퍼스탯'], ['symbol', '심볼'],
-  ['setEffect', '세트효과'], ['abilityPoint', 'AP 배분'], ['etc', '기타'],
+  ['setEffect', '세트효과'], ['abilityPoint', '레벨 상승'], ['etc', '기타'],
 ];
 
 /**

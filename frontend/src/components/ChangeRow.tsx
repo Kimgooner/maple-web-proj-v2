@@ -220,8 +220,13 @@ function EntryTable({ entries }: { entries: EntryChange[] }) {
                 {entry.icon && <img src={entry.icon} alt="" loading="lazy" />}
                 <span className="entry-label-text">
                   {entry.name}
-                  {/* 헥사 코어 종류. 이름이 긴 것이 있어 옆이 아니라 밑에 둔다. */}
-                  {entry.badge && <span className="entry-badge">{entry.badge}</span>}
+                  {/* 헥사 코어 종류. 이름이 긴 것이 있어 옆이 아니라 밑에 둔다.
+                      만료는 경고라서 같은 자리에 두되 색을 갈라 놓는다. */}
+                  {entry.badge && (
+                    <span className={entry.badge === '만료' ? 'entry-badge expired' : 'entry-badge'}>
+                      {entry.badge}
+                    </span>
+                  )}
                 </span>
               </span>
             </td>
@@ -279,6 +284,13 @@ export function ChangeRow({ row, info, open, onToggle }: {
   const icon = row.kind === 'slot'
     ? row.change.currentItemIcon ?? row.change.previousItemIcon
     : entries.find((entry) => entry.icon)?.icon ?? null;
+  /*
+   * 기간이 지나 스탯이 빠진 장비. 게임에는 그대로 붙어 보이고 이름도 그림도 그대로라
+   * 줄만 봐서는 멀쩡해 보인다. 펼쳐야 나오던 것을 줄 제목 옆으로 끌어올린다.
+   */
+  const expired = row.kind === 'slot' ? row.change.currentItem?.expired ?? null : null;
+  /* 넥슨 데이터가 빠져 생긴 증감. 캐릭터가 그만큼 세지거나 약해진 것이 아니다. */
+  const notice = row.kind === 'source' ? row.change.notice ?? null : null;
 
   return (
     <details
@@ -302,6 +314,18 @@ export function ChangeRow({ row, info, open, onToggle }: {
                 <span className={`change-badge badge-${row.change.changeType}`}>
                   {CHANGE_TYPE_LABELS[row.change.changeType] ?? row.change.changeType}
                 </span>
+              )}
+              {expired && (
+                <span
+                  className="change-badge badge-EXPIRED"
+                  title="기간이 지나 계산에서 빠졌습니다. 게임에는 아직 붙어 보일 수 있어요."
+                >만료</span>
+              )}
+              {notice && (
+                <span
+                  className="change-badge badge-NOTICE"
+                  title="넥슨 API 가 이 항목을 비워 보낸 날입니다. 게임 안에서 실제로 바뀐 것이 아니라, 증감을 성장으로 읽으면 안 됩니다."
+                >{notice}</span>
               )}
             </div>
             <div className="item-subtitle">{subtitle}</div>

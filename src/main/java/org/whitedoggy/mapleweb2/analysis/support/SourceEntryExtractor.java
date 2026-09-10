@@ -1,5 +1,6 @@
 package org.whitedoggy.mapleweb2.analysis.support;
 
+import org.whitedoggy.mapleweb2.domain.basic.BasicParser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.whitedoggy.mapleweb2.analysis.data.PresetSelection;
@@ -23,6 +24,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.whitedoggy.mapleweb2.domain.common.support.ExpiryDates;
+
+import java.time.LocalDate;
 
 /**
  * 핵심 소스(스킬·심볼·하이퍼스탯·어빌리티·세트·유니온·헥사)의 "이름 있는 항목"을 원본 문서에서 뽑는다.
@@ -56,6 +60,7 @@ public class SourceEntryExtractor {
             new String[]{"DAMAGE", "데미지%"}, new String[]{"BOSS_DAMAGE", "보공%"},
             new String[]{"CRITICAL_DAMAGE", "크뎀%"}, new String[]{"FINAL_DAMAGE", "최종뎀%"});
 
+    private final BasicParser basicParser;
     private final SkillParser skillParser;
     private final SetEffectParser setEffectParser;
     private final RaiderParser raiderParser;
@@ -73,9 +78,11 @@ public class SourceEntryExtractor {
             JsonNode presetItems,
             PresetSelection preset,
             String characterClass,
-            String worldName
+            String worldName,
+            LocalDate referenceDate
     ) {
         Map<String, Map<String, SourceEntry>> entries = new LinkedHashMap<>();
+        entries.put("abilityPoint", levelOf(documents.get(NexonEndpoint.BASIC)));
         entries.put("skill", skills(documents.get(NexonEndpoint.SKILL_0), worldName));
         entries.put("symbol", symbols(documents.get(NexonEndpoint.SYMBOL_EQUIPMENT)));
         entries.put("hyperStat", hyperStats(documents.get(NexonEndpoint.HYPER_STAT), preset.hyperStatPreset()));
@@ -84,7 +91,7 @@ public class SourceEntryExtractor {
         JsonNode raider = documents.get(NexonEndpoint.UNION_RAIDER);
         entries.put("unionRaider", lines(raiderParser.getUnionRaiderStatByPreset(raider, preset.unionRaiderPreset())));
         entries.put("unionOccupied", lines(raiderParser.getUnionOccupiedStatByPreset(raider, preset.unionRaiderPreset())));
-        entries.put("unionArtifact", artifacts(documents.get(NexonEndpoint.UNION_ARTIFACT)));
+        entries.put("unionArtifact", artifacts(documents.get(NexonEndpoint.UNION_ARTIFACT), referenceDate));
         entries.put("unionChampion", champions(documents.get(NexonEndpoint.UNION_CHAMPION)));
         entries.put("hexaStat", hexaStats(documents.get(NexonEndpoint.HEXA_MATRIX_STAT)));
         entries.put("otherStat", otherStats(
@@ -200,14 +207,47 @@ public class SourceEntryExtractor {
         return lines.isEmpty() ? null : String.join("\n", lines);
     }
 
-    private Map<String, SourceEntry> artifacts(JsonNode artifact) {
+    /**
+     * 유니온 아티팩트. 효과는 넥슨이 합쳐 준 목록을 그대로 쓰고, 기간이 지난 크리스탈은
+     * 줄을 하나 더 만들어 알린다.
+     *
+     * <p>만료된 크리스탈은 게임에는 그대로 꽂혀 보이지만 계산에서는 빠진다. 효과 목록에도
+     * 안 나타나 아무 흔적이 없으므로, 여기서 세어 두지 않으면 "왜 갑자기 전투력이 줄었나"에
+     * 답할 자리가 사라진다.
+     */
+    private Map<String, SourceEntry> artifacts(JsonNode artifact, LocalDate referenceDate) {
         Map<String, SourceEntry> result = new LinkedHashMap<>();
         if (artifact == null) return result;
         for (JsonNode effect : artifact.path("union_artifact_effect")) {
             String[] split = splitNumber(Jsons.text(effect, "name"));
             result.put(split[0], SourceEntry.of(split[1] + " (Lv." + effect.path("level").asInt(0) + ")"));
         }
+        int expired = expiredCrystals(artifact, referenceDate);
+        if (expired > 0) {
+            result.put("만료된 크리스탈", new SourceEntry(expired + "개", null, null, "만료"));
+        }
         return result;
+    }
+
+    /** ArtifactParser 가 계산에서 빼는 것과 같은 기준이어야 한다. */
+    private int expiredCrystals(JsonNode artifact, LocalDate referenceDate) {
+        int expired = 0;
+        for (JsonNode crystal : artifact.path("union_artifact_crystal")) {
+            if ("1".equals(Jsons.text(crystal, "validity_flag"))
+                    || ExpiryDates.isExpired(Jsons.text(crystal, "date_expire"), referenceDate)) {
+                expired++;
+            }
+        }
+        return expired;
+    }
+
+    /**
+     * AP 는 레벨이 오를 때만 늘어난다. 스탯 증감만 적으면 "AP 가 왜 늘었나"에 답이 없어,
+     * 그 줄에 레벨을 담아 이전 → 이후로 읽히게 한다.
+     */
+    private Map<String, SourceEntry> levelOf(JsonNode basic) {
+        Integer level = basicParser.characterLevel(basic);
+        return level == null ? Map.of() : Map.of("레벨", SourceEntry.of("Lv." + level));
     }
 
     private Map<String, SourceEntry> champions(JsonNode champion) {

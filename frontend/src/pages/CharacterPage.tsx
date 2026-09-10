@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { fetchDetail } from '../api/detail';
+import { fetchLevelBands, type LevelBandWeek } from '../api/levelBands';
 import type { DetailResponse, HistoryRange } from '../api/types';
 import { CharacterHeader } from '../components/CharacterHeader';
 import { ChangesPanel } from '../components/ChangesPanel';
@@ -19,6 +20,8 @@ export function CharacterPage() {
   const [range, setRange] = useState<HistoryRange>('daily');
   const [compare, setCompare] = useState(false);
   const [showFragments, setShowFragments] = useState(true);
+  const [showMedian, setShowMedian] = useState(true);
+  const [bands, setBands] = useState<LevelBandWeek[]>([]);
   const [retry, setRetry] = useState(0);
   const [detailRetry, setDetailRetry] = useState(0);
 
@@ -32,6 +35,13 @@ export function CharacterPage() {
   const [pickHint, setPickHint] = useState<string | null>(null);
 
   useEffect(() => { if (name) pushRecent(name); }, [name]);
+
+  // 캐릭터와 무관한 통계라 한 번만 받는다. 실패해도 빈 배열이라 차트는 그대로 뜬다.
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchLevelBands(controller.signal).then(setBands);
+    return () => controller.abort();
+  }, []);
 
   useEffect(() => {
     setAnchor(null); setInterval(null); setDetail(null); setDetailError(null); setPickHint(null);
@@ -140,6 +150,11 @@ export function CharacterPage() {
                   <button type="button" onClick={() => setShowFragments((v) => !v)} style={{ opacity: showFragments ? 1 : 0.45 }}>
                     <i className="line-fragment" />솔 에르다 조각
                   </button>
+                  {bands.length > 0 && (
+                    <button type="button" onClick={() => setShowMedian((v) => !v)} style={{ opacity: showMedian ? 1 : 0.45 }}>
+                      <i className="line-median" />같은 레벨 중앙값
+                    </button>
+                  )}
                   <span className="muted" style={{ marginLeft: 'auto', fontSize: 10 }}>
                     {streaming ? `${history.received} / ${history.total || '…'} 지점` : ''}
                   </span>
@@ -150,6 +165,7 @@ export function CharacterPage() {
                 ) : (
                   <TrendChart
                     points={history.points} range={range} showFragments={showFragments}
+                    bands={bands} showMedian={showMedian}
                     interval={interval} anchor={anchor} interactive={selectable} onPick={pick}
                   />
                 )}

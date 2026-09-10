@@ -30,4 +30,19 @@ public class RankingCharacterClient {
                         .retrieve()
                         .bodyToMono(JsonNode.class));
     }
+
+    /**
+     * 월드·직업을 가리지 않은 종합 랭킹 한 쪽. 레벨 구간 표본은 전 월드를 섞어 뽑는다.
+     */
+    public Mono<JsonNode> getOverallRanking(LocalDate date, int page) {
+        return nexonRateLimiter.acquire()
+                .then(nexonWebClient.get()
+                        .uri(uriBuilder -> uriBuilder
+                                .path("/maplestory/v1/ranking/overall")
+                                .queryParam("date", date)
+                                .queryParam("page", page)
+                                .build())
+                        .retrieve()
+                        .bodyToMono(JsonNode.class));
+    }
 }
