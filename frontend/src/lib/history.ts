@@ -26,6 +26,14 @@ export interface HistoryState {
    * 전투력까지 같이 깜빡인다. 다 받은 뒤 갈아 끼우면 바뀌는 것만 바뀐다.
    */
   pending: { meta: HistoryMeta; points: HistoryPoint[] } | null;
+  /**
+   * 지금 함께 추이를 받고 있는 사람 수(자기 포함).
+   *
+   * <p>콜드 조회 하나가 넥슨을 510회 쓰고 초당 호출에 상한이 있어, 동시에 보는 사람이
+   * 많으면 다 같이 느려진다. 멈춘 것이 아니라 줄을 선 것인데 화면에서는 구별이 안 되므로,
+   * 기다림이 길어질 때 이 수를 같이 보여 준다.
+   */
+  concurrent: number;
 }
 
 export const initialHistoryState: HistoryState = {
@@ -37,6 +45,7 @@ export const initialHistoryState: HistoryState = {
   error: null,
   errorCode: null,
   pending: null,
+  concurrent: 0,
 };
 
 /** 화면에 내놓을 만한 지점이 있는가. 자리만 잡힌 빈 배열은 아니다. */
@@ -93,7 +102,7 @@ export function applyHistoryEvent(state: HistoryState, event: HistoryAction): Hi
         : loadingHistoryState();
     case 'meta': {
       const points = blankPoints(event.data.dates);
-      const base = { ...state, status: 'loading' as const, received: 0, total: event.data.plannedCount, error: null, errorCode: null };
+      const base = { ...state, status: 'loading' as const, received: 0, total: event.data.plannedCount, error: null, errorCode: null, concurrent: event.data.concurrent };
       return hasShowable(state)
         ? { ...base, pending: { meta: event.data, points } }
         : { ...base, meta: event.data, points, pending: null };
@@ -101,9 +110,10 @@ export function applyHistoryEvent(state: HistoryState, event: HistoryAction): Hi
     case 'point': {
       const incoming = withoutZero(event.data.point);
       const received = Math.max(state.received, event.data.index);
+      const concurrent = event.data.concurrent;
       return state.pending
-        ? { ...state, pending: { ...state.pending, points: fill(state.pending.points, incoming) }, received, total: event.data.total }
-        : { ...state, points: fill(state.points, incoming), received, total: event.data.total };
+        ? { ...state, pending: { ...state.pending, points: fill(state.pending.points, incoming) }, received, total: event.data.total, concurrent }
+        : { ...state, points: fill(state.points, incoming), received, total: event.data.total, concurrent };
     }
     case 'done':
       return state.pending

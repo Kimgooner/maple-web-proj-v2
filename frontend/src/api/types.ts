@@ -63,12 +63,16 @@ export interface HistoryMeta {
   truncatedFrom: string | null;
   /** 최신 → 과거 순으로 온다 */
   dates: string[];
+  /** 이 순간 함께 추이를 받고 있는 사람 수. 자기 자신을 포함한다 */
+  concurrent: number;
 }
 
 export interface HistoryPointEvent {
   index: number;
   total: number;
   point: HistoryPoint;
+  /** 기다리는 동안 변하므로 지점마다 새로 온다 */
+  concurrent: number;
 }
 
 export interface HistoryDone {

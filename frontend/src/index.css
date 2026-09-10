@@ -2194,6 +2194,16 @@ the SVG uses its actual container width. */@media(min-width:851px) {
   background:repeating-linear-gradient(0deg,transparent,transparent 62px,#f0f2f6 63px);
 }
 
+/*
+ * 사람이 몰려 오래 걸릴 때만 뜬다. 진행률 아래 한 줄로, 진행률보다 눈에 덜 띄게.
+ */
+.chart-loading-crowd {
+  font-size:12px;
+  color:var(--muted);
+  opacity:.85;
+}
+
+.chart-loading-crowd .number,
 .chart-loading-text .number {
   color:var(--ink);
   font-variant-numeric:tabular-nums;

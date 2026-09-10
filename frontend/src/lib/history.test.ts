@@ -6,7 +6,7 @@ const meta: HistoryMeta = {
   ocid: 'o', range: 'monthly',
   characterInfo: { name: '뚠버리', className: '플레임위자드', level: 290, guild: null, world: '챌린저스3', image: null, mainStats: ['INT'], subStats: ['LUK'], usesMagic: true }, preset: null,
   requestedCount: 12, plannedCount: 3, truncated: true, truncatedFrom: '2026-06-01',
-  dates: ['2026-09-01', '2026-08-01', '2026-07-01'],
+  dates: ['2026-09-01', '2026-08-01', '2026-07-01'], concurrent: 1,
 };
 
 describe('applyHistoryEvent', () => {
@@ -21,7 +21,7 @@ describe('applyHistoryEvent', () => {
     let state = applyHistoryEvent(loadingHistoryState(), { type: 'meta', data: meta });
     state = applyHistoryEvent(state, {
       type: 'point',
-      data: { index: 1, total: 3, point: { date: '2026-09-01', level: 290, combatPower: 100, apiCombatPower: 100, solErdaFragments: 500, solErdaFragmentsRequired: null, cooldownSecond: null, cooldownSkipPercent: null, itemPreset: null, expired: null } },
+      data: { index: 1, total: 3, point: { date: '2026-09-01', level: 290, combatPower: 100, apiCombatPower: 100, solErdaFragments: 500, solErdaFragmentsRequired: null, cooldownSecond: null, cooldownSkipPercent: null, itemPreset: null, expired: null } , concurrent: 1 },
     });
     expect(state.points[2].combatPower).toBe(100);
     expect(state.points[1].combatPower).toBeNull();
@@ -58,6 +58,7 @@ describe('전투력 0 인 지점', () => {
           date: '2026-01-01', level: 210, combatPower: 0, apiCombatPower: 0,
           solErdaFragments: null, solErdaFragmentsRequired: null, cooldownSecond: null, cooldownSkipPercent: null, itemPreset: null, expired: null,
         },
+        concurrent: 1,
       },
     });
 

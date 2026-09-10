@@ -70,9 +70,19 @@ public class CombatPowerHistoryService {
     private final HexaCoreParser hexaCoreParser;
     private final GameData gameData;
     private final MapleCache cache;
+    private final HistoryTraffic traffic;
 
     /** 한 번에 다 받는 형태. 차트만 그릴 때 쓴다. */
     public Mono<CombatPowerHistoryResponse> getHistory(String characterName, HistoryRange range) {
+        // 스트림과 무게가 같으므로 같이 센다 - 이쪽으로 들어온 사람도 남을 기다리게 한다.
+        return Mono.defer(() -> {
+                    traffic.enter();
+                    return loadHistory(characterName, range);
+                })
+                .doFinally(signal -> traffic.leave());
+    }
+
+    private Mono<CombatPowerHistoryResponse> loadHistory(String characterName, HistoryRange range) {
         return plan(characterName, range).flatMap(plan -> points(plan)
                 .collectList()
                 .map(points -> new CombatPowerHistoryResponse(
@@ -99,6 +109,14 @@ public class CombatPowerHistoryService {
      * 이벤트로 알리고 닫는 편이 재조회 폭주를 막는다.
      */
     public Flux<ServerSentEvent<Object>> streamHistory(String characterName, HistoryRange range) {
+        return Flux.defer(() -> {
+                    traffic.enter();
+                    return streamBody(characterName, range);
+                })
+                .doFinally(signal -> traffic.leave());
+    }
+
+    private Flux<ServerSentEvent<Object>> streamBody(String characterName, HistoryRange range) {
         return plan(characterName, range)
                 .flatMapMany(plan -> {
                     AtomicInteger index = new AtomicInteger();
@@ -113,12 +131,13 @@ public class CombatPowerHistoryService {
                             total,
                             plan.truncated(),
                             plan.truncatedFrom(),
-                            plan.dates()
+                            plan.dates(),
+                            traffic.current()
                     ));
 
                     Flux<ServerSentEvent<Object>> points = points(plan)
-                            .map(point -> event("point",
-                                    new HistoryEvents.Point(index.incrementAndGet(), total, point)));
+                            .map(point -> event("point", new HistoryEvents.Point(
+                                    index.incrementAndGet(), total, point, traffic.current())));
 
                     Flux<ServerSentEvent<Object>> done = Flux.defer(() -> Flux.just(event("done",
                             new HistoryEvents.Done(index.get(), plan.truncated(), plan.truncatedFrom()))));

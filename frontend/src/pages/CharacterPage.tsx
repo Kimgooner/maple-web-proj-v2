@@ -34,6 +34,8 @@ export function CharacterPage() {
    * 이 시간 안에 끝나면 사용자는 로딩을 본 적이 없게 된다.
    */
   const [slowLoad, setSlowLoad] = useState(false);
+  /** 기다림이 길어졌는가. 이때부터 몇 명이 함께 조회 중인지도 같이 적는다. */
+  const [longWait, setLongWait] = useState(false);
   /** 프리셋을 되돌려 다시 계산했는가. 눌러 고친 뒤에는 버튼 대신 결과를 알린다. */
   const [repair, setRepair] = useState<'idle' | 'working' | 'done' | 'failed'>('idle');
   /** 되돌린 뒤 못 박은 장비 프리셋 번호. 변경 내역도 이 번호로 맞춰 비교해야 한다. */
@@ -54,9 +56,11 @@ export function CharacterPage() {
    */
   useEffect(() => {
     setSlowLoad(false);
+    setLongWait(false);
     if (history.status !== 'loading') return;
-    const timer = window.setTimeout(() => setSlowLoad(true), 400);
-    return () => window.clearTimeout(timer);
+    const slow = window.setTimeout(() => setSlowLoad(true), 400);
+    const long = window.setTimeout(() => setLongWait(true), 4000);
+    return () => { window.clearTimeout(slow); window.clearTimeout(long); };
   }, [history.status, range, retry, name]);
 
   // 캐릭터와 무관한 통계라 한 번만 받는다. 실패해도 빈 배열이라 차트는 그대로 뜬다.
@@ -221,7 +225,11 @@ export function CharacterPage() {
                 </div>
 
                 {streaming && (slowLoad || history.points.length === 0) ? (
-                  <ChartLoading received={history.received} total={history.total} />
+                  <ChartLoading
+                    received={history.received}
+                    total={history.total}
+                    concurrent={longWait ? history.concurrent : 0}
+                  />
                 ) : history.points.length === 0 ? (
                   <div className="chart-empty">불러올 성장 기록이 없어요.</div>
                 ) : (

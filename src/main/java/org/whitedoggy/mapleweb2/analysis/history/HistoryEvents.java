@@ -26,16 +26,22 @@ public final class HistoryEvents {
             int plannedCount,
             boolean truncated,
             LocalDate truncatedFrom,
-            List<LocalDate> dates
+            List<LocalDate> dates,
+            /** 이 순간 함께 추이를 받고 있는 사람 수. 자기 자신을 포함한다. */
+            int concurrent
     ) {
     }
 
     /**
      * 지점 하나가 준비될 때마다. {@code index}/{@code total} 이 진행률이다.
      *
+     * <p>{@code concurrent} 를 지점마다 실어 보내는 것은 기다리는 동안 값이 변하기 때문이다.
+     * 따로 타이머를 두어 흘려보낼 수도 있지만, 지점은 어차피 계속 오므로 정수 하나를 얹는
+     * 편이 스트림을 둘로 나누는 것보다 간단하다.
+     *
      * @param index 1부터 센다
      */
-    public record Point(int index, int total, CombatPowerHistoryPoint point) {
+    public record Point(int index, int total, CombatPowerHistoryPoint point, int concurrent) {
     }
 
     /** 마지막 이벤트. */
