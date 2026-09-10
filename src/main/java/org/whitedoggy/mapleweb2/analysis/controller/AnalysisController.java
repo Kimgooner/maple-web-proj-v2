@@ -64,6 +64,21 @@ public class AnalysisController {
         return combatPowerHistoryService.getHistory(characterName, HistoryRange.from(range));
     }
 
+    /**
+     * 장비 프리셋이 갈린 날짜를 되돌려 다시 계산한 추이.
+     *
+     * <p>보스 프리셋을 고르는 점수가 같아 하루만 다른 번호가 뽑히면, 캐릭터는 아무것도 안
+     * 했는데 그래프에 골짜기가 생긴다. 이 구간에서 제일 많이 쓴 번호를 정답으로 보고 그날만
+     * 다시 계산한다. 화면의 "전투력이 이상해요!" 가 이 길로 온다.
+     */
+    @GetMapping("/api/analysis/combat-power/history/repair")
+    public Mono<CombatPowerHistoryResponse> repairCombatPowerHistory(
+            @RequestParam String characterName,
+            @RequestParam(defaultValue = "daily") String range
+    ) {
+        return combatPowerHistoryService.repairHistory(characterName, HistoryRange.from(range));
+    }
+
     /** 위와 같은 조회를 진행 상황과 함께 흘려보낸다. 이벤트: meta → point... → done (실패 시 error). */
     @GetMapping(value = "/api/analysis/combat-power/history/stream",
             produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -78,9 +93,11 @@ public class AnalysisController {
     public Mono<CombatPowerDetailResponse> getCombatPowerDetail(
             @RequestParam String ocid,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate previousDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate currentDate
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate currentDate,
+            /** 차트에서 프리셋을 되돌렸으면 그 번호. 변경 내역도 같은 번호로 맞춰 비교한다. */
+            @RequestParam(required = false) Integer itemPreset
     ) {
-        return analysisService.getCombatPowerDetail(ocid, previousDate, currentDate);
+        return analysisService.getCombatPowerDetail(ocid, previousDate, currentDate, itemPreset);
     }
 
     /**

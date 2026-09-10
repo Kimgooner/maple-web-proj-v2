@@ -1,6 +1,7 @@
 package org.whitedoggy.mapleweb2.analysis.history;
 
 import org.whitedoggy.mapleweb2.analysis.dto.CharacterInfo;
+import org.whitedoggy.mapleweb2.analysis.dto.CurrentPresetInfo;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -17,6 +18,8 @@ public record CombatPowerHistoryResponse(
         String ocid,
         String range,
         CharacterInfo characterInfo,
+        /** 계산에 실제로 쓴 프리셋 번호 */
+        CurrentPresetInfo preset,
         int requestedCount,
         int loadedCount,
         boolean truncated,

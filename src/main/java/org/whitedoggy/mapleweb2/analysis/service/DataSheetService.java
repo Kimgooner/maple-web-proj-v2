@@ -83,14 +83,37 @@ public class DataSheetService {
             LocalDate date,
             Supplier<Mono<CharacterSnapshot>> snapshotLoader
     ) {
-        String cacheKey = dataSheetCacheKey(ocid, date);
+        return getOrLoadDataSheet(ocid, date, null, snapshotLoader);
+    }
+
+    /**
+     * @param itemPreset 장비 프리셋을 이 번호로 못 박는다. null 이면 평소대로 고른다.
+     *                   못 박은 결과는 캐시 키를 달리해 원래 계산과 섞이지 않게 한다.
+     */
+    public Mono<DataSheet> getOrLoadDataSheet(
+            String ocid,
+            LocalDate date,
+            Integer itemPreset,
+            Supplier<Mono<CharacterSnapshot>> snapshotLoader
+    ) {
+        String cacheKey = dataSheetCacheKey(ocid, date)
+                + (itemPreset == null ? "" : ":p" + itemPreset);
         return cache.get(cacheKey, DataSheet.class)
                 .switchIfEmpty(Mono.defer(() -> snapshotLoader.get()
-                        .map(this::getCombatDataSheet)
+                        .map(snapshot -> forPreset(snapshot, itemPreset))
                         .flatMap(dataSheet -> cache.put(
                                 cacheKey,
                                 dataSheet,
                                 CacheTtlPolicy.forDataSheet(date, LocalDateTime.now(KST), dataSheet)))));
+    }
+
+    private DataSheet forPreset(CharacterSnapshot snapshot, Integer itemPreset) {
+        if (itemPreset == null) {
+            return getCombatDataSheet(snapshot);
+        }
+        PresetSelection chosen = getCombatPresetSelection(snapshot);
+        return getDataSheet(snapshot, new PresetSelection(
+                itemPreset, chosen.abilityPreset(), chosen.hyperStatPreset(), chosen.unionRaiderPreset()));
     }
 
     public DataSheet getCombatDataSheet(CharacterSnapshot snapshot) {
@@ -215,7 +238,7 @@ public class DataSheetService {
 
         result.setItemEquip(setItemEquip(
                 presetItems,
-                itemEquipmentParser.getTitleItem(itemEquip),
+                itemEquipmentParser.getTitleItem(itemEquip, preset.itemPreset()),
                 itemEquipmentParser.getDragonItem(itemEquip),
                 itemEquipmentParser.getMechanicItem(itemEquip),
                 characterClass,

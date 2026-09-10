@@ -1,4 +1,4 @@
-import type { CharacterInfo, HistoryPoint } from '../api/types';
+import type { CharacterInfo, HistoryPoint, HistoryRange, PresetInfo } from '../api/types';
 import { dateLabel, formatGameNumber, formatPercentChange, formatSignedGame, shortDate } from '../lib/format';
 import { INCOMPLETE_CLASSES } from '../lib/labels';
 
@@ -7,6 +7,26 @@ interface Props {
   name: string;
   points: HistoryPoint[];
   loading: boolean;
+  /** 계산에 실제로 쓴 프리셋 번호. 아직 못 받았으면 null */
+  preset: PresetInfo | null;
+  /** 지금 보고 있는 기간. "조회 구간(최근 30일) 변화" 처럼 라벨에 적는다 */
+  range: HistoryRange;
+}
+
+const RANGE_LABEL: Record<HistoryRange, string> = { daily: '최근 30일', monthly: '최근 12개월' };
+
+/**
+ * 계산에 쓴 프리셋 번호. "보스 프리셋 기준" 이라고만 적으면 어느 번호를 골랐는지 알 수 없어,
+ * 게임 안 값과 다를 때 어디를 봐야 할지 짚어 주지 못한다.
+ */
+function presetLabel(preset: PresetInfo | null): string | null {
+  if (!preset) return null;
+  return [
+    `장비 ${preset.itemPreset}`,
+    `어빌리티 ${preset.abilityPreset}`,
+    `하이퍼 ${preset.hyperStatPreset}`,
+    `유니온 ${preset.unionRaiderPreset}`,
+  ].join(' · ');
 }
 
 function tone(value: number | null): string {
@@ -15,7 +35,7 @@ function tone(value: number | null): string {
 }
 
 /** 캐릭터 요약. 이름·실전 전투력·조회 구간 변화 셋을 나란히 둔다. */
-export function CharacterHeader({ info, name, points, loading }: Props) {
+export function CharacterHeader({ info, name, points, loading, preset, range }: Props) {
   const valid = points.filter((point) => point.combatPower != null);
   const first = valid[0];
   const latest = valid[valid.length - 1];
@@ -46,7 +66,10 @@ export function CharacterHeader({ info, name, points, loading }: Props) {
       </div>
 
       <div className="power">
-        <div className="metric-label">실전 전투력 <span className="soft-badge">보스 프리셋 기준</span></div>
+        <div className="metric-label">
+          전투력
+          {presetLabel(preset) && <span className="soft-badge">{presetLabel(preset)}</span>}
+        </div>
         <strong className="power-number">{latest?.combatPower != null ? formatGameNumber(latest.combatPower) : '—'}</strong>
         <small className="muted">{latest ? `${dateLabel(latest.date)} 기준` : '계산 데이터를 기다리고 있어요'}</small>
         {/*
@@ -62,7 +85,7 @@ export function CharacterHeader({ info, name, points, loading }: Props) {
       </div>
 
       <div className="period-metric">
-        <div className="metric-label">{loading ? '조회 중' : '조회 구간 변화'}</div>
+        <div className="metric-label">{loading ? '조회 중' : `조회 구간(${RANGE_LABEL[range]}) 변화`}</div>
         <strong className={tone(delta)}>
           {comparable ? formatPercentChange(first.combatPower!, latest.combatPower!) : '—'}
         </strong>

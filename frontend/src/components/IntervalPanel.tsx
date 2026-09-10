@@ -11,6 +11,8 @@ interface Props {
   summary: ChangeSummary | null;
   /** 직업. 남의 직업 스탯을 지우고 공격력·마력 중 쓰는 쪽만 남기는 데 쓴다 */
   info: CharacterInfo | null;
+  /** 새로 받는 중인가. 구간이 잠시 없는 것뿐이라 "선택해 주세요"가 아니라 회색 판을 둔다 */
+  loading: boolean;
 }
 
 /**
@@ -31,7 +33,7 @@ function cooldownLines(previous: HistoryPoint | undefined, current: HistoryPoint
 }
 
 /** 고른 구간의 요약. 차트 옆에 붙는다. */
-export function IntervalPanel({ interval, points, summary, info }: Props) {
+export function IntervalPanel({ interval, points, summary, info, loading }: Props) {
   const previous = interval ? points.find((point) => point.date === interval.previousDate) : undefined;
   const current = interval ? points.find((point) => point.date === interval.currentDate) : undefined;
   const both = previous?.combatPower != null && current?.combatPower != null;
@@ -43,9 +45,17 @@ export function IntervalPanel({ interval, points, summary, info }: Props) {
   return (
     <aside className="interval panel" aria-labelledby="interval-title">
       <span className="outline-badge">선택한 구간</span>
-      <h2 id="interval-title">
-        {interval ? `${dateLabel(interval.previousDate)} → ${dateLabel(interval.currentDate)}` : '두 시점을 선택해 주세요'}
-      </h2>
+      {/*
+        구간은 다 받으면 저절로 잡힌다. 받는 동안 "두 시점을 선택해 주세요"라고 적으면
+        사용자가 할 일이 생긴 것처럼 읽히는데, 실제로는 기다리면 된다. 회색 판으로 둔다.
+      */}
+      {loading && !interval ? (
+        <div className="skeleton" style={{ height: 26, width: '80%', marginBottom: 4 }} />
+      ) : (
+        <h2 id="interval-title">
+          {interval ? `${dateLabel(interval.previousDate)} → ${dateLabel(interval.currentDate)}` : '두 시점을 선택해 주세요'}
+        </h2>
+      )}
       <div className="interval-gain">
         <strong className={delta == null ? 'neutral' : delta > 0 ? 'positive' : delta < 0 ? 'negative' : 'neutral'}>
           {delta != null ? formatSignedGame(delta) : '—'}

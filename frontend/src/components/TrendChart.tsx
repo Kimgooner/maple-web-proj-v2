@@ -4,7 +4,6 @@ import type { HistoryPoint, HistoryRange } from '../api/types';
 import { compact, dateLabel, formatGameNumber, formatNumber, shortDate } from '../lib/format';
 import { isPending } from '../lib/history';
 import { bandAt } from '../lib/levelBands';
-import { MapleLeaf } from './MapleLeaf';
 
 type Props = {
   points: HistoryPoint[];
@@ -27,9 +26,6 @@ const RIGHT = 66;
 const TOP = 24;
 const BOTTOM = 34;
 const TICKS = 4;
-
-/** 추이 선 끝 단풍잎의 크기(viewBox 단위). 화면에서는 폭에 따라 줄어든다. */
-const LEAF = 30;
 
 type Scale = ((value: number) => number) & { ticks: number[] };
 
@@ -244,23 +240,6 @@ export function TrendChart(
           />
         )}
         <path d={line((p) => p.combatPower, y)} fill="none" stroke="#ed702e" strokeWidth="2.6" strokeLinejoin="round" />
-
-        {/*
-          추이 선 끝의 단풍잎. 값이 있는 마지막 지점 위에 놓는다 - 선이 멈춘 자리를
-          짚어 주고, 그래프에서 눈이 마지막으로 닿는 곳이다.
-
-          자리를 판 안으로 물린다. 마지막 지점은 보통 오른쪽 끝이자 제일 높은 값이라,
-          그냥 얹으면 잎이 위·오른쪽 모서리 밖으로 반쯤 잘려 나간다.
-        */}
-        {(() => {
-          const last = [...points].map((point, index) => ({ point, index })).reverse()
-            .find(({ point }) => point.combatPower != null);
-          if (!last) return null;
-          const half = LEAF / 2;
-          const leafX = Math.min(x(last.index) + half * 0.6, WIDTH - RIGHT - half);
-          const leafY = Math.max(y(last.point.combatPower!) - half * 1.1, TOP + half);
-          return <MapleLeaf x={leafX} y={leafY} size={LEAF} />;
-        })()}
 
         {points.map((point, i) => {
           const pending = isPending(point);

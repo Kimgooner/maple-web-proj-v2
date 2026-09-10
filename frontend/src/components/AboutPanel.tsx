@@ -48,9 +48,7 @@ export function AboutPanel() {
       <div className="about-inner">
         <h2 id="about-title">MapleDelta는 어떤 서비스인가요?</h2>
         <p className="about-lead">
-          캐릭터의 전투력이 <b>언제, 무엇 때문에</b> 변했는지 보여 줍니다.
-          넥슨 OPEN API의 원본을 받아 보스 프리셋 기준으로 전투력을 다시 계산하고,
-          두 시점 사이에 바뀐 장비·스킬·심볼·세트·유니온을 이름 단위로 풀어 놓습니다.
+          넥슨 OPEN API를 통해 캐릭터의 실전 전투력이 <b>언제, 무엇 때문에</b> 변했는지 보여 줍니다.
         </p>
         <div className="faq">
           {FAQ.map(({ q, lines }) => (

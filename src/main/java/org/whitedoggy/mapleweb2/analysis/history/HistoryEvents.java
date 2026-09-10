@@ -1,6 +1,7 @@
 package org.whitedoggy.mapleweb2.analysis.history;
 
 import org.whitedoggy.mapleweb2.analysis.dto.CharacterInfo;
+import org.whitedoggy.mapleweb2.analysis.dto.CurrentPresetInfo;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -19,6 +20,8 @@ public final class HistoryEvents {
             String ocid,
             String range,
             CharacterInfo characterInfo,
+            /** 계산에 실제로 쓴 프리셋 번호. 화면이 "보스 프리셋 기준" 대신 이걸 적는다. */
+            CurrentPresetInfo preset,
             int requestedCount,
             int plannedCount,
             boolean truncated,

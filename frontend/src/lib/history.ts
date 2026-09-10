@@ -3,7 +3,11 @@ import type { HistoryEvent, HistoryMeta, HistoryPoint } from '../api/types';
 export type HistoryStatus = 'idle' | 'loading' | 'done' | 'error';
 
 /** 스트림을 새로 열기 전 상태를 비운다. 이름이나 재시도가 바뀔 때. */
-export type HistoryAction = HistoryEvent | { type: 'reset' };
+export type HistoryAction =
+  | HistoryEvent
+  | { type: 'reset' }
+  /** 프리셋을 되돌려 다시 계산한 지점으로 통째로 갈아 끼운다 */
+  | { type: 'repaired'; points: HistoryPoint[] };
 
 export interface HistoryState {
   status: HistoryStatus;
@@ -15,6 +19,13 @@ export interface HistoryState {
   error: string | null;
   /** 'NOT_FOUND'(없는 캐릭터) · 'TOO_LOW'(Lv.260 미만) 는 화면이 따로 그린다 */
   errorCode: string | null;
+  /**
+   * 이미 보여 줄 것이 있는데 새로 받는 중일 때, 새 것을 여기 쌓았다가 다 받으면 한 번에 바꾼다.
+   *
+   * <p>30일 ↔ 12개월을 오갈 때 화면이 통째로 비었다가 다시 차면, 바뀔 이유가 없는 이름·레벨·
+   * 전투력까지 같이 깜빡인다. 다 받은 뒤 갈아 끼우면 바뀌는 것만 바뀐다.
+   */
+  pending: { meta: HistoryMeta; points: HistoryPoint[] } | null;
 }
 
 export const initialHistoryState: HistoryState = {
@@ -25,7 +36,27 @@ export const initialHistoryState: HistoryState = {
   total: 0,
   error: null,
   errorCode: null,
+  pending: null,
 };
+
+/** 화면에 내놓을 만한 지점이 있는가. 자리만 잡힌 빈 배열은 아니다. */
+function hasShowable(state: HistoryState): boolean {
+  return state.points.some((point) => !isPending(point));
+}
+
+function blankPoints(dates: string[]): HistoryPoint[] {
+  return [...dates].sort().map((date) => ({
+    date, level: null, combatPower: null, apiCombatPower: null,
+    solErdaFragments: null, solErdaFragmentsRequired: null,
+    cooldownSecond: null, cooldownSkipPercent: null, itemPreset: null, expired: null,
+  }));
+}
+
+function fill(points: HistoryPoint[], incoming: HistoryPoint): HistoryPoint[] {
+  return points.some((point) => point.date === incoming.date)
+    ? points.map((point) => (point.date === incoming.date ? incoming : point))
+    : [...points, incoming].sort((left, right) => left.date.localeCompare(right.date));
+}
 
 export function loadingHistoryState(): HistoryState {
   return { ...initialHistoryState, status: 'loading' };
@@ -56,34 +87,30 @@ export function isPending(point: HistoryPoint): boolean {
 export function applyHistoryEvent(state: HistoryState, event: HistoryAction): HistoryState {
   switch (event.type) {
     case 'reset':
-      return loadingHistoryState();
+      // 보여 줄 것이 이미 있으면 들고 있는다. 새 것을 다 받으면 그때 갈아 끼운다.
+      return hasShowable(state)
+        ? { ...state, status: 'loading', received: 0, total: 0, error: null, errorCode: null, pending: null }
+        : loadingHistoryState();
     case 'meta': {
-      const dates = [...event.data.dates].sort();
-      return {
-        ...state,
-        status: 'loading',
-        meta: event.data,
-        points: dates.map((date) => ({ date, level: null, combatPower: null, apiCombatPower: null, solErdaFragments: null, solErdaFragmentsRequired: null, cooldownSecond: null, cooldownSkipPercent: null, expired: null })),
-        received: 0,
-        total: event.data.plannedCount,
-        error: null,
-        errorCode: null,
-      };
+      const points = blankPoints(event.data.dates);
+      const base = { ...state, status: 'loading' as const, received: 0, total: event.data.plannedCount, error: null, errorCode: null };
+      return hasShowable(state)
+        ? { ...base, pending: { meta: event.data, points } }
+        : { ...base, meta: event.data, points, pending: null };
     }
     case 'point': {
       const incoming = withoutZero(event.data.point);
-      const points = state.points.some((p) => p.date === incoming.date)
-        ? state.points.map((p) => (p.date === incoming.date ? incoming : p))
-        : [...state.points, incoming].sort((a, b) => a.date.localeCompare(b.date));
-      return {
-        ...state,
-        points,
-        received: Math.max(state.received, event.data.index),
-        total: event.data.total,
-      };
+      const received = Math.max(state.received, event.data.index);
+      return state.pending
+        ? { ...state, pending: { ...state.pending, points: fill(state.pending.points, incoming) }, received, total: event.data.total }
+        : { ...state, points: fill(state.points, incoming), received, total: event.data.total };
     }
     case 'done':
-      return { ...state, status: 'done', received: state.total };
+      return state.pending
+        ? { ...state, status: 'done', received: state.total, meta: state.pending.meta, points: state.pending.points, pending: null }
+        : { ...state, status: 'done', received: state.total };
+    case 'repaired':
+      return { ...state, points: event.points, pending: null };
     case 'error':
       return { ...state, status: 'error', error: event.data.message, errorCode: event.data.code ?? 'ERROR' };
   }

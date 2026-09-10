@@ -9,6 +9,8 @@ import org.whitedoggy.mapleweb2.analysis.data.CharacterSnapshot;
 import org.whitedoggy.mapleweb2.analysis.data.DataSheet;
 import org.whitedoggy.mapleweb2.domain.common.stat.StatSheet;
 import org.whitedoggy.mapleweb2.analysis.dto.CharacterInfo;
+import org.whitedoggy.mapleweb2.analysis.data.PresetSelection;
+import org.whitedoggy.mapleweb2.analysis.dto.CurrentPresetInfo;
 import org.whitedoggy.mapleweb2.analysis.service.DataSheetService;
 import org.whitedoggy.mapleweb2.analysis.service.OcidService;
 import org.whitedoggy.mapleweb2.analysis.service.SnapshotService;
@@ -29,6 +31,9 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -69,6 +74,7 @@ public class CombatPowerHistoryService {
                         plan.ocid(),
                         range.name().toLowerCase(),
                         plan.characterInfo(),
+                        plan.preset(),
                         range.count(),
                         points.size(),
                         plan.truncated(),
@@ -97,6 +103,7 @@ public class CombatPowerHistoryService {
                             plan.ocid(),
                             range.name().toLowerCase(),
                             plan.characterInfo(),
+                            plan.preset(),
                             range.count(),
                             total,
                             plan.truncated(),
@@ -114,6 +121,88 @@ public class CombatPowerHistoryService {
                     return Flux.concat(Flux.just(meta), points, done);
                 })
                 .onErrorResume(error -> Flux.just(event("error", errorEvent(error))));
+    }
+
+    /**
+     * 장비 프리셋이 갈린 날짜를 다른 날짜 기준으로 되돌려 다시 계산한다.
+     *
+     * <p>보스 프리셋을 고르는 점수가 같아 갈리는 날이 있다. 장비 구성이 거의 같은 두 프리셋을
+     * 두고 있으면 하루만 다른 번호가 뽑히고, 그날 전투력이 뚝 떨어진 것처럼 보인다. 캐릭터는
+     * 아무것도 안 했는데 그래프에 골짜기가 생긴다.
+     *
+     * <p>고치는 방법은 단순하다. <b>이 구간에서 제일 많이 쓴 번호를 정답으로 보고</b>, 그와
+     * 다른 번호가 뽑힌 날만 그 번호로 다시 계산한다. 나머지 날은 캐시 그대로라 손대지 않는다.
+     *
+     * <p>되돌린 값은 따로 캐시한다 - 원래 계산과 섞이면 어느 쪽을 보고 있는지 알 수 없다.
+     */
+    public Mono<CombatPowerHistoryResponse> repairHistory(String characterName, HistoryRange range) {
+        return getHistory(characterName, range).flatMap(original -> {
+            Integer target = dominantItemPreset(original.points());
+            if (target == null) {
+                return Mono.just(original);
+            }
+            List<CombatPowerHistoryPoint> odd = original.points().stream()
+                    .filter(point -> point.itemPreset() != null && !point.itemPreset().equals(target))
+                    .toList();
+            if (odd.isEmpty()) {
+                return Mono.just(original);
+            }
+            return Flux.fromIterable(odd)
+                    .flatMapSequential(point -> repairPoint(original.ocid(), point.date(), target), CONCURRENCY)
+                    .collectList()
+                    .map(fixed -> withRepaired(original, fixed));
+        });
+    }
+
+    /** 이 구간에서 제일 많이 쓴 장비 프리셋 번호. 다 비어 있으면 null. */
+    private Integer dominantItemPreset(List<CombatPowerHistoryPoint> points) {
+        Map<Integer, Long> counts = points.stream()
+                .map(CombatPowerHistoryPoint::itemPreset)
+                .filter(Objects::nonNull)
+                .collect(Collectors.groupingBy(p -> p, Collectors.counting()));
+        return counts.entrySet().stream()
+                .max(Map.Entry.<Integer, Long>comparingByValue()
+                        .thenComparing(Map.Entry.comparingByKey()))
+                .map(Map.Entry::getKey)
+                .orElse(null);
+    }
+
+    private Mono<CombatPowerHistoryPoint> repairPoint(String ocid, LocalDate date, int itemPreset) {
+        LocalDate today = LocalDate.now(KST);
+        // 오늘은 date 를 붙이면 API 가 거절한다(OPENAPI00004). 계속 변하는 값이라 캐시도 안 한다.
+        if (date.equals(today)) {
+            return snapshotService.getCurrentSnapshotByOcid(ocid, today)
+                    .map(snapshot -> forcedPoint(snapshot, date, itemPreset));
+        }
+        String cacheKey = historyPointCacheKey(ocid, date) + ":p" + itemPreset;
+        return cache.get(cacheKey, CombatPowerHistoryPoint.class)
+                .switchIfEmpty(Mono.defer(() -> snapshotService.getSnapshotByOcid(ocid, date)
+                        .map(snapshot -> forcedPoint(snapshot, date, itemPreset))
+                        .flatMap(point -> cache.put(cacheKey, point,
+                                CacheTtlPolicy.forHistoryPoint(date, LocalDateTime.now(KST), null, true)))));
+    }
+
+    /** 장비 프리셋만 갈아 끼워 다시 계산한다. 나머지 프리셋은 그날 고른 것을 그대로 쓴다. */
+    private CombatPowerHistoryPoint forcedPoint(
+            CharacterSnapshot snapshot, LocalDate date, int itemPreset) {
+        PresetSelection chosen = dataSheetService.getCombatPresetSelection(snapshot);
+        PresetSelection forced = new PresetSelection(
+                itemPreset, chosen.abilityPreset(), chosen.hyperStatPreset(), chosen.unionRaiderPreset());
+        DataSheet sheet = dataSheetService.getDataSheet(snapshot, forced);
+        return toPoint(snapshot, date, sheet, hexaMatrix(snapshot), itemPreset).point();
+    }
+
+    private CombatPowerHistoryResponse withRepaired(
+            CombatPowerHistoryResponse original, List<CombatPowerHistoryPoint> fixed) {
+        Map<LocalDate, CombatPowerHistoryPoint> byDate = fixed.stream()
+                .collect(Collectors.toMap(CombatPowerHistoryPoint::date, point -> point));
+        List<CombatPowerHistoryPoint> merged = original.points().stream()
+                .map(point -> byDate.getOrDefault(point.date(), point))
+                .toList();
+        return new CombatPowerHistoryResponse(
+                original.ocid(), original.range(), original.characterInfo(), original.preset(),
+                original.requestedCount(), original.loadedCount(),
+                original.truncated(), original.truncatedFrom(), merged);
     }
 
     /** 최신 → 과거 순으로 지점을 만든다. 빈 응답을 만나면 그 앞까지만 내보낸다. */
@@ -170,6 +259,20 @@ public class CombatPowerHistoryService {
 
     private Loaded toPoint(
             CharacterSnapshot snapshot, LocalDate date, DataSheet dataSheet, JsonNode hexaMatrix) {
+        return toPoint(snapshot, date, dataSheet, hexaMatrix, itemPresetOf(snapshot));
+    }
+
+    private Integer itemPresetOf(CharacterSnapshot snapshot) {
+        try {
+            return dataSheetService.getCombatPresetSelection(snapshot).itemPreset();
+        } catch (RuntimeException ignored) {
+            return null;
+        }
+    }
+
+    private Loaded toPoint(
+            CharacterSnapshot snapshot, LocalDate date, DataSheet dataSheet, JsonNode hexaMatrix,
+            Integer itemPreset) {
         JsonNode basic = snapshot.document(NexonEndpoint.BASIC);
         if (basicParser.characterName(basic).isBlank()) {
             return Loaded.missing();
@@ -183,6 +286,7 @@ public class CombatPowerHistoryService {
                 hexaCoreParser.solErdaFragmentsRequired(hexaMatrix),
                 dataSheet == null ? null : cooldownSecond(dataSheet),
                 dataSheet == null ? null : cooldownSkipPercent(dataSheet),
+                itemPreset,
                 expired(dataSheet)
         ));
     }
@@ -236,7 +340,7 @@ public class CombatPowerHistoryService {
      * v4 부터 조각 진행률의 분모가 들어 있다.
      */
     private static String historyPointCacheKey(String ocid, LocalDate date) {
-        return "maple:history:v6:" + (ocid == null ? "" : ocid.trim()) + ":" + date;
+        return "maple:history:v7:" + (ocid == null ? "" : ocid.trim()) + ":" + date;
     }
 
     private Long apiCombatPower(CharacterSnapshot snapshot) {
@@ -287,7 +391,12 @@ public class CombatPowerHistoryService {
         boolean truncated = kept.size() < all.size();
         LocalDate truncatedFrom = truncated ? all.get(kept.size()) : null;
 
-        return new Plan(ocid, today, current, characterInfo(basic), kept, truncated, truncatedFrom);
+        // 계산에 실제로 쓴 프리셋. 화면이 "보스 프리셋 기준" 대신 번호를 적는다.
+        PresetSelection chosen = dataSheetService.getCombatPresetSelection(current);
+        CurrentPresetInfo preset = new CurrentPresetInfo(
+                chosen.itemPreset(), chosen.abilityPreset(),
+                chosen.hyperStatPreset(), chosen.unionRaiderPreset());
+        return new Plan(ocid, today, current, characterInfo(basic), preset, kept, truncated, truncatedFrom);
     }
 
     private CharacterInfo characterInfo(JsonNode basic) {
@@ -322,6 +431,7 @@ public class CombatPowerHistoryService {
             LocalDate today,
             CharacterSnapshot current,
             CharacterInfo characterInfo,
+            CurrentPresetInfo preset,
             List<LocalDate> dates,
             boolean truncated,
             LocalDate truncatedFrom

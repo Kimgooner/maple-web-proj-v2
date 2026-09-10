@@ -34,6 +34,30 @@ public class ItemEquipmentParser {
     public JsonNode getTitleItem(JsonNode itemEquipment) {
         return itemEquipment.path("title");
     }
+
+    /**
+     * 그 프리셋의 칭호. <b>칭호도 장비 프리셋을 따라간다</b>(게임 안에서 확인). API 가
+     * {@code title_preset1~3} 으로 준다 — 필드 이름에 밑줄이 없어서, 장비 쪽
+     * {@code item_equipment_preset_1} 을 흉내 내 만들면 안 잡힌다.
+     *
+     * <p>{@code title} 은 지금 착용 중인 것이라, 우리가 고른 보스 프리셋과 다를 수 있다.
+     * 그걸 그대로 쓰면 장비는 2번인데 칭호만 1번 것이 섞인 값이 나온다.
+     *
+     * <p>그 자리가 비어 있으면 착용 중인 것으로 돌아간다. 칭호 프리셋을 따로 안 걸어 둔
+     * 캐릭터가 흔하다 — 골든 479개 중 145개가 슬롯 1 에만 있고 2·3 이 비어 있었다.
+     * 그런 캐릭터는 어느 프리셋을 껴도 같은 칭호가 붙는다.
+     *
+     * <p>슬롯에 <b>다른</b> 칭호가 들어 있어 착용 중인 것과 갈리는 경우는 표본 879명(골든
+     * 479 + 실측 400) 중 한 명뿐이었다. 그 한 명(은월-14)은 넥슨 데이터 자체가 섞여 있다 —
+     * {@code title} 의 이름은 슬롯 1 과 같은데 만료일은 슬롯 2 와 같다. 그래서 그 표본만
+     * 넥슨 전투력과 어긋나는데, 규칙이 아니라 그쪽 데이터가 잘못된 것으로 본다.
+     */
+    public JsonNode getTitleItem(JsonNode itemEquipment, int presetNo) {
+        JsonNode byPreset = itemEquipment.path("title_preset" + presetNo);
+        return byPreset.isObject() && byPreset.hasNonNull("title_name")
+                ? byPreset
+                : getTitleItem(itemEquipment);
+    }
     public JsonNode getDragonItem(JsonNode itemEquipment) { return itemEquipment.path("dragon_equipment"); }
     public JsonNode getMechanicItem(JsonNode itemEquipment) { return itemEquipment.path("mechanic_equipment"); }
 

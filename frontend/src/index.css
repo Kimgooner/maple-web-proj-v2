@@ -2281,7 +2281,113 @@ the SVG uses its actual container width. */@media(min-width:851px) {
   border-color:#d3d8e0;
 }
 
-/* 추이 선 끝의 단풍잎. 선과 같은 주황이되 한 톤 낮춰, 데이터가 아니라 장식으로 읽히게 한다. */
-.maple-leaf {
-  fill:#f0a074;
+
+/* "전투력이 이상해요!" 차트 오른쪽 아래 빈 자리에 둔다. 눈에 걸려야 눌리므로 주황이지만,
+   데이터가 아니라 도구라 선만 주황이고 면은 옅게 깐다. */
+/* 안내 문구(왼쪽)와 되돌리기(오른쪽)를 한 줄에. 문구가 길면 버튼이 밀리지 않게 잡아 둔다. */
+.chart-bottom {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+}
+
+.chart-bottom .selection-hint {
+  margin:0;
+}
+
+.chart-repair {
+  display:flex;
+  align-items:center;
+  flex-shrink:0;
+  gap:6px;
+}
+
+/*
+ * 물음표. 버튼만 있으면 무엇을 다시 계산하는지 눌러 봐야 알아서, 올려 보면 알게 둔다.
+ * title 속성 대신 직접 그린다 - 브라우저 기본 툴팁은 1초 넘게 기다려야 뜨고,
+ * 작은 표적 위에서는 뜨기 전에 커서가 지나가 버린다.
+ */
+.repair-help {
+  position:relative;
+  width:16px;
+  height:16px;
+  flex-shrink:0;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border:1px solid var(--line);
+  border-radius:50%;
+  color:var(--muted);
+  font-size:10px;
+  font-weight:650;
+  cursor:help;
+}
+
+.repair-help:hover,.repair-help:focus-visible {
+  border-color:#eaa87f;
+  color:#c2551f;
+}
+
+.repair-help::after {
+  content:attr(data-tip);
+  position:absolute;
+  right:0;
+  bottom:calc(100% + 8px);
+  z-index:4;
+  width:max-content;
+  max-width:240px;
+  padding:7px 10px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:#fff;
+  box-shadow:0 8px 24px rgba(20,24,35,.13);
+  color:var(--ink);
+  font-size:11px;
+  font-weight:400;
+  line-height:1.5;
+  text-align:left;
+  white-space:normal;
+  opacity:0;
+  visibility:hidden;
+  transition:opacity .12s ease-out;
+}
+
+.repair-help:hover::after,.repair-help:focus-visible::after {
+  opacity:1;
+  visibility:visible;
+}
+
+.repair-btn {
+  padding:5px 11px;
+  border:1px solid #f3c9b2;
+  border-radius:99px;
+  background:#fff6f1;
+  color:#c2551f;
+  font-family:inherit;
+  font-size:11px;
+  font-weight:650;
+  cursor:pointer;
+}
+
+.repair-btn:hover:not(:disabled) {
+  background:#ffeee4;
+  border-color:#eaa87f;
+}
+
+.repair-btn:disabled {
+  cursor:default;
+  opacity:.6;
+}
+
+/*
+ * 버튼이 사라진 뒤 남는 문구. 좌우 여백을 주지 않는다 - 버튼일 때는 테두리가 그 자리를
+ * 채워 오른쪽 끝에 붙어 보이지만, 글자만 남으면 그 여백만큼 안쪽으로 들어가
+ * 위의 날짜 줄과 오른쪽 끝이 어긋난다.
+ */
+.repair-done {
+  padding:5px 0;
+  font-size:11px;
+  color:var(--muted);
 }

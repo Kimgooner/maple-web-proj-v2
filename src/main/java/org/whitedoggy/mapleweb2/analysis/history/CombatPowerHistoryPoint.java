@@ -18,6 +18,8 @@ import java.time.LocalDate;
  * @param cooldownSkipPercent 스킬 사용 시 재사용 대기시간이 통째로 미적용될 확률(%). 어빌리티에서 온다.
  *                          둘 다 전투력에는 안 들어가지만 실전에서 크게 갈려 화면에 따로 싣는다.
  *                          시트를 못 만든 지점은 null 이고, 0(없음)과 구분해야 한다.
+ * @param itemPreset        그날 계산에 쓴 장비 프리셋 번호. 점수가 같아 갈릴 때가 있어,
+ *                          "다른 날은 몇 번을 썼나"를 알아야 되돌릴 수 있다.
  * @param expired           기간이 지나 스탯이 빠진 것들. 화면이 "만료됨"으로 알린다.
  */
 public record CombatPowerHistoryPoint(
@@ -29,6 +31,7 @@ public record CombatPowerHistoryPoint(
         Long solErdaFragmentsRequired,
         Integer cooldownSecond,
         Double cooldownSkipPercent,
+        Integer itemPreset,
         Expired expired
 ) {
     /**

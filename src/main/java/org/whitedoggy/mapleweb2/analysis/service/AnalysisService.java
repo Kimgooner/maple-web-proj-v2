@@ -67,9 +67,24 @@ public class AnalysisService {
             LocalDate previousDate,
             LocalDate currentDate
     ) {
+        return getCombatPowerDetail(ocid, previousDate, currentDate, null);
+    }
+
+    /**
+     * @param itemPreset 장비 프리셋을 이 번호로 못 박고 다시 계산한다. null 이면 평소대로 고른다.
+     *                   차트에서 "전투력이 이상해요!" 로 되돌린 뒤에는 변경 내역도 같은 번호로
+     *                   맞춰야 한다 - 안 그러면 차트는 고쳐졌는데 아래 표는 갈린 프리셋끼리
+     *                   비교한 것이 남아, 세트 효과가 통째로 바뀐 것처럼 보인다.
+     */
+    public Mono<CombatPowerDetailResponse> getCombatPowerDetail(
+            String ocid,
+            LocalDate previousDate,
+            LocalDate currentDate,
+            Integer itemPreset
+    ) {
         return Mono.zip(
-                        getPreparedCombatDataSheet(ocid, previousDate),
-                        getPreparedCombatDataSheet(ocid, currentDate)
+                        getPreparedCombatDataSheet(ocid, previousDate, itemPreset),
+                        getPreparedCombatDataSheet(ocid, currentDate, itemPreset)
                 )
                 .map(tuple -> buildCombatPowerDetailResponse(
                         ocid,
@@ -147,9 +162,14 @@ public class AnalysisService {
     }
 
     private Mono<DataSheet> getPreparedCombatDataSheet(String ocid, LocalDate date) {
+        return getPreparedCombatDataSheet(ocid, date, null);
+    }
+
+    private Mono<DataSheet> getPreparedCombatDataSheet(String ocid, LocalDate date, Integer itemPreset) {
         return dataSheetService.getOrLoadDataSheet(
                         ocid,
                         date,
+                        itemPreset,
                         () -> loadSnapshotByDate(ocid, date)
                 )
                 .map(this::prepareDataSheet);

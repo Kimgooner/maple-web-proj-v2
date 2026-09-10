@@ -30,6 +30,8 @@ export interface HistoryPoint {
   cooldownSecond: number | null;
   /** 스킬 사용 시 재사용 대기시간이 통째로 미적용될 확률(%). 어빌리티에서 온다 */
   cooldownSkipPercent: number | null;
+  /** 그날 계산에 쓴 장비 프리셋 번호. 점수가 같아 갈릴 때가 있어 되돌릴 근거가 된다 */
+  itemPreset: number | null;
   /** 기간이 지나 계산에서 빠진 것들. 하나도 없으면 null */
   expired: ExpiredItems | null;
 }
@@ -42,10 +44,19 @@ export interface ExpiredItems {
   titleOption: boolean;
 }
 
+/** 계산에 실제로 쓴 프리셋 번호 */
+export interface PresetInfo {
+  itemPreset: number;
+  abilityPreset: number;
+  hyperStatPreset: number;
+  unionRaiderPreset: number;
+}
+
 export interface HistoryMeta {
   ocid: string;
   range: string;
   characterInfo: CharacterInfo;
+  preset: PresetInfo | null;
   requestedCount: number;
   plannedCount: number;
   truncated: boolean;
