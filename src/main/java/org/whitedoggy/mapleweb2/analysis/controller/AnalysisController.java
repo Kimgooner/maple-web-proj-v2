@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.whitedoggy.mapleweb2.analysis.dto.AnalysisResponse;
 import org.whitedoggy.mapleweb2.analysis.dto.CombatPowerDetailResponse;
-import org.whitedoggy.mapleweb2.analysis.dto.CurrentCombatPowerDebugResponse;
 import org.whitedoggy.mapleweb2.analysis.history.CharacterNotFoundException;
 import org.whitedoggy.mapleweb2.analysis.history.CharacterTooLowException;
 import org.whitedoggy.mapleweb2.analysis.history.CombatPowerHistoryResponse;
@@ -21,7 +20,6 @@ import org.whitedoggy.mapleweb2.analysis.history.HistoryRange;
 import org.whitedoggy.mapleweb2.analysis.ranking.LevelBandStatsResponse;
 import org.whitedoggy.mapleweb2.analysis.ranking.LevelBandStatsService;
 import org.whitedoggy.mapleweb2.analysis.service.AnalysisService;
-import org.whitedoggy.mapleweb2.validation.CurrentCombatPowerDebugService;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -33,7 +31,6 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AnalysisController {
     private final AnalysisService analysisService;
-    private final CurrentCombatPowerDebugService currentCombatPowerDebugService;
     private final CombatPowerHistoryService combatPowerHistoryService;
     private final LevelBandStatsService levelBandStatsService;
 
@@ -132,11 +129,6 @@ public class AnalysisController {
     @GetMapping("/api/analysis/level-band-stats")
     public Mono<LevelBandStatsResponse> getLevelBandStats() {
         return levelBandStatsService.getStats();
-    }
-
-    @GetMapping("/api/analysis/combat-power/current-debug")
-    public Mono<CurrentCombatPowerDebugResponse> getCurrentCombatPowerDebug(@RequestParam String characterName) {
-        return currentCombatPowerDebugService.getCurrentDebug(characterName);
     }
 
     /**

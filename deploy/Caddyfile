@@ -1,6 +1,5 @@
 # mapledelta.kr — 도메인만 적으면 Caddy 가 인증서를 받고 http → https 로 넘긴다.
-# IP 로 직접 오는 요청은 HTTP 로 그대로 서빙한다 (점검용).
-mapledelta.kr, www.mapledelta.kr, http://140.245.77.108 {
+mapledelta.kr, www.mapledelta.kr {
 	encode zstd gzip
 
 	# HSTS. Caddy 는 이걸 자동으로 붙이지 않는다. 한 번 https 로 온 브라우저는
@@ -13,4 +12,12 @@ mapledelta.kr, www.mapledelta.kr, http://140.245.77.108 {
 	reverse_proxy web:80 {
 		flush_interval -1
 	}
+}
+
+# IP 로 직접 오는 요청. 전에는 여기서도 사이트를 통째로 서빙했는데, 그러면 TLS 없이
+# 같은 화면이 하나 더 열려 있는 셈이라 HSTS 도 소용이 없다(브라우저는 IP 주소에
+# HSTS 를 걸지 않는다). 살아 있는지만 알려주고 끝낸다 - 점검은 ssh 로 들어가
+# `curl localhost` 로 한다.
+http://140.245.77.108 {
+	respond "ok" 200
 }

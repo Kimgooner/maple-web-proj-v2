@@ -102,12 +102,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # 호스트 키는 secrets.OCI_HOST_KEY 에 박아 두고 그것만 믿는다. ssh-keyscan 은 그때
+      # 돌아온 키를 그냥 받아 적는 것이라, 러너와 서버 사이에 낀 누군가가 자기 키를 내밀면
+      # 그대로 신뢰해 버린다 - 그 접속에 배포용 개인키와 GHCR 토큰이 실려 나간다.
+      # 값 만드는 법: ssh-keyscan -t ed25519 <서버IP>  (한 줄을 통째로 넣는다)
       - name: SSH key
+        env:
+          HOST_KEY: ${{ secrets.OCI_HOST_KEY }}
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.OCI_SSH_KEY }}" > ~/.ssh/deploy
           chmod 600 ~/.ssh/deploy
-          ssh-keyscan -H "${{ secrets.OCI_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+          if [ -n "$HOST_KEY" ]; then
+            echo "$HOST_KEY" > ~/.ssh/known_hosts
+          else
+            echo "::warning::OCI_HOST_KEY 가 없어 ssh-keyscan 으로 대신한다. 중간자에 노출된다."
+            ssh-keyscan -H "${{ secrets.OCI_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+          fi
+          chmod 600 ~/.ssh/known_hosts
 
       - name: Copy compose files
         run: |

@@ -339,7 +339,7 @@
         statusElement.textContent = "조회 중...";
 
         try {
-            const response = await fetch(`/api/analysis/combat-power/current-debug?characterName=${encodeURIComponent(characterName)}`);
+            const response = await fetch(`/api/validation/current-debug?characterName=${encodeURIComponent(characterName)}`);
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}`);
             }

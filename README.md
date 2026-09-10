@@ -50,7 +50,7 @@ deploy/     docker compose + Caddy. GitHub Actions 가 main 푸시마다 서버�
 | `GET /api/analysis/combat-power/history?characterName&range=daily\|monthly` | 추이 (일간 30 / 월간 12 지점) |
 | `GET /api/analysis/combat-power/history/stream` | 같은 조회를 SSE 로 (`meta` → `point`… → `done`) |
 | `GET /api/analysis/combat-power/detail?ocid&previousDate&currentDate` | 두 시점 사이 변화 |
-| `GET /api/analysis/combat-power/current-debug?characterName` | 현재 계산 내역 (디버그) |
+| `GET /api/validation/current-debug?characterName` | 현재 계산 내역 (디버그, `maple.validation.enabled=true` 일 때만) |
 
 ## 로컬 실행
 
