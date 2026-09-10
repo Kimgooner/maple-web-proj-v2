@@ -10,6 +10,7 @@ services:
       NEXON_API_KEY: ${NEXON_API_KEY:?NEXON_API_KEY 가 .env 에 없다}
       SPRING_PROFILES_ACTIVE: prod
       MAPLE_CACHE_TYPE: redis
+      NEXON_RPS: "480"
       MAPLE_LEVEL_BAND_ENABLED: "true"
       SPRING_DATA_REDIS_HOST: redis
     expose:

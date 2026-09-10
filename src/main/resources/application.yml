@@ -49,4 +49,12 @@ nexon:
     # 안 그러면 키 없이 떠서 조용히 400 이 나고 "그런 캐릭터가 없습니다"로만 보인다.
     api-key: ${NEXON_API_KEY:${MAPLE_OPEN_API_KEY:}}
     request-timeout: 5s
-    requests-per-second: 300
+    # 서비스 단계 키의 한도는 초당 500 이다. 그 숫자를 그대로 쓰지 않는 이유는 이 제한기가
+    # 프로세스마다 하나이기 때문이다 - 운영이 500 으로 달리는 동안 로컬을 띄우거나
+    # maple-api 스킬 스크립트를 돌리면 같은 키로 그만큼이 더 얹힌다. 운영은 compose 가
+    # NEXON_RPS 로 480 을 넣고, 남긴 20 을 그런 바깥 호출 몫으로 둔다.
+    #
+    # 넘겼을 때가 조용하다는 점이 중요하다. 429 는 예외로 올라오다 fetchSnapshot 의
+    # onErrorResume 에서 빈 문서가 되고, 전투력이 조각난 데이터로 계산된다. 재시도를
+    # 붙여 두긴 했지만(NexonApiClient), 애초에 여유를 두는 편이 낫다.
+    requests-per-second: ${NEXON_RPS:300}
