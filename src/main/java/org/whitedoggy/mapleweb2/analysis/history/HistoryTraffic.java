@@ -10,8 +10,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  * <p>콜드 조회 하나가 넥슨 API 를 510회 쓰는데 초당 호출에 상한이 있어, 동시에 보는 사람이
  * 많으면 다 같이 느려진다. 서버가 멈춘 것이 아니라 줄을 선 것인데, 화면에서는 둘이 똑같이
  * 보인다 - 그래서 기다림이 길어질 때 이 수를 같이 보여 준다.
- *
- * <p>프로세스 안의 수다. 서버가 하나라 그게 곧 전체이고, 늘어나면 Redis 로 옮겨야 한다.
  */
 @Component
 public class HistoryTraffic {
