@@ -109,6 +109,7 @@ jobs:
       - name: SSH key
         env:
           HOST_KEY: ${{ secrets.OCI_HOST_KEY }}
+          HOST: ${{ secrets.OCI_HOST }}
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.OCI_SSH_KEY }}" > ~/.ssh/deploy
@@ -117,9 +118,21 @@ jobs:
             echo "$HOST_KEY" > ~/.ssh/known_hosts
           else
             echo "::warning::OCI_HOST_KEY 가 없어 ssh-keyscan 으로 대신한다. 중간자에 노출된다."
-            ssh-keyscan -H "${{ secrets.OCI_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+            ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts || true
           fi
           chmod 600 ~/.ssh/known_hosts
+
+          # 여기서 걸러 내지 않으면 빈 known_hosts 로 scp 까지 가는데, 그때 나오는 말이
+          # "No such file or directory" 라 원인이 전혀 안 보인다. 실제로 한 번 겪었다.
+          if ! grep -q "ssh-\|ecdsa-" ~/.ssh/known_hosts; then
+            echo "::error::known_hosts 가 비었다. OCI_HOST_KEY 를 확인할 것."
+            exit 1
+          fi
+          # 주소 자리에 키를 붙여 넣는 사고를 막는다 - 그러면 secrets.OCI_HOST 가
+          # "IP ssh-ed25519 AAAA..." 가 되어 scp 가 원격이 아닌 로컬 경로로 읽는다.
+          case "$HOST" in
+            *" "*) echo "::error::OCI_HOST 에 공백이 있다. 서버 주소만 넣을 것."; exit 1 ;;
+          esac
 
       - name: Copy compose files
         run: |
