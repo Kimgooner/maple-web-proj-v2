@@ -11,10 +11,13 @@
 서버에는 이 디렉터리의 `docker-compose.yml`, `Caddyfile` 과 서버에만 있는 `.env`
 (`.env.example` 참고) 가 있다. 넥슨 키는 `.env` 에만 둔다.
 
-- GitHub 시크릿: `OCI_HOST`, `OCI_USER`, `OCI_SSH_KEY` (배포 전용 ed25519 키)
+- GitHub 시크릿: `OCI_HOST`, `OCI_USER`, `OCI_SSH_KEY` (배포 전용 ed25519 키),
+  `OCI_HOST_KEY` (서버의 호스트 키 한 줄 — `ssh-keyscan -t ed25519 <서버IP>` 의 출력).
+  마지막 것이 없으면 배포는 돌되 `ssh-keyscan` 으로 대신하며 경고를 남긴다.
 - 서버 GHCR 로그인은 배포 순간에만 워크플로 토큰으로 한다. 상시 로그인 없음.
 - 도메인: `mapledelta.kr` (www 포함). Caddy 가 Let's Encrypt 인증서를 받아 자동 갱신하고
-  http 는 https 로 넘긴다. IP 직접 접속은 HTTP 로 남겨 둔다 (점검용).
+  http 는 https 로 넘긴다. IP 직접 접속은 `ok` 만 답한다 — TLS 없는 사이트가
+  하나 더 열려 있지 않도록. 점검은 ssh 로 들어가 `curl localhost` 로 한다.
 - 로그: `docker compose logs -f app`
 
 ## 되돌리기

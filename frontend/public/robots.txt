@@ -1,0 +1,8 @@
+# 캐릭터 페이지는 조회할 때마다 넥슨 API 를 쓰므로 크롤러가 훑고 다니면 안 된다.
+# 첫 화면만 열어 둔다.
+User-agent: *
+Allow: /$
+Disallow: /c/
+Disallow: /api/
+
+Sitemap: https://mapledelta.kr/sitemap.xml
