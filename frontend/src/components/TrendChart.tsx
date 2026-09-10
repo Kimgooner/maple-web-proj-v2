@@ -16,6 +16,14 @@ type Props = {
   anchor: string | null;
   /** 지점을 고를 수 있는 상태인가. 아직 받는 중이면 못 고른다 */
   interactive: boolean;
+  /**
+   * 아직 받는 중인가.
+   *
+   * <p>다 받은 뒤에도 비어 있는 자리는 "아직 안 온 것"이 아니라 <b>기록이 없는 것</b>이다.
+   * 서버는 최신부터 훑다가 데이터가 없는 날을 만나면 거기서 멈추므로, 그보다 오래된 자리는
+   * 끝내 채워지지 않는다. 둘을 구별하지 않으면 다 끝난 화면에서도 "불러오는 중"이라고 적힌다.
+   */
+  loading: boolean;
   onPick: (date: string) => void;
 };
 
@@ -56,7 +64,7 @@ function scale(values: number[]): Scale {
 }
 
 export function TrendChart(
-  { points, range, showFragments, bands, showMedian, interval, anchor, interactive, onPick }: Props,
+  { points, range, showFragments, bands, showMedian, interval, anchor, interactive, loading, onPick }: Props,
 ) {
   const [hovered, setHovered] = useState<number | null>(null);
   const count = points.length;
@@ -161,6 +169,24 @@ export function TrendChart(
   const half = count > 1 ? (x(1) - x(0)) / 2 : (WIDTH - LEFT - RIGHT) / 2;
 
   /**
+   * 기록이 없는 구간. 다 받은 뒤에 남은 빈 자리를 이어 붙인다.
+   *
+   * <p>선이 끊긴 것만으로는 "없는 기간"인지 "아직 그리는 중"인지 알 수 없다. 배경을 깔아
+   * 두면 호버하기 전에도 읽힌다 — 이 구간에서는 점도 찍지 않고 고를 수도 없으니, 화면이
+   * 하는 말과 실제 동작이 같아진다.
+   */
+  const blankRuns = loading ? [] : (() => {
+    const runs: { from: number; to: number }[] = [];
+    let from: number | null = null;
+    points.forEach((point, i) => {
+      if (isPending(point)) { if (from == null) from = i; return; }
+      if (from != null) { runs.push({ from, to: i - 1 }); from = null; }
+    });
+    if (from != null) runs.push({ from, to: count - 1 });
+    return runs;
+  })();
+
+  /**
    * 말풍선은 SVG 밖에 HTML 로 띄운다 — 표를 그리기엔 foreignObject 보다 이쪽이 낫다.
    * 자리는 viewBox 기준 비율이다. svg 가 width:100%, height:auto 라 비율이 그대로 맞는다.
    * 양 끝에서는 화면 밖으로 나가지 않게 가로 위치를 안쪽으로 물리고, 위쪽에 붙은
@@ -217,6 +243,28 @@ export function TrendChart(
           >{percent}%</text>
         ))}
 
+        {blankRuns.map((run) => {
+          const left = Math.max(LEFT, x(run.from) - half);
+          const right = Math.min(WIDTH - RIGHT, x(run.to) + half);
+          const width = right - left;
+          return (
+            <g key={`blank-${run.from}`}>
+              <rect className="chart-blank" x={left} y={TOP} width={width} height={HEIGHT - TOP - BOTTOM} />
+              {/* 기록이 시작되는 자리. 선이 여기서부터 그려진다. */}
+              {right < WIDTH - RIGHT && (
+                <line x1={right} x2={right} y1={TOP} y2={HEIGHT - BOTTOM}
+                      stroke="#d7dbe2" strokeWidth="1" strokeDasharray="3 4" />
+              )}
+              {/* 좁은 구간에 글자를 넣으면 잘려서 오히려 안 읽힌다. */}
+              {width >= 84 && (
+                <text className="chart-blank-label"
+                      x={left + width / 2} y={TOP + (HEIGHT - TOP - BOTTOM) / 2 + 4}
+                      textAnchor="middle">기록 없음</text>
+              )}
+            </g>
+          );
+        })}
+
         {start != null && end != null && (
           <>
             <rect x={x(start)} y={TOP} width={x(end) - x(start)} height={HEIGHT - TOP - BOTTOM} fill="#fff1e7" />
@@ -259,7 +307,7 @@ export function TrendChart(
                   fill={selected ? '#ed702e' : '#fff'} stroke="#ed702e" strokeWidth="1.5"
                 />
               )}
-              {pending && <circle cx={x(i)} cy={HEIGHT - BOTTOM} r="2.5" fill="#dfe3e9" />}
+              {pending && loading && <circle cx={x(i)} cy={HEIGHT - BOTTOM} r="2.5" fill="#dfe3e9" />}
               {labelled.has(i) && (
                 <text x={x(i)} y={HEIGHT - 10} textAnchor="middle">
                   {range === 'monthly' ? point.date.slice(0, 7).replace('-', '.') : shortDate(point.date)}
@@ -284,11 +332,16 @@ export function TrendChart(
 
           <div className="chart-tip-power">
             {isPending(tip.point)
-              ? <span className="chart-tip-blank">불러오는 중</span>
+              ? <span className="chart-tip-blank">{loading ? '불러오는 중' : '기록 없음'}</span>
               : tip.point.combatPower == null
                 ? <span className="chart-tip-blank">계산 실패</span>
                 : formatGameNumber(tip.point.combatPower)}
           </div>
+
+          {/* 우리가 못 받은 것이 아니라 넥슨에 없는 기간이라는 것을 밝힌다. */}
+          {!loading && isPending(tip.point) && (
+            <div className="chart-tip-note">넥슨에 이 시점의 기록이 없어요</div>
+          )}
 
           {/* 전투력에 안 들어가는 값이라 전투력 아래, 구간 통계 위에 둔다. */}
           {(tip.point.cooldownSecond || tip.point.cooldownSkipPercent) ? (

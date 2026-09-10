@@ -236,7 +236,8 @@ export function CharacterPage() {
                   <TrendChart
                     points={history.points} range={range} showFragments={showFragments}
                     bands={bands} showMedian={showMedian}
-                    interval={interval} anchor={anchor} interactive={selectable} onPick={pick}
+                    interval={interval} anchor={anchor} interactive={selectable}
+                    loading={streaming} onPick={pick}
                   />
                 )}
 

@@ -2106,6 +2106,20 @@ the SVG uses its actual container width. */@media(min-width:851px) {
   color:var(--orange);
 }
 
+/*
+ * 기록이 없는 구간. 격자보다 진하되 선·기준선보다는 물러나야 해서, 격자(#eef0f4)와
+ * 로딩 판 줄무늬(#f0f2f6) 사이 값을 쓴다.
+ */
+.chart-blank {
+  fill:#f3f5f8;
+}
+
+.chart-blank-label {
+  font-size:11px;
+  fill:var(--muted);
+  opacity:.9;
+}
+
 .chart-tip-blank {
   font-size:13px;
   font-weight:500;
