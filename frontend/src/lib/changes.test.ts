@@ -10,17 +10,30 @@ const summary = {
 } as unknown as ChangeSummary;
 
 describe('changeRows', () => {
-  it('장비·핵심·캐시/펫으로 갈라 센다', () => {
-    expect(changeCounts(summary)).toEqual({ items: 2, core: 1, other: 1 });
+  it('분류별로 풀어 세고, 탭과 같은 순서로 준다', () => {
+    expect(changeCounts(summary)).toEqual([
+      { key: 'items', label: '장비', count: 2 },
+      { key: 'cash', label: '캐시 장비', count: 1 },
+      { key: 'skill', label: '스킬', count: 1 },
+    ]);
   });
 
-  it('캐시와 펫은 한 묶음이다', () => {
-    const rows = changeRows(summary);
-    expect(rows.filter((row) => row.category === 'cash').map((row) => row.label)).toEqual(['캐시']);
+  it('0건인 분류는 빼고 준다. 열두 줄이 0 으로 늘어서면 바뀐 것이 묻힌다', () => {
+    expect(changeCounts(summary).map((entry) => entry.key)).not.toContain('pet');
+  });
+
+  it('전체 목록도 탭과 같은 차례다. 서버가 준 묶음 차례(장비 → 소스 → 캐시)가 아니다', () => {
+    expect(changeRows(summary).map((row) => row.category)).toEqual(['items', 'items', 'cash', 'skill']);
+  });
+
+  it('레벨 상승과 기타 능력치는 나머지 한 탭으로 간다', () => {
+    const only = { itemChanges: [], cashChanges: [], petChanges: [],
+      coreChanges: [{ source: 'abilityPoint' }, { source: 'otherStat' }] } as unknown as ChangeSummary;
+    expect(changeRows(only).map((row) => row.category)).toEqual(['etc', 'etc']);
   });
 
   it('요약이 없으면 빈 목록이다', () => {
     expect(changeRows(null)).toEqual([]);
-    expect(changeCounts(null)).toEqual({ items: 0, core: 0, other: 0 });
+    expect(changeCounts(null)).toEqual([]);
   });
 });

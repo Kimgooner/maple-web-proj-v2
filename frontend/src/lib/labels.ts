@@ -10,6 +10,7 @@ const STAT_LABELS: Record<string, string> = {
   HP_PERCENT: 'HP', ALL_STAT_PERCENT: '올스탯',
   ATTACK_POWER_PERCENT: '공격력', MAGIC_POWER_PERCENT: '마력',
   DAMAGE: '데미지', BOSS_DAMAGE: '보공', CRITICAL_DAMAGE: '크뎀', FINAL_DAMAGE: '최종뎀',
+  COOLDOWN_SECOND: '재사용 감소', COOLDOWN_SKIP_PERCENT: '재사용 미적용',
   // 전투력 스탯이 아니다. 헥사 강화가 전투력에 안 잡혀 비는 증감 칸을 이걸로 채운다.
   SOL_ERDA_FRAGMENT: '조각',
 };

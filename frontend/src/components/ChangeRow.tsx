@@ -1,46 +1,11 @@
 import { Fragment } from 'react';
-import type { CharacterInfo, EntryChange, ItemDetail, ItemStatLine, StatDelta } from '../api/types';
+import type { CharacterInfo, EntryChange, ItemDetail, ItemStatLine } from '../api/types';
 import type { ChangeRow as Row } from '../lib/changes';
-import { formatNumber, formatStatDelta } from '../lib/format';
-import { CHANGE_TYPE_LABELS, sourceLabel, statLabel } from '../lib/labels';
+import { formatNumber } from '../lib/format';
+import { CHANGE_TYPE_LABELS, sourceLabel } from '../lib/labels';
 import { presentDeltas } from '../lib/stats';
-
-/** 오른 것 / 내린 것 / 그대로인 것. 비어 있는 줄은 그리지 않는다. */
-const STAT_SIDES = [
-  { key: 'up', label: '증가', match: (delta: number) => delta > 0 },
-  { key: 'down', label: '감소', match: (delta: number) => delta < 0 },
-  { key: 'flat', label: '유지', match: (delta: number) => delta === 0 },
-];
-
-/**
- * 요약 줄의 스탯 묶음. 한 줄에 +와 -를 섞어 늘어놓으면 색만이 둘을 갈라서
- * 무엇이 깎였는지 세어 봐야 안다. 오른 쪽과 내린 쪽을 줄로 나눠 적는다.
- */
-function StatChips({ deltas }: { deltas: StatDelta[] }) {
-  return (
-    <div className="stat-split">
-      {STAT_SIDES.map((side) => ({ side, items: deltas.filter((delta) => side.match(delta.delta)) }))
-        .filter(({ items }) => items.length > 0)
-        .map(({ side, items }) => (
-          <Fragment key={side.key}>
-            <span className={`stat-side ${side.key}`}>{side.label}</span>
-            <div className="stat-chips">
-              {/* 조각은 전투력 스탯이 아니다. 차트의 조각 선과 같은 색으로 두어 같은 것임을 알린다. */}
-              {items.map((delta) => (
-                <span
-                  className={`stat-chip ${delta.statName === 'SOL_ERDA_FRAGMENT' ? 'fragment' : side.key}`}
-                  key={delta.statName}
-                >
-                  <span className="stat-chip-name">{statLabel(delta.statName)}</span>
-                  <span className="stat-chip-value">{formatStatDelta(delta.statName, delta.delta)}</span>
-                </span>
-              ))}
-            </div>
-          </Fragment>
-        ))}
-    </div>
-  );
-}
+import { SourceGlyph } from './SourceGlyph';
+import { StatChips } from './StatChips';
 
 /** 스탯 내역 한 조각. 색만으로는 어디서 온 값인지 모르니 이름을 달아 둔다. */
 const PART_LABELS: Record<string, string> = {
@@ -197,10 +162,29 @@ function ValueLines({ value }: { value: string | null }) {
   );
 }
 
+/** 세트 옵션 줄의 머리. "2세트 STR +20 …" 처럼 단계가 앞에 붙어 온다. */
+const TIER = /^(\d+세트)\s+(.*)$/;
+
+/**
+ * 펼친 설명. 세트 옵션은 단계를 블럭으로 떼어 놓는다.
+ *
+ * <p>한 덩어리 글로 두면 "2세트"와 "3세트"가 본문에 섞여, 어디까지가 몇 세트 몫인지
+ * 읽으면서 세어야 한다. 단계를 왼쪽에 세워 두면 이전·이후 칸을 나란히 놓았을 때
+ * 어느 단계가 새로 붙었는지가 눈으로 바로 걸린다.
+ */
 function EntryDetail({ detail }: { detail: string }) {
   return (
     <div className="entry-detail">
-      {detail.split('\n').map((line) => <div key={line}>{line}</div>)}
+      {detail.split('\n').map((line, index) => {
+        const tier = TIER.exec(line);
+        return (
+          <div className="entry-detail-line" key={`${line}-${index}`}>
+            {tier
+              ? <><span className="entry-tier">{tier[1]}</span><span>{tier[2]}</span></>
+              : <span>{line}</span>}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -230,15 +214,18 @@ function EntryTable({ entries }: { entries: EntryChange[] }) {
                 </span>
               </span>
             </td>
-            {/* 설명은 그 값이 살아 있는 쪽에 붙인다. 사라진 항목의 효과를
-                빈 칸 아래에 늘어놓으면 아직 받는 것처럼 읽힌다. */}
+            {/*
+              설명은 양쪽에 각각 붙인다. 세트는 "3세트 → 5세트" 만으로는 무엇이 붙었는지
+              알 수 없어, 그때 걸려 있던 옵션 문구를 각 칸 아래에 그대로 놓는다.
+              한쪽에만 있던 항목은 없는 쪽이 비어 있다.
+            */}
             <td className="before">
               <ValueLines value={entry.previous} />
-              {entry.detail && entry.current == null && <EntryDetail detail={entry.detail} />}
+              {entry.previousDetail && <EntryDetail detail={entry.previousDetail} />}
             </td>
             <td className="after">
               <ValueLines value={entry.current} />
-              {entry.detail && entry.current != null && <EntryDetail detail={entry.detail} />}
+              {entry.detail && <EntryDetail detail={entry.detail} />}
             </td>
           </tr>
         ))}
@@ -305,7 +292,9 @@ export function ChangeRow({ row, info, open, onToggle }: {
       <summary className="change-summary">
         <div className="change-name">
           <span className="item-icon" aria-hidden="true">
-            {icon ? <img src={icon} alt="" loading="lazy" /> : row.kind === 'slot' ? '◇' : '✦'}
+            {icon
+              ? <img src={icon} alt="" loading="lazy" />
+              : row.kind === 'slot' ? '◇' : <SourceGlyph source={row.change.source} />}
           </span>
           <div>
             <div className="item-title">

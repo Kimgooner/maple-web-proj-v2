@@ -17,6 +17,21 @@ const ORDER = [
   'MAIN_FLAT', 'SUB_FLAT',
 ];
 
+/**
+ * 솔 에르다 조각. 전투력 스탯이 아니라 "얼마나 부었나"라서 항상 맨 뒤에 둔다.
+ *
+ * <p>순서가 곧 중요도인 목록에 조각이 중간에 끼면, 전투력에 걸리는 스탯을 읽다 말고
+ * 성격이 다른 값을 한 번 건너뛰게 된다. 색도 차트의 조각 선과 같은 보라라 눈에 띄어서,
+ * 뒤에 있어야 "덤으로 붙은 값"으로 읽힌다.
+ */
+const FRAGMENT = 'SOL_ERDA_FRAGMENT';
+
+/**
+ * 재사용 대기시간. 전투력에는 안 들어가지만 실전에서는 주력기를 몇 번 더 쓰느냐를 가른다.
+ * 성격이 다른 값이라 전투력 스탯 뒤, 조각 앞에 모아 둔다.
+ */
+const COOLDOWN = ['COOLDOWN_SECOND', 'COOLDOWN_SKIP_PERCENT'];
+
 /** 직업마다 갈리는 자리. 주스탯이 INT 인 캐릭터에게 INT_PERCENT 는 MAIN_PERCENT 다. */
 const BASE_STATS = ['STR', 'DEX', 'INT', 'LUK'];
 
@@ -43,6 +58,8 @@ function applies(statName: string, info: CharacterInfo | null): boolean {
 }
 
 function rank(statName: string, info: CharacterInfo | null): number {
+  if (statName === FRAGMENT) return ORDER.length + 2;
+  if (COOLDOWN.includes(statName)) return ORDER.length + 1;
   const base = baseOf(statName);
   let key = statName;
   if (base !== null) {

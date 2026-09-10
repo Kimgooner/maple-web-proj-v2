@@ -148,13 +148,45 @@ public class SourceEntryExtractor {
         return icon.isEmpty() ? null : icon;
     }
 
+    /**
+     * 심볼. 아케인 → 어센틱, 각각 지역이 열린 순서로 놓는다.
+     *
+     * <p>API 가 주는 차례는 지역 순이 아니다(소멸의 여로가 레헬른·아르카나 뒤에 오기도 한다).
+     * 진행한 순서대로 놓아야 어디까지 올렸는지가 한눈에 읽힌다.
+     *
+     * <p><b>그랜드 어센틱은 뺀다.</b> 스탯을 주지 않아 전투력이 한 톨도 안 움직이는데, 값이
+     * "Lv.11" 처럼 적혀 있어 레벨만 올려도 변경 항목으로 잡힌다 — 전투력이 그대로인 줄이
+     * 하나 더 생길 뿐이다.
+     */
+    private static final List<String> SYMBOL_ORDER = List.of(
+            "아케인심볼 : 소멸의 여로", "아케인심볼 : 츄츄 아일랜드", "아케인심볼 : 레헬른",
+            "아케인심볼 : 아르카나", "아케인심볼 : 모라스", "아케인심볼 : 에스페라",
+            "어센틱심볼 : 세르니움", "어센틱심볼 : 아르크스", "어센틱심볼 : 오디움",
+            "어센틱심볼 : 도원경", "어센틱심볼 : 아르테리아", "어센틱심볼 : 카르시온");
+
+    private static final String EXCLUDED_SYMBOL_PREFIX = "그랜드 어센틱";
+
     private Map<String, SourceEntry> symbols(JsonNode symbolDoc) {
         Map<String, SourceEntry> result = new LinkedHashMap<>();
         if (symbolDoc == null) return result;
+
+        Map<String, SourceEntry> found = new LinkedHashMap<>();
         for (JsonNode symbol : symbolDoc.path("symbol")) {
-            result.put(Jsons.text(symbol, "symbol_name"),
-                    new SourceEntry("Lv." + symbol.path("symbol_level").asInt(0), iconOf(symbol, "symbol_icon")));
+            String name = Jsons.text(symbol, "symbol_name");
+            if (name.startsWith(EXCLUDED_SYMBOL_PREFIX)) {
+                continue;
+            }
+            found.put(name, new SourceEntry(
+                    "Lv." + symbol.path("symbol_level").asInt(0), iconOf(symbol, "symbol_icon")));
         }
+        // 아는 지역부터 순서대로, 목록에 없는 것(새 지역이 열리면)은 받은 차례대로 뒤에 붙인다.
+        for (String name : SYMBOL_ORDER) {
+            SourceEntry entry = found.remove(name);
+            if (entry != null) {
+                result.put(name, entry);
+            }
+        }
+        result.putAll(found);
         return result;
     }
 
@@ -192,19 +224,41 @@ public class SourceEntryExtractor {
      * {@code count} 이하 단계를 모두 모은다. 값이 아니라 설명이라 변화 판정에는 쓰이지 않는다.
      */
     private String setOptions(JsonNode setEffect, String setName, int count) {
+        JsonNode set = findSet(setEffect, setName);
+        if (set == null) {
+            return null;
+        }
         List<String> lines = new ArrayList<>();
-        for (JsonNode set : setEffect.path("set_effect")) {
-            if (!setName.equals(Jsons.text(set, "set_name"))) {
-                continue;
-            }
-            for (JsonNode info : set.path("set_effect_info")) {
-                int tier = info.path("set_count").asInt(0);
-                if (tier > 0 && tier <= count) {
-                    lines.add(tier + "세트 " + Jsons.text(info, "set_option").replaceAll("\\s+", " ").trim());
-                }
+        for (JsonNode info : set.path("set_effect_info")) {
+            int tier = info.path("set_count").asInt(0);
+            if (tier > 0 && tier <= count) {
+                lines.add(tier + "세트 " + Jsons.text(info, "set_option").replaceAll("\\s+", " ").trim());
             }
         }
         return lines.isEmpty() ? null : String.join("\n", lines);
+    }
+
+    /**
+     * 문구를 담고 있는 넥슨 쪽 세트를 찾는다.
+     *
+     * <p>넥슨은 직업 접미사를 붙여 준다 — {@code 앱솔랩스 세트(해적)}. 우리 표로 직접 세는
+     * 세트는 접미사 없는 이름({@code 앱솔랩스 세트})이라 이름이 딱 맞지 않는다. 그대로 두면
+     * 그 세트만 옵션 문구가 통째로 비어, 펼쳐도 무엇이 붙는지 알 수 없다.
+     *
+     * <p>한 캐릭터에 같은 세트의 다른 직업판이 함께 오지는 않으므로 접두사로 찾아도 엇갈리지 않는다.
+     */
+    private JsonNode findSet(JsonNode setEffect, String setName) {
+        JsonNode prefixMatch = null;
+        for (JsonNode set : setEffect.path("set_effect")) {
+            String name = Jsons.text(set, "set_name");
+            if (setName.equals(name)) {
+                return set;
+            }
+            if (prefixMatch == null && name.startsWith(setName)) {
+                prefixMatch = set;
+            }
+        }
+        return prefixMatch;
     }
 
     /**

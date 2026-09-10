@@ -7,7 +7,9 @@ public record EntryChangeSummary(
         String current,
         /** 넥슨 아이콘 URL. 스킬·심볼만 있고 나머지는 null */
         String icon,
-        /** 펼쳐 봤을 때 보여줄 여러 줄 설명. 세트 효과 문구 등. 없으면 null */
+        /** 펼쳐 봤을 때 이전 칸에 놓을 여러 줄 설명. 세트 효과 문구 등. 없으면 null */
+        String previousDetail,
+        /** 같은 것의 이후 칸 몫. 세트는 이 둘을 나란히 놓아야 무엇이 붙고 빠졌는지 읽힌다 */
         String detail,
         /** 이름 밑에 붙일 블럭. 헥사 코어의 종류. 없으면 null */
         String badge

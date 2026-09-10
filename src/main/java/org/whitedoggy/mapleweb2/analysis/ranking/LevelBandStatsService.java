@@ -65,8 +65,15 @@ public class LevelBandStatsService {
                 .defaultIfEmpty(new LevelBandStatsResponse(List.of()));
     }
 
-    /** 매주 월요일 00:00 KST. */
-    @Scheduled(cron = "0 0 0 * * MON", zone = "Asia/Seoul")
+    /**
+     * 매주 화요일 00:00 KST.
+     *
+     * <p>월요일이 아닌 이유는 랭킹이 하루 늦게 열리기 때문이다. 전일 데이터는 다음날 02시부터
+     * 열려서, 월요일 00시에 도는 배치는 토요일 것까지밖에 못 본다. 하루 미루면 일요일까지
+     * 들어온다. {@link #openRankingDate} 가 열린 날짜를 거슬러 찾으므로 어느 쪽이든 표본은
+     * 만들어지지만, 되도록 최근 랭킹을 쓰는 쪽이 낫다.
+     */
+    @Scheduled(cron = "0 0 0 * * TUE", zone = "Asia/Seoul")
     public void collectWeekly() {
         if (!enabled) {
             return;
@@ -96,6 +103,7 @@ public class LevelBandStatsService {
             return Mono.empty();
         }
         LocalDate today = LocalDate.now(KST);
+        // 화요일에 돌아도 그 주를 대표하므로, 주 라벨은 그 주 월요일로 맞춘다.
         LocalDate weekOf = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         long startedAt = System.currentTimeMillis();
         return openRankingDate(today)

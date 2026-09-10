@@ -13,11 +13,70 @@
 
 - GitHub 시크릿: `OCI_HOST`, `OCI_USER`, `OCI_SSH_KEY` (배포 전용 ed25519 키)
 - 서버 GHCR 로그인은 배포 순간에만 워크플로 토큰으로 한다. 상시 로그인 없음.
-- 되돌리기: 서버 `.env` 의 `APP_TAG` 를 `sha-xxxxxxx` 로 바꾸고 `docker compose up -d`
-  (`APP_TAG` 하나가 앱·web 두 이미지를 같이 가리킨다 — 둘은 같이 움직인다)
 - 도메인: `mapledelta.kr` (www 포함). Caddy 가 Let's Encrypt 인증서를 받아 자동 갱신하고
   http 는 https 로 넘긴다. IP 직접 접속은 HTTP 로 남겨 둔다 (점검용).
 - 로그: `docker compose logs -f app`
+
+## 되돌리기
+
+배포한 것이 잘못됐을 때. **다시 배포해서 고치는 것보다 이쪽이 빠르다** — CI 가 이미지를
+다시 만드는 데 몇 분이 걸리지만, 이미 올라가 있는 이미지로 돌아가는 데는 몇 초면 된다.
+
+이미지는 커밋마다 `sha-xxxxxxx`(커밋 앞 7자)로 남아 있다. `latest` 와 별개라 지워지지 않는다.
+
+```bash
+# 1. 돌아갈 커밋을 고른다. 마지막으로 멀쩡했던 배포의 커밋이다.
+gh run list --workflow deploy --limit 10
+
+# 2. 서버에서 그 태그로 고정하고 올린다. 앱·web 이 같은 태그로 함께 움직인다.
+ssh oci
+cd /opt/mapledelta
+echo 'APP_TAG=sha-646889c' >> .env
+docker compose up -d
+
+# 3. 확인
+curl -sf -o /dev/null -w '%{http_code}\n' http://127.0.0.1/
+docker compose logs --tail 50 app
+```
+
+**되돌린 뒤 다시 배포하기 전에 `.env` 의 `APP_TAG` 줄을 지워야 한다.** 남아 있으면 새 배포가
+`docker compose up -d` 를 돌려도 고정된 옛 이미지가 그대로 뜬다 — 배포는 성공했다고 나오는데
+화면은 안 바뀌는, 원인 찾기 제일 나쁜 상태가 된다.
+
+```bash
+sed -i '/^APP_TAG=/d' /opt/mapledelta/.env
+```
+
+되돌려도 **Redis 는 그대로 남는다.** 캐시 키에 버전이 붙어 있어서(`maple:datasheet:v11:`)
+옛 버전이 v10 을 쓰면 v11 값은 안 읽히고 그냥 자리만 차지하다 TTL 로 사라진다. 레벨 구간
+표본은 만료가 없어 그대로 살아 있고, 되돌린 버전에서도 그대로 읽힌다.
+
+### 잠시 닫기
+
+원인을 찾는 동안 화면을 내려 두려면:
+
+```bash
+cd /opt/mapledelta
+docker compose stop web app     # Caddy 가 502 를 준다
+docker compose start app web    # 다시 연다
+```
+
+## 레벨 구간 표본 배치
+
+매주 **화요일 00:00 KST** 에 랭킹에서 레벨 구간(260~300, 5레벨 단위)마다 1,000명을 뽑아
+전투력을 다시 재고, 상위 1/10/30% · 중앙값 · 평균을 주 단위로 쌓는다. 한 번에 약 25분,
+넥슨 API 14만 회(일일 한도의 0.7%)를 쓴다.
+
+- `MAPLE_LEVEL_BAND_ENABLED=true` 일 때만 돈다. 로컬·테스트 기본값은 꺼짐이다.
+- 저장 키 `maple:levelband:v1:weeks` 에 **만료 없이** 넣는다. 지나간 주는 다시 잴 수 없다
+  (랭킹은 그날의 것이다). Redis 정책이 `volatile-lru` 라 만료 없는 키는 안 밀려난다.
+- 부팅 채우기는 **쌓인 주가 하나도 없을 때만** 돈다. 그래서 배포해도 다시 재지 않는다.
+  `LevelBandStatsServiceTest`, `RedisMapleCacheNoExpiryTest` 가 이 둘을 지킨다.
+- 월요일이 아닌 이유: 전일 데이터가 다음날 02시부터 열려서, 월요일 00시에는 토요일 것까지밖에
+  못 본다. 하루 미루면 일요일까지 들어온다.
+- 지금 쌓인 것 보기: `curl -s localhost/api/analysis/level-band-stats | jq '.weeks[-1]'`
+- 강제로 다시 재려면 키를 지우고 앱을 재시작한다 (25분간 API 를 쓴다):
+  `docker compose exec redis redis-cli DEL maple:levelband:v1:weeks && docker compose restart app`
 
 ## 요청이 지나는 길
 
@@ -37,15 +96,19 @@ SSE 가 실시간으로 흐르려면 Caddy 의 `flush_interval -1` 과 nginx 의
 
 캐시가 `redis` 컨테이너에 있고, 쓰임이 다른 두 종류가 산다.
 
-| 키 | 무엇 | 크기 | 쓰는 곳 |
-|---|---|---|---|
-| `maple:history:v2:<ocid>:<date>` | 추이 지점 (레벨·전투력·솔 에르다 조각) | 약 200B | 차트 (SSE) |
-| `maple:datasheet:v5:<ocid>:<date>` | 데이터시트 통째 | 약 43KB | 구간 상세 팝업, monthly·yearly |
-| `maple:ocid:<이름>` | 캐릭터 ocid | 작음 | 전부 |
+| 키 | 무엇 | TTL | 크기 | 쓰는 곳 |
+|---|---|---|---|---|
+| `maple:history:v5:<ocid>:<date>` | 추이 지점 (레벨·전투력·솔 에르다 조각) | 아래 참고 | 약 200B | 차트 (SSE) |
+| `maple:datasheet:v11:<ocid>:<date>` | 데이터시트 통째 | 아래 참고 | 약 43KB | 구간 상세 팝업, monthly·yearly |
+| `maple:ocid:<이름>` | 캐릭터 ocid | 12시간 | 작음 | 전부 |
+| `maple:championroster:v1:<ocid>` | 유니온 챔피언 명단 | 6시간 | 작음 | 명단이 빈 날 보정 |
+| `maple:levelband:v1:weeks` | 레벨 구간 표본 (주 단위, 60주) | **없음** | 수십 KB | 차트 기준선 |
+
+데이터시트·추이는 지나간 날짜 30일, 오늘치 6시간, 아직 굳지 않은 시점 30분이다.
 
 차트는 숫자 몇 개만 필요해서 작은 쪽을 쓴다. 일간 30지점을 다 받아도 6KB 다.
 **계산 규칙(전투력식·헥사 조각표)을 바꾸면 두 접두사 버전을 같이 올려야 한다** — 안 그러면 고친 값이
-30일 동안 안 보인다. 앱은 `MAPLE_CACHE_TYPE=redis` 로 켠다
+30일 동안 안 보인다. 버전을 올리면 배포 직후 조회가 전부 콜드라 느리다. 앱은 `MAPLE_CACHE_TYPE=redis` 로 켠다
 (빼면 프로세스 메모리 캐시로 돌아간다 — 롤백 수단이기도 하다).
 지나간 날짜는 넥슨이 같은 값을 주므로 30일, 오늘치는 6시간, 아직 굳지 않은 시점은
 30분 둔다. 포트는 밖으로 내지 않고 compose 네트워크 안에서만 `redis:6379` 로 붙는다.
@@ -54,12 +117,16 @@ Redis 가 죽어도 앱은 캐시 미스로 넘어가 계속 뜬다 (느려질 �
 - 키 수: `docker compose exec redis redis-cli DBSIZE`
 - 메모리: `docker compose exec redis redis-cli INFO memory`
 - 캐시 비우기: `docker compose exec redis redis-cli FLUSHALL`
-- 종류별 키 보기: `docker compose exec redis redis-cli --scan --pattern 'maple:history:v2:*'`
-  (`maple:datasheet:v5:*`, `maple:ocid:*` 도 같은 식으로)
+- 종류별 키 보기: `docker compose exec redis redis-cli --scan --pattern 'maple:history:v5:*'`
+  (`maple:datasheet:v11:*`, `maple:ocid:*` 도 같은 식으로)
+- 만료가 안 걸렸는지 확인: `docker compose exec redis redis-cli TTL maple:levelband:v1:weeks`
+  → `-1` 이어야 한다 (`-2` 는 키가 없다는 뜻)
 
 데이터시트 한 지점이 약 43KB 라 1GB 면 2만 지점 남짓 들어간다 (추이 지점은 200B 라
 사실상 상한에 안 걸린다).
-넘으면 오래 안 쓴 것부터 버린다(`allkeys-lru`). 5분마다 RDB 를 남겨 컨테이너를
+넘으면 오래 안 쓴 것부터 버리는데, **만료가 걸린 키만** 버린다(`volatile-lru`).
+레벨 구간 표본은 만료 없이 넣어 두어 메모리가 차도 남는다 — `allkeys-lru` 였다면 이게
+밀려났을 때 다음 부팅에 8,000명을 다시 재게 된다. 5분마다 RDB 를 남겨 컨테이너를
 재시작해도 캐시가 산다.
 
 서버 쪽 전제: 80/443 이 firewalld 와 OCI 보안 목록(VCN) 양쪽에서 열려 있어야 한다.

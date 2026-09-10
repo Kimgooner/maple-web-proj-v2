@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { fetchDetail } from '../api/detail';
 import { fetchLevelBands, type LevelBandWeek } from '../api/levelBands';
 import type { DetailResponse, HistoryRange } from '../api/types';
+import { ChartLoading } from '../components/ChartLoading';
 import { CharacterHeader } from '../components/CharacterHeader';
 import { ChangesPanel } from '../components/ChangesPanel';
 import { IntervalPanel } from '../components/IntervalPanel';
@@ -67,8 +68,14 @@ export function CharacterPage() {
     return () => controller.abort();
   }, [interval, history.meta?.ocid, detailRetry]);
 
+  /*
+   * 조회가 안 되는 이유는 둘이고, 사용자가 할 일이 다르다. 하나는 철자를 고치는 것이고
+   * 다른 하나는 레벨을 올려 다시 오는 것이다. 한 화면으로 뭉뚱그리면 260 미만 캐릭터로
+   * 조회한 사람이 자기 닉네임을 계속 다시 쳐 보게 된다.
+   */
   const notFound = history.errorCode === 'NOT_FOUND';
-  const failed = !notFound && history.status === 'error' && history.error;
+  const tooLow = history.errorCode === 'TOO_LOW';
+  const failed = !notFound && !tooLow && history.status === 'error' && history.error;
   const streaming = history.status === 'loading';
   const info = history.meta?.characterInfo ?? null;
   const selectable = history.status === 'done'
@@ -106,11 +113,21 @@ export function CharacterPage() {
           <span aria-hidden="true">⌂</span><span>/</span>캐릭터 분석
         </div>
 
-        {notFound ? (
+        {notFound || tooLow ? (
           <section className="panel missing">
             <div>
               <h1>{name}</h1>
-              <p>그런 이름의 캐릭터가 없습니다. 철자를 확인해 주세요.</p>
+              {notFound ? (
+                <p>그런 이름의 캐릭터가 없습니다. 철자를 확인해 주세요.</p>
+              ) : (
+                <>
+                  <p>{history.error}</p>
+                  <p className="muted">
+                    전투력 계산이 4차 전직을 기준으로 짜여 있어, 그 아래 레벨은 값을 믿을 수
+                    없습니다. 조용히 틀린 값을 보여주는 대신 여기서 멈춥니다.
+                  </p>
+                </>
+              )}
             </div>
             <Link to="/" className="outline">처음으로</Link>
           </section>
@@ -155,13 +172,12 @@ export function CharacterPage() {
                       <i className="line-median" />같은 레벨 중앙값
                     </button>
                   )}
-                  <span className="muted" style={{ marginLeft: 'auto', fontSize: 10 }}>
-                    {streaming ? `${history.received} / ${history.total || '…'} 지점` : ''}
-                  </span>
                 </div>
 
-                {history.points.length === 0 ? (
-                  <div className="chart-empty">캐릭터의 성장 기록을 불러오고 있어요…</div>
+                {streaming ? (
+                  <ChartLoading received={history.received} total={history.total} />
+                ) : history.points.length === 0 ? (
+                  <div className="chart-empty">불러올 성장 기록이 없어요.</div>
                 ) : (
                   <TrendChart
                     points={history.points} range={range} showFragments={showFragments}
@@ -187,7 +203,12 @@ export function CharacterPage() {
                 <p className="selection-hint" role="status">{hint}</p>
               </section>
 
-              <IntervalPanel interval={interval} points={history.points} summary={detail?.changeSummary ?? null} />
+              <IntervalPanel
+                interval={interval}
+                points={history.points}
+                summary={detail?.changeSummary ?? null}
+                info={info}
+              />
             </div>
 
             <ChangesPanel

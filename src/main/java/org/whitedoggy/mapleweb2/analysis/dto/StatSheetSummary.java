@@ -30,6 +30,9 @@ public record StatSheetSummary(
         double damage,
         double bossDamage,
         double criticalDamage,
-        double finalDamage
+        double finalDamage,
+        /** 전투력에는 안 들어가는 값. 실전에서 갈리는 것이라 화면에만 싣는다. */
+        int cooldownSecond,
+        double cooldownSkipPercent
 ) {
 }

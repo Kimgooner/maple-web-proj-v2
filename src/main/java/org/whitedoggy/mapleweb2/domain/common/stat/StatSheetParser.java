@@ -32,7 +32,12 @@ public class StatSheetParser {
             new PatternRule(Pattern.compile("^크리티컬 데미지\\s*" + NUMBER + OPTIONAL_PERCENT + END), this::applyCriticalDamage),
             new PatternRule(Pattern.compile("^최종 데미지\\s*" + NUMBER + OPTIONAL_PERCENT + END), this::applyFinalDamage),
             new PatternRule(Pattern.compile("^데미지\\s*" + NUMBER + OPTIONAL_PERCENT + END), this::applyDamage),
-            new PatternRule(Pattern.compile("^(?:영구적으로\\s*)?최종 데미지\\s*" + NUMBER + OPTIONAL_PERCENT + END), this::applyFinalDamage)
+            new PatternRule(Pattern.compile("^(?:영구적으로\\s*)?최종 데미지\\s*" + NUMBER + OPTIONAL_PERCENT + END), this::applyFinalDamage),
+            // 재사용 대기시간은 전투력에 안 들어가지만 실전에서 크게 갈리는 값이라 따로 담는다.
+            // 모자 잠재: "스킬 재사용 대기시간 -2초" (여러 줄이면 더한다)
+            new PatternRule(Pattern.compile("^스킬 재사용 대기시간\\s*" + NUMBER + "\\s*초\\s*$"), this::applyCooldownSecond),
+            // 어빌리티: "스킬 사용 시 20% 확률로 재사용 대기시간이 미적용"
+            new PatternRule(Pattern.compile("^스킬 사용 시\\s*" + NUMBER + "\\s*% 확률로 재사용 대기시간이 미적용\\s*$"), this::applyCooldownSkip)
     );
 
     public StatSheet parse(List<String> options){
@@ -119,7 +124,6 @@ public class StatSheetParser {
                 "방어율 무시",
                 "상태 이상",
                 "버프 지속",
-                "재사용",
                 "소환수 지속",
                 "최대 이동속도",
                 "이동속도",
@@ -145,6 +149,17 @@ public class StatSheetParser {
 
     private boolean containsAny(String text, Set<String> tokens) {
         return tokens.stream().anyMatch(text::contains);
+    }
+
+    /** 감소는 "-2초" 처럼 음수로 온다. 화면이 "2초 감소"로 읽게 부호를 뒤집어 담는다. */
+    private void applyCooldownSecond(ParseContext context, Matcher matcher) {
+        context.sheet().setCOOLDOWN_SECOND(
+                context.sheet().getCOOLDOWN_SECOND() - (int) Double.parseDouble(matcher.group(1)));
+    }
+
+    private void applyCooldownSkip(ParseContext context, Matcher matcher) {
+        context.sheet().setCOOLDOWN_SKIP_PERCENT(
+                context.sheet().getCOOLDOWN_SKIP_PERCENT() + Double.parseDouble(matcher.group(1)));
     }
 
     private void applyAttackMagic(ParseContext context, Matcher matcher) {

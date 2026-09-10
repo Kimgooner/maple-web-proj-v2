@@ -10,9 +10,11 @@ import org.whitedoggy.mapleweb2.domain.item.data.ItemStatLine;
 import java.lang.reflect.Field;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 @Service
@@ -53,7 +55,10 @@ public class DataSheetCompareService {
             new StatField("DAMAGE", "DAMAGE"),
             new StatField("BOSS_DAMAGE", "BOSS_DAMAGE"),
             new StatField("CRITICAL_DAMAGE", "CRITICAL_DAMAGE"),
-            new StatField("FINAL_DAMAGE", "FINAL_DAMAGE")
+            new StatField("FINAL_DAMAGE", "FINAL_DAMAGE"),
+            // 전투력에 안 들어가는 값이라 증감 칸 맨 뒤에 붙는다(화면의 정렬 규칙이 뒤로 민다).
+            new StatField("COOLDOWN_SECOND", "COOLDOWN_SECOND"),
+            new StatField("COOLDOWN_SKIP_PERCENT", "COOLDOWN_SKIP_PERCENT")
     );
 
     public List<CombatPresetDiff> diffCombatPresetSeries(List<DataSheet> dataSheets) {
@@ -78,33 +83,39 @@ public class DataSheetCompareService {
                 previousCombatPower,
                 currentCombatPower,
                 currentCombatPower - previousCombatPower,
-                summarizeCoreSheets(previous, current, 6),
-                summarizeItemChanges(previous.getPetEquip(), current.getPetEquip(), 3),
-                summarizeItemChanges(previous.getCashEquip(), current.getCashEquip(), 3),
-                summarizeItemChanges(previous.getItemEquip(), current.getItemEquip(), 5)
+                summarizeCoreSheets(previous, current),
+                summarizeItemChanges(previous.getPetEquip(), current.getPetEquip()),
+                summarizeItemChanges(previous.getCashEquip(), current.getCashEquip()),
+                summarizeItemChanges(previous.getItemEquip(), current.getItemEquip())
         );
     }
 
-    private List<ChangeSummary> summarizeCoreSheets(DataSheet previous, DataSheet current, int limit) {
+    /**
+     * 스탯 시트가 있는 소스들의 변화. <b>부르는 차례가 곧 화면에 놓이는 차례다.</b>
+     *
+     * <p>전에는 증감의 절댓값 합으로 정렬해 큰 것부터 내놨는데, 두 가지가 나빴다. 하나는
+     * 그 자가 {@code 보공 +5} 와 {@code STR +720} 을 같은 무게로 재서 고정 스탯이 큰 항목이
+     * 무조건 위로 온 것이다 — 전투력 기여도와 상관이 없다. 다른 하나는 구간마다 순서가
+     * 바뀌어, 같은 캐릭터를 여러 구간 넘겨 볼 때 눈이 자리를 다시 찾아야 했던 것이다.
+     *
+     * <p>이제 중요한 것부터 고정된 차례로 놓는다. 화면의 탭 차례와 같다.
+     */
+    private List<ChangeSummary> summarizeCoreSheets(DataSheet previous, DataSheet current) {
         List<ChangeSummary> summaries = new ArrayList<>();
-        addSheetSummary(summaries, "abilityPoint", previous.getAbilityPoint(), current.getAbilityPoint(), previous, current);
-        addSheetSummary(summaries, "symbol", previous.getSymbol(), current.getSymbol(), previous, current);
+        addSheetSummary(summaries, "setEffect", previous.getSetEffect(), current.getSetEffect(), previous, current);
         addSheetSummary(summaries, "skill", previous.getSkill(), current.getSkill(), previous, current);
         addSheetSummary(summaries, "hexaStat", previous.getHexaStat(), current.getHexaStat(), previous, current);
-        addSheetSummary(summaries, "ability", previous.getAbility(), current.getAbility(), previous, current);
-        addSheetSummary(summaries, "hyperStat", previous.getHyperStat(), current.getHyperStat(), previous, current);
-        addSheetSummary(summaries, "setEffect", previous.getSetEffect(), current.getSetEffect(), previous, current);
-        addSheetSummary(summaries, "unionOccupied", previous.getUnionOccupied(), current.getUnionOccupied(), previous, current);
-        addSheetSummary(summaries, "unionRaider", previous.getUnionRaider(), current.getUnionRaider(), previous, current);
-        addSheetSummary(summaries, "unionArtifact", previous.getUnionArtifact(), current.getUnionArtifact(), previous, current);
-        addSheetSummary(summaries, "otherStat", previous.getOtherStat(), current.getOtherStat(), previous, current);
         addEntryOnlySummary(summaries, "hexaCore", previous, current, solErdaFragmentDelta(previous, current));
+        addSheetSummary(summaries, "symbol", previous.getSymbol(), current.getSymbol(), previous, current);
+        addSheetSummary(summaries, "hyperStat", previous.getHyperStat(), current.getHyperStat(), previous, current);
+        addSheetSummary(summaries, "ability", previous.getAbility(), current.getAbility(), previous, current);
+        addSheetSummary(summaries, "unionRaider", previous.getUnionRaider(), current.getUnionRaider(), previous, current);
+        addSheetSummary(summaries, "unionOccupied", previous.getUnionOccupied(), current.getUnionOccupied(), previous, current);
+        addSheetSummary(summaries, "unionArtifact", previous.getUnionArtifact(), current.getUnionArtifact(), previous, current);
         addSheetSummary(summaries, "unionChampion", previous.getUnionChampion(), current.getUnionChampion(), previous, current);
-
-        return summaries.stream()
-                .sorted((left, right) -> Integer.compare(right.weight(), left.weight()))
-                .limit(limit)
-                .toList();
+        addSheetSummary(summaries, "abilityPoint", previous.getAbilityPoint(), current.getAbilityPoint(), previous, current);
+        addSheetSummary(summaries, "otherStat", previous.getOtherStat(), current.getOtherStat(), previous, current);
+        return List.copyOf(summaries);
     }
 
     /**
@@ -117,7 +128,7 @@ public class DataSheetCompareService {
         List<EntryChange> changes = entryChanges(label, previous, current);
         if (!changes.isEmpty()) {
             summaries.add(new ChangeSummary(
-                    label, deltas, changes, weight(deltas), notice(label, previous, current)));
+                    label, deltas, changes, notice(label, previous, current)));
         }
     }
 
@@ -150,7 +161,7 @@ public class DataSheetCompareService {
 
         List<StatDelta> statDeltas = summarizeStatDelta(delta);
         summaries.add(new ChangeSummary(
-                label, statDeltas, entryChanges(label, previous, current), weight(statDeltas),
+                label, statDeltas, entryChanges(label, previous, current),
                 notice(label, previous, current)));
     }
 
@@ -184,18 +195,45 @@ public class DataSheetCompareService {
         for (Map.Entry<String, SourceEntry> entry : after.entrySet()) {
             SourceEntry old = before.get(entry.getKey());
             String oldValue = old == null ? null : old.value();
-            if (!entry.getValue().value().equals(oldValue)) {
+            if (!entry.getValue().value().equals(oldValue)
+                    && !sameSubstance(source, old, entry.getValue())) {
                 changes.add(new EntryChange(entry.getKey(), oldValue, entry.getValue().value(),
-                        entry.getValue().icon(), entry.getValue().detail(), entry.getValue().badge()));
+                        entry.getValue().icon(),
+                        old == null ? null : old.detail(), entry.getValue().detail(),
+                        entry.getValue().badge()));
             }
         }
         for (Map.Entry<String, SourceEntry> entry : before.entrySet()) {
             if (!after.containsKey(entry.getKey())) {
                 changes.add(new EntryChange(entry.getKey(), entry.getValue().value(), null,
-                        entry.getValue().icon(), entry.getValue().detail(), entry.getValue().badge()));
+                        entry.getValue().icon(), entry.getValue().detail(), null,
+                        entry.getValue().badge()));
             }
         }
         return changes;
+    }
+
+    /**
+     * 값은 달라졌지만 실제로 붙는 것은 그대로인가.
+     *
+     * <p>세트효과가 그렇다. 보스 장신구처럼 두 개마다 한 단계씩 오르는 세트는 3세트 → 4세트가
+     * 되어도 새로 붙는 옵션이 없다. 그때 "3세트 → 4세트" 만 적으면 전투력이 하나도 안 움직인
+     * 줄이 하나 더 생긴다. 붙는 옵션 문구({@code detail})가 같으면 뺀다.
+     *
+     * <p>세트에만 건다. 다른 소스의 {@code detail} 은 설명이라 값과 함께 움직이지 않는다 —
+     * 거기까지 넓히면 진짜 변화를 지우게 된다.
+     */
+    private boolean sameSubstance(String source, SourceEntry before, SourceEntry after) {
+        if (!"setEffect".equals(source) || before == null) {
+            return false;
+        }
+        // 붙는 옵션을 모르는 세트는 판단하지 않는다. 우리 표로 직접 세는 세트(앱솔랩스·아케인
+        // 셰이드처럼 직업 접미사가 붙어 오는 것들)는 넥슨 문서에서 이름이 안 맞아 문구가 늘
+        // null 이다. 그걸 "같다"로 보면 진짜 단계 상승까지 통째로 지워진다.
+        if (before.detail() == null || after.detail() == null) {
+            return false;
+        }
+        return before.detail().equals(after.detail());
     }
 
     private static Map<String, SourceEntry> entriesOf(DataSheet sheet, String source) {
@@ -205,7 +243,16 @@ public class DataSheetCompareService {
         return sheet.getSourceEntries().getOrDefault(source, Map.of());
     }
 
-    private List<SlotChangeSummary> summarizeItemChanges(Map<String, ItemSnapShot> before, Map<String, ItemSnapShot> after, int limit) {
+    /**
+     * 장비·캐시·펫의 슬롯 변화. 게임 장비창을 훑는 차례대로 놓는다 —
+     * 무기 · 보조무기 · 엠블렘 → 방어구 → 장신구 → 나머지.
+     *
+     * <p>정렬을 증감 크기에서 슬롯 차례로 바꾸면서 개수 제한도 뺐다. 큰 순으로 자를 때는
+     * 잘려도 "작은 것이 잘렸다"였지만, 슬롯 차례로 자르면 망토가 늘 사라지고 모자만 남는다.
+     * 줄은 접힌 상태로 나가므로 열 줄이 되어도 화면이 길어지지 않는다.
+     */
+    private List<SlotChangeSummary> summarizeItemChanges(
+            Map<String, ItemSnapShot> before, Map<String, ItemSnapShot> after) {
         Map<String, ItemSnapShot> beforeItems = before == null ? Map.of() : before;
         Map<String, ItemSnapShot> afterItems = after == null ? Map.of() : after;
 
@@ -215,9 +262,25 @@ public class DataSheetCompareService {
         changes.addAll(summarizeFixedSlots(beforeItems, afterItems));
 
         return changes.stream()
-                .sorted((left, right) -> Integer.compare(right.weight(), left.weight()))
-                .limit(limit)
+                .sorted(Comparator.comparingInt(change -> slotRank(change.slot())))
                 .toList();
+    }
+
+    /**
+     * 슬롯이 놓이는 차례. 목록에 없는 슬롯(캐시·펫 슬롯, 새로 생기는 칸)은 맨 뒤에
+     * 받은 차례대로 붙는다.
+     */
+    private static final List<String> SLOT_ORDER = List.of(
+            "무기", "보조무기", "엠블렘",
+            "모자", "상의", "하의", "한벌옷", "어깨장식", "장갑", "신발", "망토",
+            "얼굴장식", "눈장식", "귀고리", "펜던트", "펜던트2",
+            "반지1", "반지2", "반지3", "반지4", "벨트",
+            "훈장", "뱃지", "칭호", "포켓 아이템", "기계 심장");
+
+    private int slotRank(String displaySlot) {
+        String bare = displaySlot == null ? "" : displaySlot.substring(displaySlot.indexOf('-') + 1).trim();
+        int at = SLOT_ORDER.indexOf(bare);
+        return at < 0 ? SLOT_ORDER.size() : at;
     }
 
     private List<SlotChangeSummary> summarizeFixedSlots(
@@ -373,8 +436,7 @@ public class DataSheetCompareService {
                 deltas,
                 deltaGroups(displaySlot, beforeItem, afterItem),
                 itemDetail(beforeItem),
-                itemDetail(afterItem),
-                weight(deltas)
+                itemDetail(afterItem)
         );
     }
 
@@ -514,12 +576,6 @@ public class DataSheetCompareService {
         return List.copyOf(deltas);
     }
 
-    private int weight(List<StatDelta> deltas) {
-        return deltas.stream()
-                .mapToInt(statDelta -> (int) Math.floor(Math.abs(statDelta.delta())))
-                .sum();
-    }
-
     private double readNumericField(StatSheet sheet, String fieldName) {
         try {
             Field field = StatSheet.class.getDeclaredField(fieldName);
@@ -554,25 +610,30 @@ public class DataSheetCompareService {
             String source,
             List<StatDelta> deltas,
             List<EntryChange> entries,
-            int weight,
             /** 캐릭터가 아니라 넥슨 데이터가 바뀐 것일 때 화면에 대신 적을 말. 아니면 null. */
             String notice
     ) {
     }
 
-    /** 이름 있는 항목 하나의 변화. 없던 것은 previous 가 null, 사라진 것은 current 가 null. */
+    /**
+     * 이름 있는 항목 하나의 변화. 없던 것은 previous 가 null, 사라진 것은 current 가 null.
+     *
+     * @param previousDetail 이전 쪽 설명, {@code detail} 은 이후 쪽 설명이다. 세트는 구성 수만
+     *                       적어서는 무엇이 어떻게 바뀌었는지 알 수 없어, 양쪽 문구를 각각 준다.
+     *                       한쪽에만 있던 항목은 없는 쪽이 null 이다.
+     * @param badge          이름 밑에 붙일 블럭. 헥사 코어의 종류.
+     */
     public record EntryChange(
             String name,
             String previous,
             String current,
             String icon,
-            /** 펼쳐 봤을 때 보여줄 여러 줄 설명. 지금 상태 기준이고, 사라진 항목이면 이전 것. */
+            String previousDetail,
             String detail,
-            /** 이름 밑에 붙일 블럭. 헥사 코어의 종류. */
             String badge
     ) {
         public EntryChange(String name, String previous, String current, String icon) {
-            this(name, previous, current, icon, null, null);
+            this(name, previous, current, icon, null, null, null);
         }
     }
 
@@ -590,8 +651,7 @@ public class DataSheetCompareService {
             List<StatDeltaGroup> deltaGroups,
             /** 게임 아이템 창에 나오는 것들. 교체를 펼쳐 나란히 읽는다. 빈 자리면 null. */
             ItemDetail previousItem,
-            ItemDetail currentItem,
-            int weight
+            ItemDetail currentItem
     ) {
     }
 

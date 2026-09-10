@@ -14,6 +14,10 @@ import java.time.LocalDate;
  *                          null 이고, 0(6차인데 아직 안 올림)과 구분해야 한다.
  * @param solErdaFragmentsRequired 지금 가진 코어를 모두 만렙까지 올리는 데 드는 조각.
  *                          화면이 조각 축을 0~100%로 그릴 때의 분모다. 코어를 새로 열면 늘어난다.
+ * @param cooldownSecond    스킬 재사용 대기시간 감소(초). 모자 잠재에서 온다.
+ * @param cooldownSkipPercent 스킬 사용 시 재사용 대기시간이 통째로 미적용될 확률(%). 어빌리티에서 온다.
+ *                          둘 다 전투력에는 안 들어가지만 실전에서 크게 갈려 화면에 따로 싣는다.
+ *                          시트를 못 만든 지점은 null 이고, 0(없음)과 구분해야 한다.
  * @param expired           기간이 지나 스탯이 빠진 것들. 화면이 "만료됨"으로 알린다.
  */
 public record CombatPowerHistoryPoint(
@@ -23,6 +27,8 @@ public record CombatPowerHistoryPoint(
         Long apiCombatPower,
         Long solErdaFragments,
         Long solErdaFragmentsRequired,
+        Integer cooldownSecond,
+        Double cooldownSkipPercent,
         Expired expired
 ) {
     /**

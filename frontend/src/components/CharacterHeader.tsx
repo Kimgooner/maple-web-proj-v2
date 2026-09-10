@@ -1,5 +1,5 @@
 import type { CharacterInfo, HistoryPoint } from '../api/types';
-import { dateLabel, formatNumber, formatPercentChange, formatSigned, shortDate } from '../lib/format';
+import { dateLabel, formatGameNumber, formatPercentChange, formatSignedGame, shortDate } from '../lib/format';
 import { INCOMPLETE_CLASSES } from '../lib/labels';
 
 interface Props {
@@ -22,6 +22,8 @@ export function CharacterHeader({ info, name, points, loading }: Props) {
   const level = latest?.level ?? info?.level;
   const meta = [level == null ? null : `Lv. ${level}`, info?.className, info?.guild].filter(Boolean).join(' · ');
 
+  const cooldownSecond = latest?.cooldownSecond ?? 0;
+  const cooldownSkip = latest?.cooldownSkipPercent ?? 0;
   const comparable = !loading && valid.length >= 2;
   const delta = comparable ? latest.combatPower! - first.combatPower! : null;
 
@@ -45,8 +47,18 @@ export function CharacterHeader({ info, name, points, loading }: Props) {
 
       <div className="power">
         <div className="metric-label">실전 전투력 <span className="soft-badge">보스 프리셋 기준</span></div>
-        <strong className="power-number">{latest?.combatPower != null ? formatNumber(latest.combatPower) : '—'}</strong>
+        <strong className="power-number">{latest?.combatPower != null ? formatGameNumber(latest.combatPower) : '—'}</strong>
         <small className="muted">{latest ? `${dateLabel(latest.date)} 기준` : '계산 데이터를 기다리고 있어요'}</small>
+        {/*
+          전투력에 안 들어가지만 실전에서 크게 갈리는 값이라 전투력 옆에 붙인다.
+          0 이면 적지 않는다 — "0초 감소"는 알려 주는 것이 없다.
+        */}
+        {(cooldownSecond > 0 || cooldownSkip > 0) && (
+          <div className="cooldowns">
+            {cooldownSecond > 0 && <span>재사용 대기시간 <b>{cooldownSecond}초</b></span>}
+            {cooldownSkip > 0 && <span>재사용 대기시간 <b>{cooldownSkip}%</b>로 미적용</span>}
+          </div>
+        )}
       </div>
 
       <div className="period-metric">
@@ -54,7 +66,7 @@ export function CharacterHeader({ info, name, points, loading }: Props) {
         <strong className={tone(delta)}>
           {comparable ? formatPercentChange(first.combatPower!, latest.combatPower!) : '—'}
         </strong>
-        <span className={`number ${tone(delta)}`}>{delta != null ? formatSigned(delta) : '—'}</span>
+        <span className={`number ${tone(delta)}`}>{delta != null ? formatSignedGame(delta) : '—'}</span>
         <small className="muted">{comparable ? `${shortDate(first.date)} — ${shortDate(latest.date)}` : ''}</small>
       </div>
     </section>

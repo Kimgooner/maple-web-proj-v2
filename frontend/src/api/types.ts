@@ -26,6 +26,10 @@ export interface HistoryPoint {
   solErdaFragments: number | null;
   /** 가진 코어를 모두 만렙까지 올리는 데 드는 조각. 조각 축 0~100%의 분모 */
   solErdaFragmentsRequired: number | null;
+  /** 스킬 재사용 대기시간 감소(초). 모자 잠재에서 온다 */
+  cooldownSecond: number | null;
+  /** 스킬 사용 시 재사용 대기시간이 통째로 미적용될 확률(%). 어빌리티에서 온다 */
+  cooldownSkipPercent: number | null;
   /** 기간이 지나 계산에서 빠진 것들. 하나도 없으면 null */
   expired: ExpiredItems | null;
 }
@@ -63,7 +67,7 @@ export interface HistoryDone {
 }
 
 export interface HistoryError {
-  /** 'NOT_FOUND' 면 없는 캐릭터. 그 밖의 실패는 'ERROR' */
+  /** 'NOT_FOUND' 없는 캐릭터 · 'TOO_LOW' Lv.260 미만 · 그 밖의 실패는 'ERROR' */
   code: string;
   message: string;
 }
@@ -87,6 +91,9 @@ export interface EntryChange {
   /** 넥슨 아이콘 URL. 스킬·심볼만 있다 */
   icon: string | null;
   /** 펼쳐 봤을 때 보여줄 여러 줄 설명. 세트 효과 문구 등. 줄바꿈으로 구분된다 */
+  /** 펼쳤을 때 이전 칸에 놓을 여러 줄 설명. 세트 효과 문구 등 */
+  previousDetail: string | null;
+  /** 같은 것의 이후 칸 몫 */
   detail: string | null;
   /** 이름 밑에 붙일 블럭. 헥사 코어의 종류 */
   badge: string | null;

@@ -7,6 +7,7 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import org.whitedoggy.mapleweb2.domain.common.stat.GameData;
 import org.whitedoggy.mapleweb2.analysis.data.CharacterSnapshot;
 import org.whitedoggy.mapleweb2.analysis.data.DataSheet;
+import org.whitedoggy.mapleweb2.domain.common.stat.StatSheet;
 import org.whitedoggy.mapleweb2.analysis.dto.CharacterInfo;
 import org.whitedoggy.mapleweb2.analysis.service.DataSheetService;
 import org.whitedoggy.mapleweb2.analysis.service.OcidService;
@@ -180,8 +181,29 @@ public class CombatPowerHistoryService {
                 apiCombatPower(snapshot),
                 hexaCoreParser.solErdaFragments(hexaMatrix),
                 hexaCoreParser.solErdaFragmentsRequired(hexaMatrix),
+                dataSheet == null ? null : cooldownSecond(dataSheet),
+                dataSheet == null ? null : cooldownSkipPercent(dataSheet),
                 expired(dataSheet)
         ));
+    }
+
+    /**
+     * 재사용 대기시간은 전투력식에 안 들어가서 종합 시트에 쌓이지 않는다. 화면에 실으려고
+     * 여기서 시트를 한 번 합쳐 꺼낸다 — 전투력은 이미 계산이 끝나 있어 영향이 없다.
+     */
+    private int cooldownSecond(DataSheet dataSheet) {
+        return summed(dataSheet).getCOOLDOWN_SECOND();
+    }
+
+    private double cooldownSkipPercent(DataSheet dataSheet) {
+        return summed(dataSheet).getCOOLDOWN_SKIP_PERCENT();
+    }
+
+    private StatSheet summed(DataSheet dataSheet) {
+        if (dataSheet.getSumSheet() == null || dataSheet.getSumSheet().isZero()) {
+            dataSheet.buildSum();
+        }
+        return dataSheet.getSumSheet();
     }
 
     /** 기간이 지나 계산에서 빠진 항목들. 시트를 못 만들었으면 알 수 없으니 null 이다. */
@@ -214,7 +236,7 @@ public class CombatPowerHistoryService {
      * v4 부터 조각 진행률의 분모가 들어 있다.
      */
     private static String historyPointCacheKey(String ocid, LocalDate date) {
-        return "maple:history:v5:" + (ocid == null ? "" : ocid.trim()) + ":" + date;
+        return "maple:history:v6:" + (ocid == null ? "" : ocid.trim()) + ":" + date;
     }
 
     private Long apiCombatPower(CharacterSnapshot snapshot) {
@@ -233,7 +255,21 @@ public class CombatPowerHistoryService {
                 .onErrorMap(CombatPowerHistoryService::unknownCharacter,
                         error -> new CharacterNotFoundException(characterName))
                 .flatMap(ocid -> snapshotService.getCurrentSnapshotByOcid(ocid, today)
-                        .map(current -> buildPlan(ocid, range, today, current)));
+                        .map(current -> {
+                            requireHighEnoughLevel(characterName, current);
+                            return buildPlan(ocid, range, today, current);
+                        }));
+    }
+
+    /**
+     * 레벨이 낮으면 여기서 끊는다. 30지점을 다 긁고 나서 틀린 값을 보여주느니, 첫 스냅샷에서
+     * 알 수 있는 것으로 바로 답한다 — 넥슨 호출 30번을 아끼는 일이기도 하다.
+     */
+    private void requireHighEnoughLevel(String characterName, CharacterSnapshot current) {
+        Integer level = basicParser.characterLevel(current.document(NexonEndpoint.BASIC));
+        if (level != null && level < CharacterTooLowException.MINIMUM_LEVEL) {
+            throw new CharacterTooLowException(characterName, level);
+        }
     }
 
     private static boolean unknownCharacter(Throwable error) {
@@ -267,7 +303,9 @@ public class CombatPowerHistoryService {
     }
 
     private HistoryEvents.Error errorEvent(Throwable error) {
-        String code = error instanceof CharacterNotFoundException ? "NOT_FOUND" : "ERROR";
+        String code = error instanceof CharacterNotFoundException ? "NOT_FOUND"
+                : error instanceof CharacterTooLowException ? "TOO_LOW"
+                : "ERROR";
         return new HistoryEvents.Error(code, message(error));
     }
 

@@ -179,7 +179,9 @@ public class CurrentCombatPowerDebugService {
                 sheet.getDAMAGE(),
                 sheet.getBOSS_DAMAGE(),
                 sheet.getCRITICAL_DAMAGE(),
-                sheet.getFINAL_DAMAGE()
+                sheet.getFINAL_DAMAGE(),
+                sheet.getCOOLDOWN_SECOND(),
+                sheet.getCOOLDOWN_SKIP_PERCENT()
         );
     }
 }

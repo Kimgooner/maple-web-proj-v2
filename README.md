@@ -55,11 +55,11 @@ deploy/     docker compose + Caddy. GitHub Actions 가 main 푸시마다 서버�
 ## 로컬 실행
 
 ```bash
-# 백엔드 (Java 21). 넥슨 OPEN API 키가 필요하다
-NEXON_API_KEY=... ./gradlew bootRun
+# 백엔드 (Java 21). 저장소 루트 .env 의 MAPLE_OPEN_API_KEY 를 읽는다
+./gradlew bootRun
 
 # 프런트 (Node 22). /api 는 8080 으로 프록시된다
-cd frontend && npm install && npm run dev   # http://localhost:5173/app/
+cd frontend && npm install && npm run dev   # http://localhost:5173
 ```
 
 테스트는 `./gradlew test` 와 `cd frontend && npm test`. 골든 테스트는 로컬 픽스처가 필요해

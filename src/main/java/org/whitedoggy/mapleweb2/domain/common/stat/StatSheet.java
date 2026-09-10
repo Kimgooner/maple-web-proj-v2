@@ -51,6 +51,18 @@ public class StatSheet {
     private double CRITICAL_DAMAGE = 0.0;
     private double FINAL_DAMAGE = 0.0;
 
+    /**
+     * 스킬 재사용 대기시간 감소(초). 모자 잠재에만 붙는다.
+     *
+     * <p><b>전투력에는 한 톨도 안 들어간다.</b> 그런데 실전에서는 주력기를 몇 번 더 쓰느냐를
+     * 가르는 값이라, 계산에서 빼 두고 화면에만 싣는다. {@code CombatCalculationService} 는
+     * 필요한 필드를 이름으로 집어 쓰므로 여기 필드가 늘어도 전투력은 그대로다.
+     */
+    private int COOLDOWN_SECOND = 0;
+
+    /** 스킬 사용 시 재사용 대기시간이 통째로 미적용될 확률(%). 어빌리티에서 온다. */
+    private double COOLDOWN_SKIP_PERCENT = 0.0;
+
     public StatSheet(String name){
         this.sheetName = name;
     }
@@ -112,6 +124,8 @@ public class StatSheet {
         result.BOSS_DAMAGE = this.BOSS_DAMAGE + other.BOSS_DAMAGE;
         result.CRITICAL_DAMAGE = this.CRITICAL_DAMAGE + other.CRITICAL_DAMAGE;
         result.FINAL_DAMAGE = this.FINAL_DAMAGE + other.FINAL_DAMAGE;
+        result.COOLDOWN_SECOND = this.COOLDOWN_SECOND + other.COOLDOWN_SECOND;
+        result.COOLDOWN_SKIP_PERCENT = this.COOLDOWN_SKIP_PERCENT + other.COOLDOWN_SKIP_PERCENT;
 
         return result;
     }
@@ -154,6 +168,8 @@ public class StatSheet {
         result.BOSS_DAMAGE = this.BOSS_DAMAGE - other.BOSS_DAMAGE;
         result.CRITICAL_DAMAGE = this.CRITICAL_DAMAGE - other.CRITICAL_DAMAGE;
         result.FINAL_DAMAGE = this.FINAL_DAMAGE - other.FINAL_DAMAGE;
+        result.COOLDOWN_SECOND = this.COOLDOWN_SECOND - other.COOLDOWN_SECOND;
+        result.COOLDOWN_SKIP_PERCENT = this.COOLDOWN_SKIP_PERCENT - other.COOLDOWN_SKIP_PERCENT;
 
         return result;
     }
@@ -194,6 +210,8 @@ public class StatSheet {
         this.BOSS_DAMAGE += other.BOSS_DAMAGE;
         this.CRITICAL_DAMAGE += other.CRITICAL_DAMAGE;
         this.FINAL_DAMAGE += other.FINAL_DAMAGE;
+        this.COOLDOWN_SECOND += other.COOLDOWN_SECOND;
+        this.COOLDOWN_SKIP_PERCENT += other.COOLDOWN_SKIP_PERCENT;
     }
 
     /** 파생 값이라 직렬화하지 않는다. 세터가 없어 되읽을 수도 없다. */
@@ -228,6 +246,8 @@ public class StatSheet {
                 && Double.compare(DAMAGE, 0.0) == 0
                 && Double.compare(BOSS_DAMAGE, 0.0) == 0
                 && Double.compare(CRITICAL_DAMAGE, 0.0) == 0
-                && Double.compare(FINAL_DAMAGE, 0.0) == 0;
+                && Double.compare(FINAL_DAMAGE, 0.0) == 0
+                && COOLDOWN_SECOND == 0
+                && Double.compare(COOLDOWN_SKIP_PERCENT, 0.0) == 0;
     }
 }

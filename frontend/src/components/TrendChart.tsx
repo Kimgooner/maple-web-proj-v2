@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { LevelBandWeek } from '../api/levelBands';
 import type { HistoryPoint, HistoryRange } from '../api/types';
-import { compact, dateLabel, formatNumber, shortDate } from '../lib/format';
+import { compact, dateLabel, formatGameNumber, formatNumber, shortDate } from '../lib/format';
 import { isPending } from '../lib/history';
 import { bandAt } from '../lib/levelBands';
 
@@ -287,8 +287,17 @@ export function TrendChart(
               ? <span className="chart-tip-blank">불러오는 중</span>
               : tip.point.combatPower == null
                 ? <span className="chart-tip-blank">계산 실패</span>
-                : formatNumber(tip.point.combatPower)}
+                : formatGameNumber(tip.point.combatPower)}
           </div>
+
+          {/* 전투력에 안 들어가는 값이라 전투력 아래, 구간 통계 위에 둔다. */}
+          {(tip.point.cooldownSecond || tip.point.cooldownSkipPercent) ? (
+            <div className="chart-tip-cooldown">
+              {tip.point.cooldownSecond ? `재사용 ${tip.point.cooldownSecond}초` : ''}
+              {tip.point.cooldownSecond && tip.point.cooldownSkipPercent ? ' · ' : ''}
+              {tip.point.cooldownSkipPercent ? `${tip.point.cooldownSkipPercent}% 미적용` : ''}
+            </div>
+          ) : null}
 
           {tip.point.solErdaFragments != null && (
             <div className="chart-tip-fragment">

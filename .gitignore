@@ -55,3 +55,6 @@ CLAUDE.md
 
 ### 골든 픽스처 원시 API 응답 (로컬 전용, 커밋하지 않는다)
 src/test/resources/fixtures/*.json.gz
+
+### 로컬 확인용 컨테이너 (로컬 전용, 커밋하지 않는다)
+local/

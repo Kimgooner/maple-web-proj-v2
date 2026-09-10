@@ -13,7 +13,7 @@ export interface HistoryState {
   received: number;
   total: number;
   error: string | null;
-  /** 'NOT_FOUND' 면 없는 캐릭터라 화면이 따로 그린다 */
+  /** 'NOT_FOUND'(없는 캐릭터) · 'TOO_LOW'(Lv.260 미만) 는 화면이 따로 그린다 */
   errorCode: string | null;
 }
 
@@ -63,7 +63,7 @@ export function applyHistoryEvent(state: HistoryState, event: HistoryAction): Hi
         ...state,
         status: 'loading',
         meta: event.data,
-        points: dates.map((date) => ({ date, level: null, combatPower: null, apiCombatPower: null, solErdaFragments: null, solErdaFragmentsRequired: null, expired: null })),
+        points: dates.map((date) => ({ date, level: null, combatPower: null, apiCombatPower: null, solErdaFragments: null, solErdaFragmentsRequired: null, cooldownSecond: null, cooldownSkipPercent: null, expired: null })),
         received: 0,
         total: event.data.plannedCount,
         error: null,
