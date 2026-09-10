@@ -138,10 +138,18 @@ h1,h2,h3,p {
   white-space:nowrap;
 }
 
+/* 마크 자리. 이제 글자가 아니라 SVG 라 크기를 svg 쪽에서 잡는다. */
 .brand-mark {
-  font-size:39px;
+  display:inline-flex;
+  align-items:center;
   color:var(--orange);
   line-height:1;
+}
+
+.brand-svg {
+  display:block;
+  width:26px;
+  height:26px;
 }
 
 .brand-caption {
@@ -1785,8 +1793,9 @@ footer {
   .brand {
     font-size:22px;
   }
-  .brand-mark {
-    font-size:31px;
+  .brand-svg {
+    width:21px;
+    height:21px;
   }
   .search {
     width:100%;
@@ -2270,4 +2279,9 @@ the SVG uses its actual container width. */@media(min-width:851px) {
 .stat-more:hover {
   color:var(--ink);
   border-color:#d3d8e0;
+}
+
+/* 추이 선 끝의 단풍잎. 선과 같은 주황이되 한 톤 낮춰, 데이터가 아니라 장식으로 읽히게 한다. */
+.maple-leaf {
+  fill:#f0a074;
 }

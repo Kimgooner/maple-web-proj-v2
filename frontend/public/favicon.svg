@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!--
+    MapleDelta 마크. 오르는 선과 그 끝의 점.
+    추이 차트의 선을 그대로 떼어 온 모양이다 - 이 서비스가 보여주는 것이 전투력의 변화다.
+
+    16px 파비콘에서 살아남게 굵은 선(4)과 큰 점만 썼다. 얇은 선은 그 크기에서 사라진다.
+    삼각형(Δ)으로 감쌌더니 금지 표지처럼 보여서 걷어냈다.
+  -->
+  <path fill="none" stroke="#ec6329" stroke-width="4"
+        stroke-linecap="round" stroke-linejoin="round"
+        d="M4 24 12 15.5 18 20.5 27 8.5" />
+  <circle cx="27" cy="8.5" r="4" fill="#ec6329" />
+</svg>

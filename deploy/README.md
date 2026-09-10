@@ -78,6 +78,44 @@ docker compose start app web    # 다시 연다
 - 강제로 다시 재려면 키를 지우고 앱을 재시작한다 (25분간 API 를 쓴다):
   `docker compose exec redis redis-cli DEL maple:levelband:v1:weeks && docker compose restart app`
 
+## 방문 집계
+
+캐릭터 조회 한 번마다 Redis 카운터를 올린다. **브라우저로 나가는 것이 없다** — 스크립트도,
+쿠키도, 외부 업체도 붙이지 않았다. 그래서 동의 배너가 필요 없고 숫자는 서버 밖으로 안 나간다.
+
+세는 것은 추이 조회(`/api/analysis/combat-power/history`)뿐이다. 화면이 캐릭터 하나를 열 때
+반드시 지나는 길이고, 상세 조회는 그 뒤에 여러 번 따라붙어 같이 세면 한 사람이 여러 번으로 잡힌다.
+
+```bash
+ssh oci
+cd /opt/mapledelta
+D=$(date +%F)
+docker compose exec -T redis redis-cli GET     "maple:visit:v1:$D:lookups"     # 조회 횟수
+docker compose exec -T redis redis-cli PFCOUNT "maple:visit:v1:$D:visitors"    # 고유 방문자
+docker compose exec -T redis redis-cli PFCOUNT "maple:visit:v1:$D:characters"  # 고유 캐릭터
+```
+
+최근 2주를 한 번에:
+
+```bash
+for i in $(seq 0 13); do
+  D=$(date -d "-$i day" +%F 2>/dev/null || date -v-${i}d +%F)
+  printf '%s  조회 %-6s 방문자 %-5s 캐릭터 %s\n' "$D" \
+    "$(docker compose exec -T redis redis-cli GET     maple:visit:v1:$D:lookups)" \
+    "$(docker compose exec -T redis redis-cli PFCOUNT maple:visit:v1:$D:visitors)" \
+    "$(docker compose exec -T redis redis-cli PFCOUNT maple:visit:v1:$D:characters)"
+done
+```
+
+- 고유 수는 **HyperLogLog** 다. 값을 통째로 담지 않고 스케치만 남겨서 하루치가 수 KB 를
+  넘지 않고, **넣은 값을 되꺼낼 수 없다** — 방문자 목록이 남지 않는다. 대신 근사치다(오차 약 0.8%).
+- 방문자 구분은 **IP 에 날짜를 섞어 해시한 앞 16자**다. 날이 바뀌면 같은 사람도 다른 값이 되어,
+  날짜를 가로질러 한 사람을 따라갈 수 없다. 하루치 고유 수를 세는 데는 충분하고 그 이상은 못 한다.
+- **만료를 걸지 않는다.** 지나간 날의 방문 수는 다시 만들 수 없고, Redis 가 `volatile-lru` 라
+  TTL 없는 키는 안 밀려난다. 하루 세 키라 1년을 쌓아도 수 MB 다.
+- 집계 실패는 삼킨다. 통계를 못 세는 것이 조회를 막을 이유가 되지 않는다.
+- 로컬(`MAPLE_CACHE_TYPE=memory`)에서는 아무것도 세지 않는다.
+
 ## 요청이 지나는 길
 
 ```

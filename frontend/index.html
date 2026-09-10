@@ -4,6 +4,13 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="light" />
+    <!--
+      ?v= 는 브라우저 캐시를 끊으려고 붙인다. 파비콘은 nginx 의 Cache-Control 과 별개로
+      브라우저가 자체 캐시를 오래 붙들고 있어, 파일만 바꾸면 탭 아이콘이 안 바뀐다.
+      모양을 고칠 때마다 이 숫자를 올린다.
+    -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />
+    <meta name="theme-color" content="#ec6329" />
     <link rel="preconnect" href="https://cdn.jsdelivr.net" />
     <link
       rel="stylesheet"
