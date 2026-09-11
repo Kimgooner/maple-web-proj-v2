@@ -588,7 +588,7 @@ h2 {
   align-items:center;
   gap:12px;
   font-size:10px;
-  margin-top:8px;
+  margin-top:16px;
 }
 
 .switch-label {
@@ -704,6 +704,11 @@ h2 {
   padding:6px 9px;
   border-radius:5px;
   margin-bottom:14px;
+}
+
+.interval-empty {
+  margin:6px 0 0;
+  font-size:13px;
 }
 
 .interval h2 {
@@ -2328,6 +2333,7 @@ the SVG uses its actual container width. */@media(min-width:851px) {
   justify-content:space-between;
   gap:12px;
   flex-wrap:wrap;
+  margin-top:10px;
 }
 
 .chart-bottom .selection-hint {

@@ -56,6 +56,8 @@ export function IntervalPanel({ interval, points, summary, info, loading }: Prop
           {interval ? `${dateLabel(interval.previousDate)} → ${dateLabel(interval.currentDate)}` : '두 시점을 선택해 주세요'}
         </h2>
       )}
+      {/* 다 받았는데 구간이 없는 것은 비교할 두 점이 없어서다. 제목만 두면 판이 통째로 비어 보인다. */}
+      {!loading && !interval && <p className="muted interval-empty">아직 비교할 데이터가 없어요</p>}
       {/*
         구간이 없으면 제목만 둔다. 빈 증감("—")과 "전투력의 변화를 비교합니다" 같은 자리
         표시는 아직 아무 일도 안 일어난 판을 뭔가 실패한 것처럼 보이게 한다.
