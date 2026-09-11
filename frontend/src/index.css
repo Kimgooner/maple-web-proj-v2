@@ -524,6 +524,13 @@ h2 {
 }
 
 .chart-empty {
+  /*
+   * 폭을 못 박아야 한다. aspect-ratio 만 두면 좁은 화면에서 비율 높이가 min-height 에
+   * 밀릴 때 브라우저가 폭을 높이에서 역산해(180 × 980/280 = 630px) 상자가 칸보다
+   * 넓어지고, 가운데 정렬된 글자가 오른쪽으로 쏠린다.
+   */
+  width:100%;
+  box-sizing:border-box;
   aspect-ratio:980 / 280;
   min-height:180px;
   display:flex;
@@ -1656,29 +1663,35 @@ footer {
   margin:0 7px;
 }
 
+/*
+ * 화면이 좁아지면 블럭을 줄이기 전에 배열부터 바꾼다. 차트 옆에 붙어 있던 판을 아래로
+ * 내리면 차트는 폭을 그대로 쓰고, 판은 두 열로 펼쳐 세로로 길어지지 않는다. 헤더도 이름을
+ * 한 줄 통째로 주고 전투력·변화를 그 아래 나란히 둔다. 크기를 줄이는 것은 850px 아래에서.
+ */
 @media(max-width:1150px) {
   .profile {
-    gap:20px;
-    padding:24px;
+    grid-template-columns:1fr 1fr;
   }
   .identity {
-    gap:14px;
-  }
-  .avatar {
-    width:84px;
-    height:92px;
-  }
-  .name-line h1 {
-    font-size:23px;
-  }
-  .period-metric {
-    padding-left:20px;
-  }
-  .period-metric>strong {
-    font-size:30px;
+    grid-column:1/-1;
   }
   .analysis-grid {
-    grid-template-columns:minmax(0,1fr) 290px;
+    grid-template-columns:1fr;
+  }
+  .interval {
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    column-gap:24px;
+  }
+  .interval .outline-badge,.interval h2,.interval-gain,.interval>p {
+    grid-column:1;
+  }
+  .interval-counts {
+    grid-column:2;
+    grid-row:1/6;
+    margin:0;
+    border:0;
+    padding:0;
   }
   .brand-caption {
     display:none;
@@ -1704,34 +1717,27 @@ footer {
     padding:20px 18px 0;
   }
   .profile {
-    grid-template-columns:1fr 1fr;
+    gap:20px;
+    padding:24px;
   }
   .identity {
-    grid-column:1/-1;
+    gap:14px;
+  }
+  .avatar {
+    width:84px;
+    height:92px;
+  }
+  .name-line h1 {
+    font-size:23px;
   }
   .power-number {
     font-size:36px;
   }
   .period-metric {
-    padding-left:25px;
+    padding-left:20px;
   }
-  .analysis-grid {
-    grid-template-columns:1fr;
-  }
-  .interval {
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    column-gap:24px;
-  }
-  .interval .outline-badge,.interval h2,.interval-gain,.interval>p {
-    grid-column:1;
-  }
-  .interval-counts {
-    grid-column:2;
-    grid-row:1/6;
-    margin:0;
-    border:0;
-    padding:0;
+  .period-metric>strong {
+    font-size:30px;
   }
   .chart-panel {
     padding:22px 18px 16px;
@@ -2212,6 +2218,13 @@ the SVG uses its actual container width. */@media(min-width:851px) {
    차트가 앉을 자리를 그대로 차지해, 다 받았을 때 화면이 위아래로 튀지 않게 한다.
    배경 줄무늬는 .chart-empty 와 같은 것이다 — 여기 그래프가 올 자리라고 알린다. */
 .chart-loading {
+  /*
+   * 폭을 못 박아야 한다. aspect-ratio 만 두면 좁은 화면에서 비율 높이가 min-height 에
+   * 밀릴 때 브라우저가 폭을 높이에서 역산해(180 × 980/280 = 630px) 상자가 칸보다
+   * 넓어지고, 가운데 정렬된 글자가 오른쪽으로 쏠린다.
+   */
+  width:100%;
+  box-sizing:border-box;
   aspect-ratio:980 / 280;
   min-height:180px;
   display:flex;
