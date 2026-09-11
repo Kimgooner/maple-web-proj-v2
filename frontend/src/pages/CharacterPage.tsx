@@ -141,7 +141,8 @@ export function CharacterPage() {
   };
 
   const hint = pickHint ?? (!selectable
-    ? '지점을 모두 받으면 두 시점을 고를 수 있어요.'
+    // 다 받았는데도 못 고르는 것은 비교할 두 점이 없어서다 - "받으면" 이라고 하면 기다리게 된다.
+    ? (history.status === 'done' ? '비교할 지점이 부족해요.' : '지점을 모두 받으면 고를 수 있어요.')
     : compare
       ? anchor
         ? `${dateLabel(anchor)} 선택 · 비교할 다른 날짜를 선택하세요.`
@@ -247,7 +248,7 @@ export function CharacterPage() {
                       type="checkbox" checked={compare} disabled={!selectable}
                       onChange={(event) => { setCompare(event.target.checked); setAnchor(null); }}
                     />
-                    <span className="switch" aria-hidden="true" />두 시점 비교
+                    <span className="switch" aria-hidden="true" />두 지점 직접 고르기
                   </label>
                   <span className="muted number">
                     {history.points.length

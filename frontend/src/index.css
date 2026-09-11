@@ -398,6 +398,11 @@ h1,h2,h3,p {
   font-size:14px;
 }
 
+.period-empty {
+  margin:6px 0 0;
+  font-size:12px;
+}
+
 .period-metric>small {
   font-size:10px;
   line-height:1.5;
@@ -502,8 +507,12 @@ h2 {
   font-size:10px;
 }
 
+/*
+ * 높이를 고정하지 않는다. 전에는 min-height 265px 이었는데, 화면이 좁아지면 svg 는
+ * 폭에 비례해 낮아지는데 상자는 265 를 지켜서 차트와 아래 줄 사이에 빈 띠가 생겼다.
+ * 로딩·빈 판은 svg 와 같은 비율(980:280)로 잡아, 판이 차트로 바뀌어도 높이가 안 튄다.
+ */
 .chart {
-  min-height:265px;
   position:relative;
 }
 
@@ -515,7 +524,8 @@ h2 {
 }
 
 .chart-empty {
-  min-height:265px;
+  aspect-ratio:980 / 280;
+  min-height:180px;
   display:flex;
   align-items:center;
   justify-content:center;
@@ -1641,12 +1651,6 @@ footer {
   margin:0 7px;
 }
 
-@media(min-width:1500px) {
-  .chart {
-    min-height:300px;
-  }
-}
-
 @media(max-width:1150px) {
   .profile {
     gap:20px;
@@ -1723,9 +1727,6 @@ footer {
     margin:0;
     border:0;
     padding:0;
-  }
-  .chart {
-    min-height:0;
   }
   .chart-panel {
     padding:22px 18px 16px;
@@ -1844,7 +1845,12 @@ footer {
   .period-metric>span {
     font-size:12px;
   }
-  .period-metric>small {
+  .period-empty {
+  margin:6px 0 0;
+  font-size:12px;
+}
+
+.period-metric>small {
     font-size:9px;
   }
   .chart-panel .section-heading {
@@ -2120,6 +2126,12 @@ the SVG uses its actual container width. */@media(min-width:851px) {
   opacity:.9;
 }
 
+.chart-blank-note {
+  font-size:10px;
+  fill:var(--muted);
+  opacity:.75;
+}
+
 .chart-tip-blank {
   font-size:13px;
   font-weight:500;
@@ -2195,7 +2207,8 @@ the SVG uses its actual container width. */@media(min-width:851px) {
    차트가 앉을 자리를 그대로 차지해, 다 받았을 때 화면이 위아래로 튀지 않게 한다.
    배경 줄무늬는 .chart-empty 와 같은 것이다 — 여기 그래프가 올 자리라고 알린다. */
 .chart-loading {
-  min-height:265px;
+  aspect-ratio:980 / 280;
+  min-height:180px;
   display:flex;
   flex-direction:column;
   align-items:center;

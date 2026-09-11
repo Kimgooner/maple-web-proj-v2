@@ -9,7 +9,7 @@ interface Props {
   loading: boolean;
   /** 계산에 실제로 쓴 프리셋 번호. 아직 못 받았으면 null */
   preset: PresetInfo | null;
-  /** 지금 보고 있는 기간. "조회 구간(최근 30일) 변화" 처럼 라벨에 적는다 */
+  /** 지금 보고 있는 기간. "최근 30일 변화" 처럼 라벨에 적는다 */
   range: HistoryRange;
 }
 
@@ -34,7 +34,7 @@ function tone(value: number | null): string {
   return value > 0 ? 'positive' : 'negative';
 }
 
-/** 캐릭터 요약. 이름·실전 전투력·조회 구간 변화 셋을 나란히 둔다. */
+/** 캐릭터 요약. 이름·전투력·기간 변화 셋을 나란히 둔다. */
 export function CharacterHeader({ info, name, points, loading, preset, range }: Props) {
   const valid = points.filter((point) => point.combatPower != null);
   const first = valid[0];
@@ -85,12 +85,17 @@ export function CharacterHeader({ info, name, points, loading, preset, range }: 
       </div>
 
       <div className="period-metric">
-        <div className="metric-label">{loading ? '조회 중' : `조회 구간(${RANGE_LABEL[range]}) 변화`}</div>
-        <strong className={tone(delta)}>
-          {comparable ? formatPercentChange(first.combatPower!, latest.combatPower!) : '—'}
-        </strong>
-        <span className={`number ${tone(delta)}`}>{delta != null ? formatSignedGame(delta) : '—'}</span>
-        <small className="muted">{comparable ? `${shortDate(first.date)} — ${shortDate(latest.date)}` : ''}</small>
+        <div className="metric-label">{loading ? '조회 중' : `${RANGE_LABEL[range]} 변화`}</div>
+        {comparable ? (
+          <>
+            <strong className={tone(delta)}>{formatPercentChange(first.combatPower!, latest.combatPower!)}</strong>
+            <span className={`number ${tone(delta)}`}>{delta != null ? formatSignedGame(delta) : ''}</span>
+            <small className="muted">{`${shortDate(first.date)} — ${shortDate(latest.date)}`}</small>
+          </>
+        ) : (
+          /* 받는 중이면 곧 채워질 자리라 비워 두고, 다 받았는데도 비교할 두 점이 없으면 말로 적는다. */
+          <p className="period-empty muted">{loading ? '' : '비교할 데이터가 없어요'}</p>
+        )}
       </div>
     </section>
   );

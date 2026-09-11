@@ -27,6 +27,15 @@ type Props = {
   onPick: (date: string) => void;
 };
 
+/**
+ * 기록이 없는 구간에 붙는 이유.
+ *
+ * <p>월드를 옮기면 ocid 가 바뀌고, 새 ocid 로는 옮기기 전 날짜가 전부 비어 온다(실측:
+ * 챌린저스 → 스카니아 이관 다음 날부터 30일이 통째로 빈다). 단정하지 않고 묻는 투로 두는
+ * 것은 다른 원인(넥슨 쪽 결손)도 같은 모양으로 보이기 때문이다.
+ */
+const BLANK_NOTE = '혹시 월드 리프를 하셨나요? 리프 전 기록은 확인이 어려워요.';
+
 const WIDTH = 980;
 const HEIGHT = 280;
 const LEFT = 65;
@@ -258,8 +267,17 @@ export function TrendChart(
               {/* 좁은 구간에 글자를 넣으면 잘려서 오히려 안 읽힌다. */}
               {width >= 84 && (
                 <text className="chart-blank-label"
-                      x={left + width / 2} y={TOP + (HEIGHT - TOP - BOTTOM) / 2 + 4}
+                      x={left + width / 2} y={TOP + (HEIGHT - TOP - BOTTOM) / 2 + (width >= 360 ? -4 : 4)}
                       textAnchor="middle">기록 없음</text>
+              )}
+              {/*
+                구간이 넓으면(= 거의 전부 비었으면) 이유까지 적는다. 월드를 옮긴 직후에
+                많이 보는 화면이라, 호버 전에 읽혀야 "고장났다"로 안 읽힌다.
+              */}
+              {width >= 360 && (
+                <text className="chart-blank-note"
+                      x={left + width / 2} y={TOP + (HEIGHT - TOP - BOTTOM) / 2 + 16}
+                      textAnchor="middle">{BLANK_NOTE}</text>
               )}
             </g>
           );
@@ -340,7 +358,7 @@ export function TrendChart(
 
           {/* 우리가 못 받은 것이 아니라 넥슨에 없는 기간이라는 것을 밝힌다. */}
           {!loading && isPending(tip.point) && (
-            <div className="chart-tip-note">넥슨에 이 시점의 기록이 없어요</div>
+            <div className="chart-tip-note">{BLANK_NOTE}</div>
           )}
 
           {/* 전투력에 안 들어가는 값이라 전투력 아래, 구간 통계 위에 둔다. */}

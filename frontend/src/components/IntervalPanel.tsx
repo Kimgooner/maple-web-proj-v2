@@ -56,58 +56,66 @@ export function IntervalPanel({ interval, points, summary, info, loading }: Prop
           {interval ? `${dateLabel(interval.previousDate)} → ${dateLabel(interval.currentDate)}` : '두 시점을 선택해 주세요'}
         </h2>
       )}
-      <div className="interval-gain">
-        <strong className={delta == null ? 'neutral' : delta > 0 ? 'positive' : delta < 0 ? 'negative' : 'neutral'}>
-          {delta != null ? formatSignedGame(delta) : '—'}
-        </strong>
-        <span>{both ? formatPercentChange(previous.combatPower!, current.combatPower!) : ''}</span>
-      </div>
-      <p className="muted number">
-        {both ? `${formatGameNumber(previous.combatPower!)} → ${formatGameNumber(current.combatPower!)}` : '전투력의 변화를 비교합니다'}
-      </p>
-
       {/*
-        고른 구간의 재사용 대기시간. 헤더 블럭은 늘 '지금' 값이라, 지난 시점을 고른 사람은
-        그때 값을 알 길이 없었다. 바뀐 구간이면 이전 → 이후로 같이 적는다.
+        구간이 없으면 제목만 둔다. 빈 증감("—")과 "전투력의 변화를 비교합니다" 같은 자리
+        표시는 아직 아무 일도 안 일어난 판을 뭔가 실패한 것처럼 보이게 한다.
       */}
-      {cooldowns.length > 0 && (
-        <div className="cooldowns interval-cooldowns">
-          {cooldowns.map((text) => <span key={text}>{text}</span>)}
-        </div>
-      )}
+      {interval && (
+        <>
+          <div className="interval-gain">
+            <strong className={delta == null ? 'neutral' : delta > 0 ? 'positive' : delta < 0 ? 'negative' : 'neutral'}>
+              {delta != null ? formatSignedGame(delta) : '—'}
+            </strong>
+            <span>{both ? formatPercentChange(previous.combatPower!, current.combatPower!) : ''}</span>
+          </div>
+          <p className="muted number">
+            {both ? `${formatGameNumber(previous.combatPower!)} → ${formatGameNumber(current.combatPower!)}` : '전투력의 변화를 비교합니다'}
+          </p>
 
-      <div className="interval-counts">
-        <h3>이 구간의 변경 내역</h3>
-        {/*
-          분류를 풀어 쓰되 줄이 아니라 칩으로 흘린다. 줄로 두면 분류가 늘어난 만큼
-          세로로 길어져 옆의 차트와 높이가 어긋난다. 칩은 넘치면 다음 줄로 접혀서,
-          한 분류가 걸리든 여섯이 걸리든 한두 줄로 끝난다.
-        */}
-        {!summary
-          ? <p className="interval-counts-empty">—</p>
-          : counts.length === 0
-            ? <p className="interval-counts-empty">바뀐 항목이 없어요.</p>
-            : (
-              <div className="interval-chips">
-                {counts.map(({ key, label, count }) => (
-                  <span className="interval-chip" key={key}>
-                    {label}<b>{count}</b>
-                  </span>
-                ))}
+          {/*
+            고른 구간의 재사용 대기시간. 헤더 블럭은 늘 '지금' 값이라, 지난 시점을 고른 사람은
+            그때 값을 알 길이 없었다. 바뀐 구간이면 이전 → 이후로 같이 적는다.
+          */}
+          {cooldowns.length > 0 && (
+            <div className="cooldowns interval-cooldowns">
+              {cooldowns.map((text) => <span key={text}>{text}</span>)}
+            </div>
+          )}
+
+          <div className="interval-counts">
+            <h3>이 구간의 변경 내역</h3>
+            {/*
+              분류를 풀어 쓰되 줄이 아니라 칩으로 흘린다. 줄로 두면 분류가 늘어난 만큼
+              세로로 길어져 옆의 차트와 높이가 어긋난다. 칩은 넘치면 다음 줄로 접혀서,
+              한 분류가 걸리든 여섯이 걸리든 한두 줄로 끝난다.
+            */}
+            {!summary
+              ? <p className="interval-counts-empty">—</p>
+              : counts.length === 0
+                ? <p className="interval-counts-empty">바뀐 항목이 없어요.</p>
+                : (
+                  <div className="interval-chips">
+                    {counts.map(({ key, label, count }) => (
+                      <span className="interval-chip" key={key}>
+                        {label}<b>{count}</b>
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+            {/*
+              분류 칩만 두면 "무엇이" 바뀌었는지는 알아도 "얼마나"가 없다. 줄마다 흩어져 있는
+              증감을 스탯별로 더해 여기 한 번 적는다 - 아래로 내려가 줄을 일일이 더하지 않아도
+              이 구간에 캐릭터가 어디로 움직였는지가 읽힌다.
+            */}
+            {totals.length > 0 && (
+              <div className="interval-totals">
+                <StatChips deltas={totals} limit={6} />
               </div>
             )}
-
-        {/*
-          분류 칩만 두면 "무엇이" 바뀌었는지는 알아도 "얼마나"가 없다. 줄마다 흩어져 있는
-          증감을 스탯별로 더해 여기 한 번 적는다 - 아래로 내려가 줄을 일일이 더하지 않아도
-          이 구간에 캐릭터가 어디로 움직였는지가 읽힌다.
-        */}
-        {totals.length > 0 && (
-          <div className="interval-totals">
-            <StatChips deltas={totals} limit={6} />
           </div>
-        )}
-      </div>
+        </>
+      )}
     </aside>
   );
 }
