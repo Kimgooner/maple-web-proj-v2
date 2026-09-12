@@ -9,7 +9,7 @@ from concurrent.futures import ThreadPoolExecutor
 import urllib.request, urllib.parse, urllib.error
 
 ROOT = "/Users/nubuli/Desktop/project/maple-web-proj-v2"
-SRC = os.path.join(ROOT, "src/test/resources/fixtures")
+SRC = os.environ.get("FIXTURE_SRC", os.path.join(ROOT, "src/test/resources/fixtures"))
 DATE = sys.argv[1] if len(sys.argv) > 1 else "2026-08-25"
 OUT = sys.argv[2] if len(sys.argv) > 2 else f"/private/tmp/claude-501/-Users-nubuli-Desktop-project-maple-web-proj-v2/b898ba90-34b4-4024-b5a0-efa92f8e5741/scratchpad/fixtures-{DATE}"
 

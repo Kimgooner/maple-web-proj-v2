@@ -223,6 +223,23 @@ class AdHocCharacterCheckTest {
         bySource.append('\t').append(sheet.isInactiveCharacter());
         String sources = bySource.toString();
 
+        // 데몬어벤져용. HP 세 성분을 소스별로 — 어느 소스가 %를 받고 어느 소스가 안 받는지 갈라 볼 때.
+        StringBuilder hp = new StringBuilder("[HP]\t" + payload.path("characterName").asText());
+        for (StatSheet s : List.of(sheet.getAbilityPoint(), sheet.getSymbol(), sheet.getSkill(),
+                sheet.getHexaStat(), sheet.getAbility(), sheet.getHyperStat(), sheet.getSetEffect(),
+                sheet.getOtherStat(), sheet.getUnionArtifact(), sheet.getUnionChampion(),
+                sheet.getUnionOccupied(), sheet.getUnionRaider())) {
+            hp.append('\t').append(s == null ? "0/0/0" : s.getHP() + "/" + s.getHP_PERCENT() + "/" + s.getHP_NO_PERCENT());
+        }
+        int[] item = new int[3], pet = new int[3], cash = new int[3];
+        for (ItemSnapShot i : sheet.getItemEquip().values()) { item[0] += i.getStatSheet().getHP(); item[1] += i.getStatSheet().getHP_PERCENT(); item[2] += i.getStatSheet().getHP_NO_PERCENT(); }
+        for (ItemSnapShot i : sheet.getPetEquip().values()) { pet[0] += i.getStatSheet().getHP(); pet[1] += i.getStatSheet().getHP_PERCENT(); pet[2] += i.getStatSheet().getHP_NO_PERCENT(); }
+        for (ItemSnapShot i : sheet.getCashEquip().values()) { cash[0] += i.getStatSheet().getHP(); cash[1] += i.getStatSheet().getHP_PERCENT(); cash[2] += i.getStatSheet().getHP_NO_PERCENT(); }
+        for (int[] a : List.of(item, pet, cash)) hp.append('\t').append(a[0] + "/" + a[1] + "/" + a[2]);
+        hp.append('\t').append(sheet.getConversionStarforce() == null ? "0/0/0"
+                : sheet.getConversionStarforce().getHP() + "/" + sheet.getConversionStarforce().getHP_PERCENT() + "/" + sheet.getConversionStarforce().getHP_NO_PERCENT());
+        System.out.println(hp);
+
         System.out.printf("[TSV]\t%s\t%s\t%s\t%d\t%d\t%d\t%d\t%s\t%d\t%s\t%d\t%s\t%s\t%d\t%d"
                         + "\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%d"
                         + extra + sources + "%n",
