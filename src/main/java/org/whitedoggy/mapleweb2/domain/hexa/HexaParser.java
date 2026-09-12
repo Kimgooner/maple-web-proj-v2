@@ -2,6 +2,7 @@ package org.whitedoggy.mapleweb2.domain.hexa;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.whitedoggy.mapleweb2.domain.common.stat.GameData;
 import org.whitedoggy.mapleweb2.global.Jsons;
 import tools.jackson.databind.JsonNode;
 
@@ -14,6 +15,16 @@ import java.util.Map;
 public class HexaParser {
 
     private final HexaStatData hexaStatData;
+    private final GameData gameData;
+
+    /**
+     * 주스탯이 HP 인 직업(데몬어벤져)의 표 값에 곱하는 배수. 표는 "주력 스탯 증가"의
+     * 스탯 수치이고 게임은 그것을 심볼과 같은 비율(1당 HP 21)로 HP 에 얹는다 —
+     * 상한 구간 200명에서 hexa 값 x 21 로 잔차가 0 이 된다.
+     */
+    private int hpPerPoint(String description) {
+        return "HP".equals(description) ? gameData.demonAvenger().hexaStatHpPerPoint() : 1;
+    }
 
     /**
      * 주스탯이 여럿인 직업(제논)의 전용 표를 가리키는 접미사.
@@ -46,9 +57,8 @@ public class HexaParser {
             }
             case "주력 스탯 증가" -> {
                 if(mainStats.size() == 1){
-                    String stat = mainStats.getFirst();
-                    description = stat;
-                    //TODO : 데벤
+                    // 데몬어벤져는 주력 스탯이 HP 다. 표기를 HP 로 바꾸고 아래에서 배수를 곱한다.
+                    description = mainStats.getFirst();
                 }
                 else{
                     // 제논은 주스탯이 셋이라 세 스탯에 같은 값이 각각 붙고, 수치도 전용 표를 쓴다.
@@ -62,7 +72,7 @@ public class HexaParser {
         if(description == null || !hexaStatData.hasMain(name)) return "";
         if(level == 0) return description + " 0";
         if(optional_percent) return description + " " + hexaStatData.mainValue(name, level) + "%";
-        else return description + " " + hexaStatData.mainValue(name, level);
+        else return description + " " + hexaStatData.mainValue(name, level) * hpPerPoint(description);
     }
 
     private String applySubStat(String name, Integer level, List<String> mainStats) {
@@ -102,7 +112,7 @@ public class HexaParser {
         if(description == null || !hexaStatData.hasSub(name)) return "";
         if(level == 0) return description + " 0";
         if(optional_percent) return description + " " + hexaStatData.subValue(name, level) + "%";
-        else return description + " " + hexaStatData.subValue(name, level);
+        else return description + " " + hexaStatData.subValue(name, level) * hpPerPoint(description);
     }
 
     public List<String> getCurrentHexa(JsonNode hexa, List<String> mainStats) {

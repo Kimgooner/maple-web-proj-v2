@@ -58,9 +58,6 @@ public class LevelBandCollector {
      */
     private static final int CONCURRENCY = 4;
 
-    /** 계산이 완성되지 않은 직업. 분포에 넣으면 그 구간이 통째로 낮아진다. */
-    private static final String UNSUPPORTED_CLASS = "데몬어벤져";
-
     private final RankingCharacterClient rankingCharacterClient;
     private final OcidService ocidService;
     private final SnapshotService snapshotService;
@@ -200,9 +197,6 @@ public class LevelBandCollector {
                     JsonNode basic = snapshot.document(NexonEndpoint.BASIC);
                     Integer level = basicParser.characterLevel(basic);
                     if (level == null || level < band[0] || level > band[1]) {
-                        return null;
-                    }
-                    if (UNSUPPORTED_CLASS.equals(basicParser.characterClass(basic))) {
                         return null;
                     }
                     DataSheet sheet = dataSheetService.getCurrentDataSheet(snapshot);

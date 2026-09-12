@@ -37,5 +37,8 @@ export const CHANGE_TYPE_LABELS: Record<ChangeType, string> = {
   STAT_CHANGED: '옵션 변경',
 };
 
-/** 계산이 아직 안 끝난 직업. HP 기반 계산식이라 주/부스탯 경로를 그대로 못 쓴다 */
-export const INCOMPLETE_CLASSES = new Set(['데몬어벤져']);
+/**
+ * 계산이 아직 안 끝난 직업. 지금은 없다 — 데몬어벤져도 2026-09-12 에 HP 환산식을 실어
+ * 오차 0.001% 안으로 들어왔다. 새 직업이 나와 식이 미완이면 여기 넣는다.
+ */
+export const INCOMPLETE_CLASSES = new Set<string>([]);

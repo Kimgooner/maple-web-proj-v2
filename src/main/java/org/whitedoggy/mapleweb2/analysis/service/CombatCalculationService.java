@@ -5,8 +5,10 @@ import org.springframework.stereotype.Service;
 import org.whitedoggy.mapleweb2.analysis.data.DataSheet;
 import org.whitedoggy.mapleweb2.domain.common.stat.GameData;
 import org.whitedoggy.mapleweb2.domain.common.stat.StatSheet;
+import org.whitedoggy.mapleweb2.domain.item.data.ItemSnapShot;
 
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -59,8 +61,11 @@ public class CombatCalculationService {
         List<String> subStats = gameData.subStats(characterClass);
         double finalMainStat = 0.0;
         double finalSubStat = 0.0;
-        if (characterClass.equals("데몬어벤져")) {
-            //TODO 데벤
+        if (gameData.isDemonAvenger(characterClass)) {
+            // 주스탯이 HP 다. 스탯항의 '주스탯' 자리에 HP 를 환산한 값이 들어가고,
+            // 부스탯 STR 은 다른 직업과 같다. 식은 game-data.yml 의 demon-avenger 항목.
+            finalMainStat = demonAvengerMainStat(dataSheet, characterLevel);
+            finalSubStat = calculateStat(subStats.getFirst(), sheet, characterLevel);
         } else if (gameData.jobStatFactorOf(characterClass) != null) {
             // 제논은 주스탯이 셋이고 부스탯이 없다. 스탯항이 다른 직업의
             // (주스탯x4 + 부스탯)이 아니라 세 스탯 합에 직업별 계수를 곱한 값이다.
@@ -115,10 +120,52 @@ public class CombatCalculationService {
         System.out.println("========================");
         */
         double base = (finalStat * power * damage * critDamage * finalDamage) / 1_000_000.0;
-        if (gameData.hasJobCorrection(characterClass)) {
+        if (gameData.isDemonAvenger(characterClass)) {
+            base *= gameData.demonAvenger().correctionOf(base);
+        } else if (gameData.hasJobCorrection(characterClass)) {
             // 주스탯 계산이 다른 직업은 직업 간 비교를 위해 보정 상수가 한 번 더 곱해진다.
             base *= gameData.jobCorrectionOf(base);
         }
         return (long) Math.floor(base);
+    }
+
+    /**
+     * 데몬어벤져의 주스탯. HP 를 셋으로 갈라 환산한다 — 순수 HP(기본 + 레벨 + AP)는 14당 1,
+     * 그 밖의 HP(장비 절반·스킬·컨버전·의지·HP% 로 불어난 몫)는 17.5당 1, 심볼·헥사처럼
+     * HP% 를 받지 않는 고정 HP 도 17.5당 1. 내림은 없다 — 넣으면 소수부와의 상관이 생기지 않는다.
+     */
+    private double demonAvengerMainStat(DataSheet dataSheet, Integer characterLevel) {
+        GameData.DemonAvenger rule = gameData.demonAvenger();
+        StatSheet sum = dataSheet.getSumSheet();
+        int apHp = dataSheet.getAbilityPoint() == null ? 0 : dataSheet.getAbilityPoint().getHP();
+        double pure = rule.baseHp() + (double) rule.hpPerLevel() * characterLevel + apHp;
+
+        // 장비 HP 는 부위마다 절반(내림). 칭호만 전액이다 — 칭호 HP 1000 착용자 1,840명이 전액으로 맞는다.
+        int equipmentFull = 0;
+        int equipmentHalf = 0;
+        for (Map.Entry<String, ItemSnapShot> entry : dataSheet.getItemEquip().entrySet()) {
+            int hp = entry.getValue().getStatSheet().getHP();
+            equipmentFull += hp;
+            equipmentHalf += entry.getKey().endsWith("칭호") ? hp : hp / 2;
+        }
+        for (Map<String, ItemSnapShot> map : List.of(dataSheet.getPetEquip(), dataSheet.getCashEquip())) {
+            for (ItemSnapShot item : map.values()) {
+                int hp = item.getStatSheet().getHP();
+                equipmentFull += hp;
+                equipmentHalf += hp / 2;
+            }
+        }
+        int setHp = dataSheet.getSetEffect() == null ? 0 : dataSheet.getSetEffect().getHP();
+        equipmentFull += setHp;
+        equipmentHalf += setHp / 2;
+
+        // 종합 시트의 HP 에서 순수 HP 와 장비 HP 를 걷어내면 스킬·컨버전·의지 같은 나머지가 남는다.
+        double rest = sum.getHP() - apHp - equipmentFull;
+        double extraFlat = equipmentHalf + rest + rule.hpAdjustment();
+        double multiplier = 1.0 + sum.getHP_PERCENT() / 100.0;
+        double noPercent = sum.getHP_NO_PERCENT() + rule.noPercentHpAdjustment();
+
+        return pure / rule.pureHpDivisor()
+                + (pure * (multiplier - 1.0) + extraFlat * multiplier + noPercent) / rule.extraHpDivisor();
     }
 }

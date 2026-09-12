@@ -25,6 +25,7 @@ public record GameData(
         Map<String, Double> jobStatFactor,
         ConversionStarforce conversionStarforce,
         JobCorrection jobCorrection,
+        DemonAvenger demonAvenger,
         Map<String, String> equipmentJobGroupStat,
         List<String> setJobGroupTokens,
         Map<String, String> weaponJobGroupByStat
@@ -55,14 +56,57 @@ public record GameData(
     }
 
     /**
-     * 직업 보정 상수. 주스탯 계산이 일반 직업과 다른 직업(제논·데몬어벤져)은
-     * 전투력에 이 상수가 한 번 더 곱해지고, 값은 보정 전 전투력에 따라 달라진다.
+     * 직업 보정 상수. 주스탯 계산이 일반 직업과 다른 직업은 전투력에 이 상수가 한 번 더
+     * 곱해지고, 값은 보정 전 전투력에 따라 달라진다. 여기는 제논용이고(셀수록 작아진다),
+     * 데몬어벤져는 방향이 반대라 {@link DemonAvenger#correctionOf(double)} 에 따로 있다.
      */
     public record JobCorrection(
             List<String> jobs, double threshold, double minConstant, double slope, int decimals,
             Double maxConstant) {
         public JobCorrection {
             jobs = jobs == null ? List.of() : List.copyOf(jobs);
+        }
+    }
+
+    /**
+     * 데몬어벤져 전용 상수. 주스탯이 HP 라 스탯항을 다르게 만든다 — 식은 game-data.yml 의
+     * demon-avenger 항목 주석에 있다.
+     */
+    public record DemonAvenger(
+            String job, int baseHp, int hpPerLevel, double pureHpDivisor, double extraHpDivisor,
+            int hpAdjustment, int noPercentHpAdjustment, int hexaStatHpPerPoint, int willpowerHpPer5Levels,
+            int conversionMaxStar, List<ConversionBracket> conversionHpPerStar, Correction correction) {
+        public record ConversionBracket(int upTo, int hp) {
+        }
+
+        /** 보정 = clamp(intercept + slope x log10(base), min, max). */
+        public record Correction(double intercept, double slope, double min, double max) {
+        }
+
+        public DemonAvenger {
+            conversionHpPerStar = conversionHpPerStar == null ? List.of() : List.copyOf(conversionHpPerStar);
+        }
+
+        /** 스타포스 합이 주는 컨버전 HP. 합은 상한에서 잘리고, 구간의 1성당 값이 합 전체에 곱해진다. */
+        public int conversionHp(int starSum) {
+            int stars = Math.min(starSum, conversionMaxStar);
+            if (stars <= 0) {
+                return 0;
+            }
+            for (ConversionBracket bracket : conversionHpPerStar) {
+                if (stars <= bracket.upTo()) {
+                    return stars * bracket.hp();
+                }
+            }
+            return conversionHpPerStar.isEmpty() ? 0 : stars * conversionHpPerStar.getLast().hp();
+        }
+
+        public double correctionOf(double base) {
+            if (base <= 0) {
+                return correction.min();
+            }
+            double raw = correction.intercept() + correction.slope() * Math.log10(base);
+            return Math.max(correction.min(), Math.min(correction.max(), raw));
         }
     }
 
@@ -175,9 +219,14 @@ public record GameData(
         return c.maxConstant() == null ? rounded : Math.min(rounded, c.maxConstant());
     }
 
-    /** 컨버전 스타포스를 가진 직업인가 (제논·데몬어벤져). */
+    /** 올스탯형 컨버전 스타포스를 가진 직업인가 (제논). 데몬어벤져는 HP 형이라 따로 간다. */
     public boolean hasConversionStarforce(String characterClass) {
         return conversionStarforce.jobs().contains(characterClass);
+    }
+
+    /** 데몬어벤져인가. 설정이 없으면 항상 거짓이라 옛 계산 경로(미지원)로 간다. */
+    public boolean isDemonAvenger(String characterClass) {
+        return demonAvenger != null && demonAvenger.job() != null && demonAvenger.job().equals(characterClass);
     }
 
     /** 컨버전 스타포스 대상이 아닌 부위인가 (훈장·칭호). */

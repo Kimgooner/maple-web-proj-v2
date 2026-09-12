@@ -17,7 +17,8 @@ public enum NexonEndpoint {
     OTHER_STAT("/maplestory/v1/character/other-stat"),
     UNION_RAIDER("/maplestory/v1/user/union-raider"),
     UNION_CHAMPION("/maplestory/v1/user/union-champion"),
-    UNION_ARTIFACT("/maplestory/v1/user/union-artifact");
+    UNION_ARTIFACT("/maplestory/v1/user/union-artifact"),
+    PROPENSITY("/maplestory/v1/character/propensity");
 
     private final String path;
 

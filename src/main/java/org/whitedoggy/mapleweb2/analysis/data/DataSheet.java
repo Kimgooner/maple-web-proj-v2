@@ -30,8 +30,11 @@ public class DataSheet {
     StatSheet unionOccupied;
     StatSheet unionRaider;
 
-    /** 컨버전 스타포스(제논·데몬어벤져). 장착 장비의 스타포스 합에서 오는 올스탯. */
+    /** 컨버전 스타포스. 제논은 장착 장비의 스타포스 합에서 오는 올스탯, 데몬어벤져는 최대 HP. */
     StatSheet conversionStarforce;
+
+    /** 성향 의지의 최대 HP. 데몬어벤져의 주스탯(HP)에만 들어간다. */
+    StatSheet propensity;
 
     /**
      * HEXA 코어에 그때까지 들어간 솔 에르다 조각. 전투력에는 한 톨도 안 들어간다 —
@@ -147,6 +150,7 @@ public class DataSheet {
         this.unionOccupied = other.unionOccupied;
         this.unionRaider = other.unionRaider;
         this.conversionStarforce = other.conversionStarforce;
+        this.propensity = other.propensity;
         this.sourceEntries = other.sourceEntries;
 
         this.lucidTransformSuspected = other.lucidTransformSuspected;
@@ -196,6 +200,9 @@ public class DataSheet {
         sumSheet.merge(this.unionChampion);
         sumSheet.merge(this.unionOccupied);
         sumSheet.merge(this.unionRaider);
+        if (this.propensity != null) {
+            sumSheet.merge(this.propensity);
+        }
         if (this.conversionStarforce != null) {
             sumSheet.merge(this.conversionStarforce);
         }

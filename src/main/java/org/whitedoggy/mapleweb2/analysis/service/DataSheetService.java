@@ -24,6 +24,7 @@ import org.whitedoggy.mapleweb2.domain.item.parser.ItemEquipmentParser;
 import org.whitedoggy.mapleweb2.domain.item.parser.ItemParser;
 import org.whitedoggy.mapleweb2.domain.otherstat.OtherStatParser;
 import org.whitedoggy.mapleweb2.domain.pet.PetParser;
+import org.whitedoggy.mapleweb2.domain.propensity.PropensityParser;
 import org.whitedoggy.mapleweb2.domain.set.parser.SetEffectParser;
 import org.whitedoggy.mapleweb2.domain.skill.ChallengersBuffs;
 import org.whitedoggy.mapleweb2.domain.skill.SkillParseResult;
@@ -71,6 +72,7 @@ public class DataSheetService {
     private final HexaParser hexaParser;
     private final HexaCoreParser hexaCoreParser;
     private final OtherStatParser otherStatParser;
+    private final PropensityParser propensityParser;
     private final CashItemParser cashItemParser;
     private final PresetSelector presetSelector;
     private final SourceEntryExtractor sourceEntryExtractor;
@@ -192,8 +194,10 @@ public class DataSheetService {
         JsonNode unionArtifact = documents.get(NexonEndpoint.UNION_ARTIFACT);
         JsonNode unionChampion = documents.get(NexonEndpoint.UNION_CHAMPION);
         JsonNode otherStat = documents.get(NexonEndpoint.OTHER_STAT);
+        JsonNode propensity = documents.get(NexonEndpoint.PROPENSITY);
 
         dataSheet.setAbilityPoint(setAP(stat));
+        dataSheet.setPropensity(setPropensity(propensity, characterClass));
         dataSheet.setSymbol(setSymbol(symbol));
         String worldName = basicParser.characterWorld(documents.get(NexonEndpoint.BASIC));
         SkillParseResult skillParseResult = skillParser.getCombatRelevantSkillEffects(skill, worldName);
@@ -483,9 +487,22 @@ public class DataSheetService {
      * 해당 직업이 아니면 빈 시트를 준다.
      */
     private StatSheet setConversionStarforce(JsonNode presetItems, String characterClass) {
+        if (gameData.isDemonAvenger(characterClass)) {
+            // 데몬어벤져의 컨버전은 올스탯이 아니라 최대 HP 다. 스타포스 합의 구간에 따라
+            // 1성당 값이 정해지고, HP% 를 받는 추가 HP 로 들어간다. 표는 game-data.yml.
+            int hp = gameData.demonAvenger().conversionHp(conversionStarSum(presetItems));
+            return statSheetParser.parse(
+                    hp == 0 ? List.of() : List.of("최대 HP " + hp), "conversionStarforce");
+        }
         if (!gameData.hasConversionStarforce(characterClass)) {
             return new StatSheet("conversionStarforce");
         }
+        int allStat = gameData.conversionStarforceAllStat(conversionStarSum(presetItems));
+        return statSheetParser.parse(
+                allStat == 0 ? List.of() : List.of("올스탯 " + allStat), "conversionStarforce");
+    }
+
+    private int conversionStarSum(JsonNode presetItems) {
         int starSum = 0;
         for (JsonNode item : presetItems) {
             if (gameData.isConversionExcludedSlot(Jsons.text(item, "item_equipment_slot"))) {
@@ -493,9 +510,22 @@ public class DataSheetService {
             }
             starSum += item.path("starforce").asInt(0);
         }
-        int allStat = gameData.conversionStarforceAllStat(starSum);
-        return statSheetParser.parse(
-                allStat == 0 ? List.of() : List.of("올스탯 " + allStat), "conversionStarforce");
+        return starSum;
+    }
+
+    /**
+     * 성향 의지의 최대 HP. 5레벨마다 100 이라 Lv100 = 2000.
+     *
+     * <p>데몬어벤져에게만 넣는다 — 다른 직업의 HP 는 전투력에 들어가지 않고, 이 시트가
+     * 종합에 섞이면 화면의 HP 항목만 흔든다. 문서가 없는 옛 픽스처는 0 으로 온다.
+     */
+    private StatSheet setPropensity(JsonNode propensity, String characterClass) {
+        if (!gameData.isDemonAvenger(characterClass)) {
+            return new StatSheet("propensity");
+        }
+        int level = propensityParser.willpowerLevel(propensity);
+        int hp = level / 5 * gameData.demonAvenger().willpowerHpPer5Levels();
+        return statSheetParser.parse(hp == 0 ? List.of() : List.of("최대 HP " + hp), "propensity");
     }
 
     /**

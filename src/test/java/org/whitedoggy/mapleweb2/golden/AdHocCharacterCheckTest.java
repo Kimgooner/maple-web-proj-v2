@@ -47,7 +47,8 @@ class AdHocCharacterCheckTest {
             Map.entry("other-stat", NexonEndpoint.OTHER_STAT),
             Map.entry("union-raider", NexonEndpoint.UNION_RAIDER),
             Map.entry("union-champion", NexonEndpoint.UNION_CHAMPION),
-            Map.entry("union-artifact", NexonEndpoint.UNION_ARTIFACT)
+            Map.entry("union-artifact", NexonEndpoint.UNION_ARTIFACT),
+            Map.entry("propensity", NexonEndpoint.PROPENSITY)
     );
 
     @Autowired private DataSheetService dataSheetService;
@@ -65,7 +66,13 @@ class AdHocCharacterCheckTest {
         if (Files.isDirectory(target)) {
             try (var files = Files.list(target)) {
                 for (Path p : files.filter(f -> f.getFileName().toString().endsWith(".json.gz")).sorted().toList()) {
-                    evaluate(p);
+                    try {
+                        evaluate(p);
+                    } catch (RuntimeException broken) {
+                        // 그 날짜에 없던 캐릭터(문서가 전부 null)면 직업이 비어 터진다. 한 명 때문에
+                        // 나머지를 못 보면 안 되니 건너뛰고 표시만 남긴다.
+                        System.out.printf("[SKIP]\t%s\t%s%n", p.getFileName(), broken.getMessage());
+                    }
                 }
             }
             return;
@@ -240,6 +247,21 @@ class AdHocCharacterCheckTest {
                 : sheet.getConversionStarforce().getHP() + "/" + sheet.getConversionStarforce().getHP_PERCENT() + "/" + sheet.getConversionStarforce().getHP_NO_PERCENT());
         System.out.println(hp);
 
+        // 데몬어벤져용. 부스탯 STR 의 소스별 성분 — 어느 소스가 %를 받는지 갈라 볼 때.
+        StringBuilder str = new StringBuilder("[STR]\t" + payload.path("characterName").asText());
+        for (StatSheet s : List.of(sheet.getAbilityPoint(), sheet.getSymbol(), sheet.getSkill(),
+                sheet.getHexaStat(), sheet.getAbility(), sheet.getHyperStat(), sheet.getSetEffect(),
+                sheet.getOtherStat(), sheet.getUnionArtifact(), sheet.getUnionChampion(),
+                sheet.getUnionOccupied(), sheet.getUnionRaider())) {
+            str.append('\t').append(s == null ? "0/0/0/0/0/0/0" : strTerms(s));
+        }
+        for (Map<String, ItemSnapShot> map : List.of(sheet.getItemEquip(), sheet.getPetEquip(), sheet.getCashEquip())) {
+            StatSheet agg = new StatSheet("agg");
+            for (ItemSnapShot i : map.values()) agg.merge(i.getStatSheet());
+            str.append('\t').append(strTerms(agg));
+        }
+        System.out.println(str);
+
         System.out.printf("[TSV]\t%s\t%s\t%s\t%d\t%d\t%d\t%d\t%s\t%d\t%s\t%d\t%s\t%s\t%d\t%d"
                         + "\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%d"
                         + extra + sources + "%n",
@@ -411,6 +433,12 @@ class AdHocCharacterCheckTest {
     }
 
     /** {@code CombatCalculationService.calculateStat}의 세 성분. */
+    /** STR / 올스탯 / STR% / 올스탯% / STR고정 / 올스탯고정 / 9레벨당STR */
+    private static String strTerms(StatSheet s) {
+        return s.getSTR() + "/" + s.getALL_STAT() + "/" + s.getSTR_PERCENT() + "/" + s.getALL_STAT_PERCENT()
+                + "/" + s.getSTR_NO_PERCENT() + "/" + s.getALL_STAT_NO_PERCENT() + "/" + s.getSTR_PER_LEVEL9();
+    }
+
     private double flatOf(String stat, StatSheet s, int level) {
         return switch (stat) {
             case "STR" -> s.getSTR() + (level / 9) * s.getSTR_PER_LEVEL9() + s.getALL_STAT();

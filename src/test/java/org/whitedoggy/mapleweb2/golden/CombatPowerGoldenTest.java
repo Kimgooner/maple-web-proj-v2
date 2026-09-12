@@ -46,7 +46,7 @@ class CombatPowerGoldenTest {
     private static final Path REPORT_PATH = Path.of("build/reports/golden/combat-power.txt");
 
     /** 계산이 아직 미완이라 값 자체를 신뢰하지 않는 직업. 골든은 기록하되 리포트에서 표시한다. */
-    private static final List<String> UNSUPPORTED_JOBS = List.of("제로", "제논", "데몬어벤져");
+    private static final List<String> UNSUPPORTED_JOBS = List.of();
 
     @Autowired
     private DataSheetService dataSheetService;

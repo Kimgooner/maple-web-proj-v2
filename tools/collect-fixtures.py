@@ -36,6 +36,7 @@ ENDPOINTS = {
     "union-raider": "user/union-raider",
     "union-champion": "user/union-champion",
     "union-artifact": "user/union-artifact",
+    "propensity": "character/propensity",
 }
 
 lock = threading.Lock()

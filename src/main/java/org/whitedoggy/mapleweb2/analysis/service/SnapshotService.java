@@ -74,7 +74,8 @@ public class SnapshotService {
             NexonEndpoint.HEXA_MATRIX,
             NexonEndpoint.UNION_RAIDER,
             NexonEndpoint.UNION_CHAMPION,
-            NexonEndpoint.UNION_ARTIFACT);
+            NexonEndpoint.UNION_ARTIFACT,
+            NexonEndpoint.PROPENSITY);
 
     private Mono<CharacterSnapshot> fetchSnapshot(
             String ocid, LocalDate date, boolean includeDateParam, Set<NexonEndpoint> missing) {

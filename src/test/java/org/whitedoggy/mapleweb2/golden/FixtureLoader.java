@@ -40,7 +40,8 @@ public final class FixtureLoader {
             Map.entry("other-stat", NexonEndpoint.OTHER_STAT),
             Map.entry("union-raider", NexonEndpoint.UNION_RAIDER),
             Map.entry("union-champion", NexonEndpoint.UNION_CHAMPION),
-            Map.entry("union-artifact", NexonEndpoint.UNION_ARTIFACT)
+            Map.entry("union-artifact", NexonEndpoint.UNION_ARTIFACT),
+            Map.entry("propensity", NexonEndpoint.PROPENSITY)
     );
 
     private FixtureLoader() {
