@@ -5,12 +5,12 @@ import type { HistoryPoint } from '../api/types';
 const p = (date: string, combatPower: number | null): HistoryPoint => ({ date, level: 1, combatPower, apiCombatPower: null, solErdaFragments: null, solErdaFragmentsRequired: null, cooldownSecond: null, cooldownSkipPercent: null, itemPreset: null, expired: null });
 
 describe('defaultInterval', () => {
-  it('마지막으로 변한 인접 두 지점을 고른다', () => {
+  it('변한 곳이 있어도 끝은 오늘 - 최신 두 지점', () => {
     const points = [p('01', 10), p('02', 10), p('03', 12), p('04', 12)];
-    expect(defaultInterval(points)).toEqual({ previousDate: '02', currentDate: '03' });
+    expect(defaultInterval(points)).toEqual({ previousDate: '03', currentDate: '04' });
   });
 
-  it('변한 곳이 없으면 최신 두 지점', () => {
+  it('변한 곳이 없어도 최신 두 지점', () => {
     expect(defaultInterval([p('01', 10), p('02', 10), p('03', 10)])).toEqual({ previousDate: '02', currentDate: '03' });
   });
 
