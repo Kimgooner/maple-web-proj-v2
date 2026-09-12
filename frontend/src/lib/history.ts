@@ -119,8 +119,19 @@ export function applyHistoryEvent(state: HistoryState, event: HistoryAction): Hi
       return state.pending
         ? { ...state, status: 'done', received: state.total, meta: state.pending.meta, points: state.pending.points, pending: null }
         : { ...state, status: 'done', received: state.total };
-    case 'repaired':
-      return { ...state, points: event.points, pending: null };
+    case 'repaired': {
+      /*
+       * 통째로 갈아 끼우지 않는다. 되돌리기 응답에는 값이 있는 지점만 오는데, 기록이 없는
+       * 자리(회색 구간)는 meta 의 dates 로 만든 빈 자리라 응답에 없다. 그대로 바꾸면 빈
+       * 자리가 사라져 차트가 남은 지점만으로 늘어나고 회색 구간도 같이 없어진다.
+       */
+      const byDate = new Map(event.points.map((point) => [point.date, point]));
+      return {
+        ...state,
+        points: state.points.map((point) => byDate.get(point.date) ?? point),
+        pending: null,
+      };
+    }
     case 'error':
       return { ...state, status: 'error', error: event.data.message, errorCode: event.data.code ?? 'ERROR' };
   }

@@ -68,3 +68,21 @@ describe('전투력 0 인 지점', () => {
     expect(state.points[0].level).toBe(210);
   });
 });
+
+describe('repaired', () => {
+  it('되돌린 지점만 바꾸고 기록 없는 자리는 남긴다 - 회색 구간이 사라지면 안 된다', () => {
+    let state = applyHistoryEvent(loadingHistoryState(), { type: 'meta', data: meta });
+    // 3자리 중 최신 2개만 받고 done (가장 오래된 자리는 기록 없음)
+    for (const [index, date] of [[1, '2026-09-01'], [2, '2026-08-01']] as const) {
+      state = applyHistoryEvent(state, { type: 'point', data: { index, total: 3, point: { date, level: 290, combatPower: 100, apiCombatPower: 100, solErdaFragments: null, solErdaFragmentsRequired: null, cooldownSecond: null, cooldownSkipPercent: null, itemPreset: 1, expired: null }, concurrent: 1 } });
+    }
+    state = applyHistoryEvent(state, { type: 'done', data: { loadedCount: 2, truncated: false, truncatedFrom: null } });
+    expect(state.points).toHaveLength(3);
+
+    state = applyHistoryEvent(state, { type: 'repaired', points: [
+      { date: '2026-09-01', level: 290, combatPower: 120, apiCombatPower: 100, solErdaFragments: null, solErdaFragmentsRequired: null, cooldownSecond: null, cooldownSkipPercent: null, itemPreset: 2, expired: null },
+    ] });
+    expect(state.points).toHaveLength(3);
+    expect(state.points.map((p) => p.combatPower)).toEqual([null, 100, 120]);
+  });
+});
