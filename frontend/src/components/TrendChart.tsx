@@ -24,6 +24,8 @@ type Props = {
    * 끝내 채워지지 않는다. 둘을 구별하지 않으면 다 끝난 화면에서도 "불러오는 중"이라고 적힌다.
    */
   loading: boolean;
+  /** 좁은 화면(≤520px). 낮은 viewBox 로 그린다 */
+  compact?: boolean;
   onPick: (date: string) => void;
 };
 
@@ -36,18 +38,21 @@ type Props = {
  */
 const BLANK_NOTE = '혹시 월드 리프를 하셨나요? 리프 전 기록은 확인이 어려워요.';
 
-const WIDTH = 980;
-const HEIGHT = 280;
-const LEFT = 65;
-const RIGHT = 66;
-const TOP = 24;
-const BOTTOM = 34;
+/** viewBox 치수. svg 는 폭에 맞춰 통째로 줄어들므로, 좁은 화면은 다른 치수를 쓴다. */
+type Layout = { WIDTH: number; HEIGHT: number; LEFT: number; RIGHT: number; TOP: number; BOTTOM: number };
+const WIDE: Layout = { WIDTH: 980, HEIGHT: 280, LEFT: 65, RIGHT: 66, TOP: 24, BOTTOM: 34 };
+/**
+ * 폰. 980×280 을 300px 로 줄이면 86px 짜리 띠가 되어 선의 오르내림이 안 보인다.
+ * viewBox 폭을 절반 가까이 줄여 같은 화면 폭에서 두 배 높게 그린다. 글자 크기는
+ * CSS(≤520px) 가 viewBox 단위로 따로 잡는다.
+ */
+const COMPACT: Layout = { WIDTH: 560, HEIGHT: 300, LEFT: 58, RIGHT: 54, TOP: 20, BOTTOM: 34 };
 const TICKS = 4;
 
 type Scale = ((value: number) => number) & { ticks: number[] };
 
 /** 0 을 바닥에, 완성에 필요한 총량을 천장에 두는 축. 눈금은 백분율이라 값을 담지 않는다. */
-function progressScale(required: number): Scale {
+function progressScale(required: number, { HEIGHT, TOP, BOTTOM }: Layout): Scale {
   const at = ((value: number) =>
     HEIGHT - BOTTOM - (HEIGHT - TOP - BOTTOM) * Math.min(Math.max(value, 0) / required, 1)) as Scale;
   at.ticks = [];
@@ -60,7 +65,7 @@ function progressScale(required: number): Scale {
  * <p>아래쪽 여백이 0 밑으로 내려가지 않게 자른다. 전투력도 조각도 음수가 없는데,
  * 값이 작으면 여백이 부호를 넘어 "-2억" 같은 눈금이 찍혔다.
  */
-function scale(values: number[]): Scale {
+function scale(values: number[], { HEIGHT, TOP, BOTTOM }: Layout): Scale {
   const rawMin = values.length ? Math.min(...values) : 0;
   const rawMax = values.length ? Math.max(...values) : 1;
   const span = Math.max(rawMax - rawMin, Math.max(rawMax, 1) * 0.02);
@@ -73,9 +78,11 @@ function scale(values: number[]): Scale {
 }
 
 export function TrendChart(
-  { points, range, showFragments, bands, showMedian, interval, anchor, interactive, loading, onPick }: Props,
+  { points, range, showFragments, bands, showMedian, interval, anchor, interactive, loading, compact: narrow = false, onPick }: Props,
 ) {
   const [hovered, setHovered] = useState<number | null>(null);
+  const layout = narrow ? COMPACT : WIDE;
+  const { WIDTH, HEIGHT, LEFT, RIGHT, TOP, BOTTOM } = layout;
   const count = points.length;
   const x = (index: number) =>
     count <= 1 ? (LEFT + WIDTH - RIGHT) / 2 : LEFT + ((WIDTH - LEFT - RIGHT) * index) / (count - 1);
@@ -97,7 +104,7 @@ export function TrendChart(
   const y = scale([
     ...points.map((p) => p.combatPower).filter((v): v is number => v != null),
     ...medians,
-  ]);
+  ], layout);
   const fragValues = points.map((p) => p.solErdaFragments).filter((v): v is number => v != null);
   /**
    * 조각 축은 기간에 따라 다르게 잰다.
@@ -117,7 +124,7 @@ export function TrendChart(
         .map((p) => p.solErdaFragmentsRequired)
         .find((v): v is number => v != null && v > 0) ?? null
     : null;
-  const fy = required != null ? progressScale(required) : scale(fragValues);
+  const fy = required != null ? progressScale(required, layout) : scale(fragValues, layout);
   // 조각이 한 번도 안 변한 캐릭터(만렙)는 축을 다섯 칸으로 늘려 봐야 같은 숫자만 반복된다.
   const fragFlat = required == null && fragValues.length > 0
     && Math.min(...fragValues) === Math.max(...fragValues);
@@ -171,7 +178,7 @@ export function TrendChart(
   const index = new Map(points.map((point, i) => [point.date, i]));
   const start = interval ? index.get(interval.previousDate) : undefined;
   const end = interval ? index.get(interval.currentDate) : undefined;
-  const tickCount = Math.min(6, count);
+  const tickCount = Math.min(narrow ? 4 : 6, count);
   const labelled = new Set(
     Array.from({ length: tickCount }, (_, i) => Math.round((i * (count - 1)) / Math.max(1, tickCount - 1))));
   const fragments = showFragments ? fragmentRuns() : [];

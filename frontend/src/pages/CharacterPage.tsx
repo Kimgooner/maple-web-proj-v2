@@ -34,6 +34,14 @@ export function CharacterPage() {
    * 이 시간 안에 끝나면 사용자는 로딩을 본 적이 없게 된다.
    */
   const [slowLoad, setSlowLoad] = useState(false);
+  /** 좁은 화면인가. 차트가 낮은 viewBox 로 바꿔 그린다 - CSS 만으로는 svg 의 세로 비율을 못 바꾼다. */
+  const [compact, setCompact] = useState(() => window.matchMedia('(max-width: 520px)').matches);
+  useEffect(() => {
+    const query = window.matchMedia('(max-width: 520px)');
+    const onChange = (event: MediaQueryListEvent) => setCompact(event.matches);
+    query.addEventListener('change', onChange);
+    return () => query.removeEventListener('change', onChange);
+  }, []);
   /** 기다림이 길어졌는가. 이때부터 몇 명이 함께 조회 중인지도 같이 적는다. */
   const [longWait, setLongWait] = useState(false);
   /** 프리셋을 되돌려 다시 계산했는가. 눌러 고친 뒤에는 버튼 대신 결과를 알린다. */
@@ -238,7 +246,7 @@ export function CharacterPage() {
                     points={history.points} range={range} showFragments={showFragments}
                     bands={bands} showMedian={showMedian}
                     interval={interval} anchor={anchor} interactive={selectable}
-                    loading={streaming} onPick={pick}
+                    loading={streaming} compact={compact} onPick={pick}
                   />
                 )}
 
