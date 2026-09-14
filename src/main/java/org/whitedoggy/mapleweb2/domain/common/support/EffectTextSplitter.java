@@ -5,8 +5,13 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 public final class EffectTextSplitter {
+    /**
+     * 쉼표로 가르면 안 되는 한 줄 옵션. "STR, DEX 10" 같은 복합 스탯과 "공격력, 마력 5",
+     * 그리고 칭호의 "최대 HP,MP+300"(킹 오브 루타비스) — 이건 갈라지면 "최대 HP"가 숫자 없이
+     * 남아 HP 300 이 통째로 사라진다.
+     */
     private static final Pattern COMBINED_OPTION_PATTERN = Pattern.compile(
-            "^(?:(?:STR|DEX|INT|LUK)(?:\\s*,\\s*(?:STR|DEX|INT|LUK))+|공격력\\s*,\\s*마력)\\s*.*\\d.*$"
+            "^(?:(?:STR|DEX|INT|LUK)(?:\\s*,\\s*(?:STR|DEX|INT|LUK))+|공격력\\s*,\\s*마력|최대 HP\\s*,\\s*(?:최대\\s*)?MP)\\s*.*\\d.*$"
     );
 
     private EffectTextSplitter() {

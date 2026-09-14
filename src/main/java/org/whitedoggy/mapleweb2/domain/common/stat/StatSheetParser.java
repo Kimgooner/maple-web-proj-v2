@@ -21,9 +21,10 @@ public class StatSheetParser {
             new PatternRule(Pattern.compile("^((?:STR|DEX|INT|LUK)(?:\\s*,\\s*(?:STR|DEX|INT|LUK))+?)\\s*" + NUMBER + OPTIONAL_PERCENT + END), this::applyCombinedStat),
             new PatternRule(Pattern.compile("^(STR|DEX|INT|LUK)\\s*" + NUMBER + OPTIONAL_PERCENT + END), this::applyNamedStat),
             new PatternRule(Pattern.compile("^(힘|민첩|민첩성|지능|행운|지력|운)\\s*" + NUMBER + OPTIONAL_PERCENT + END), this::applyKoreanStat),
-            // 칭호는 "최대 HP/최대 MP +1000" 으로 온다(예티X핑크빈·판단이 느리다!). 데몬어벤져의
-            // 주스탯이라 놓치면 전투력이 0.1% 빠진다.
-            new PatternRule(Pattern.compile("^최대 HP/(?:최대 )?MP\\s*" + NUMBER + OPTIONAL_PERCENT + END), this::applyHpMp),
+            // 칭호는 표기가 제각각이다 — "최대 HP/최대 MP +1000"(예티X핑크빈), "최대 HP/최대MP +500"
+            // (MVP 레드·블랙), "최대 HP,MP+300"(킹 오브 루타비스). 데몬어벤져의 주스탯이라 놓치면
+            // 전투력이 0.1% 빠진다 — 킹 오브 루타비스 345명이 전원 -0.14% 였다.
+            new PatternRule(Pattern.compile("^최대 HP\\s*[/,]\\s*(?:최대\\s*)?MP\\s*" + NUMBER + OPTIONAL_PERCENT + END), this::applyHpMp),
             new PatternRule(Pattern.compile("^(최대 HP|HP)\\s*" + NUMBER + OPTIONAL_PERCENT + END), this::applyHp),
             // ALLSTAT: 레테 유니온 공격대원 효과만 이 표기를 쓴다("ALLSTAT 50, 최대 HP 2500 증가").
             // 2026년 신직업이라 넥슨이 한글 "올스탯" 대신 영문으로 넣었다. 다른 곳은 모두 한글이다.
