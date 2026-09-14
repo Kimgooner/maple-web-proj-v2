@@ -132,7 +132,8 @@ public class CombatCalculationService {
     /**
      * 데몬어벤져의 주스탯. HP 를 셋으로 갈라 환산한다 — 순수 HP(기본 + 레벨 + AP)는 14당 1,
      * 그 밖의 HP(장비 절반·스킬·컨버전·의지·HP% 로 불어난 몫)는 17.5당 1, 심볼·헥사처럼
-     * HP% 를 받지 않는 고정 HP 도 17.5당 1. 내림은 없다 — 넣으면 소수부와의 상관이 생기지 않는다.
+     * HP% 를 받지 않는 고정 HP 도 17.5당 1. 스탯 자체는 내림 없이 소수로 둔다(넣으면 소수부와의 상관이
+     * 생기지 않는다). 유일한 정수화는 HP% 를 곱한 총 HP 의 반올림이다.
      */
     private double demonAvengerMainStat(DataSheet dataSheet, Integer characterLevel) {
         GameData.DemonAvenger rule = gameData.demonAvenger();
@@ -155,17 +156,23 @@ public class CombatCalculationService {
                 equipmentHalf += hp / 2;
             }
         }
+        // 세트 효과 HP 는 부위가 아니라 내림 없이 절반이다 (칠흑 6세트 375x3 같은 홀수 합이 있는
+        // 캐릭터의 75일 패널에서 내림을 넣으면 다른 날짜와 1 스탯 어긋난다).
         int setHp = dataSheet.getSetEffect() == null ? 0 : dataSheet.getSetEffect().getHP();
+        double equipmentHalfTotal = equipmentHalf + setHp / 2.0;
         equipmentFull += setHp;
-        equipmentHalf += setHp / 2;
 
         // 종합 시트의 HP 에서 순수 HP 와 장비 HP 를 걷어내면 스킬·컨버전·의지 같은 나머지가 남는다.
         double rest = sum.getHP() - apHp - equipmentFull;
-        double extraFlat = equipmentHalf + rest + rule.hpAdjustment();
+        double extraFlat = equipmentHalfTotal + rest + rule.hpAdjustment();
         double multiplier = 1.0 + sum.getHP_PERCENT() / 100.0;
         double noPercent = sum.getHP_NO_PERCENT() + rule.noPercentHpAdjustment();
 
-        return pure / rule.pureHpDivisor()
-                + (pure * (multiplier - 1.0) + extraFlat * multiplier + noPercent) / rule.extraHpDivisor();
+        // HP% 를 곱한 총 HP 는 게임이 정수로 반올림한다 — 한 캐릭터의 75일 패널에서 소수부가
+        // .25/.75/.58 인 상태들이 반올림으로만 같은 잔차에 모인다(내림·올림은 갈라진다).
+        double totalWithPercent = Math.round((pure + extraFlat) * multiplier);
+        double extraHp = totalWithPercent + noPercent - pure;
+
+        return pure / rule.pureHpDivisor() + extraHp / rule.extraHpDivisor();
     }
 }
