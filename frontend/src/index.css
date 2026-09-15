@@ -1461,6 +1461,16 @@ h2 {
   white-space:nowrap;
 }
 
+/* 세트가 늘었나 줄었나. 요약 줄의 증가·감소 블럭과 같은 색이다. */
+.entry-badge.up { background:#e8f5ec; color:#1c6b3c; }
+.entry-badge.down { background:#fdecea; color:#b23b34; }
+
+/* 헥사 코어에 이 구간 동안 부은 조각. 값 줄 아래, 세트 문구와 같은 자리에 둔다. */
+.entry-fragment {
+  display:inline-flex;
+  margin-top:4px;
+}
+
 /* 이후에 없어진 항목. 색을 빼고 바래게 두면 남아 있는 줄과 한눈에 갈린다. */
 .entry-label.gone img {
   opacity:.38;

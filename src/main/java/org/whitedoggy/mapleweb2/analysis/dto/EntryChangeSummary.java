@@ -12,6 +12,8 @@ public record EntryChangeSummary(
         /** 같은 것의 이후 칸 몫. 세트는 이 둘을 나란히 놓아야 무엇이 붙고 빠졌는지 읽힌다 */
         String detail,
         /** 이름 밑에 붙일 블럭. 헥사 코어의 종류. 없으면 null */
-        String badge
+        String badge,
+        /** 이 구간에 부은 솔 에르다 조각. 헥사 코어만. 없으면 null */
+        Long fragmentDelta
 ) {
 }

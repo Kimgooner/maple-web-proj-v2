@@ -262,7 +262,7 @@ public class AnalysisService {
                 changeSummary.entries().stream()
                         .map(e -> new EntryChangeSummary(
                                 e.name(), e.previous(), e.current(), e.icon(),
-                                e.previousDetail(), e.detail(), e.badge()))
+                                e.previousDetail(), e.detail(), e.badge(), e.fragmentDelta()))
                         .toList(),
                 changeSummary.notice()
         );

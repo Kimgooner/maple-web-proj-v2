@@ -65,6 +65,21 @@ class DataSheetCompareServiceEntryTest {
                 .containsExactly("앱솔랩스 세트");
     }
 
+    /** 이전·이후 누적 조각을 나란히 적지 않고, 그 구간에 부은 양만 이후 칸에 붙인다. */
+    @Test
+    void 헥사_코어는_구간에_부은_조각을_싣는다() {
+        DataSheet before = sheetWith("hexaCore", "코어", new SourceEntry("Lv.25", null, null, "마스터리 코어", 1532L));
+        DataSheet after = sheetWith("hexaCore", "코어", new SourceEntry("Lv.26", null, null, "마스터리 코어", 1642L));
+
+        assertThat(service.entryChanges("hexaCore", before, after))
+                .extracting(DataSheetCompareService.EntryChange::fragmentDelta)
+                .containsExactly(110L);
+        // 새로 생긴 코어는 누적이 곧 부은 양이다.
+        assertThat(service.entryChanges("hexaCore", new DataSheet(), after))
+                .extracting(DataSheetCompareService.EntryChange::fragmentDelta)
+                .containsExactly(1642L);
+    }
+
     private DataSheet sheetWith(String source, String name, SourceEntry entry) {
         DataSheet sheet = new DataSheet();
         sheet.setSourceEntries(Map.of(source, Map.of(name, entry)));

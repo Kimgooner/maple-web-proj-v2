@@ -1,7 +1,7 @@
 import { Fragment } from 'react';
 import type { CharacterInfo, EntryChange, ItemDetail, ItemStatLine } from '../api/types';
 import type { ChangeRow as Row } from '../lib/changes';
-import { formatNumber } from '../lib/format';
+import { formatNumber, formatStatDelta } from '../lib/format';
 import { CHANGE_TYPE_LABELS, sourceLabel } from '../lib/labels';
 import { presentDeltas } from '../lib/stats';
 import { SourceGlyph } from './SourceGlyph';
@@ -189,14 +189,37 @@ function EntryDetail({ detail }: { detail: string }) {
   );
 }
 
-function EntryTable({ entries }: { entries: EntryChange[] }) {
+/** "5세트" 같은 값에서 세트 수. 없거나 모양이 다르면 null. */
+function setCount(value: string | null): number | null {
+  const match = value ? /^(\d+)세트$/.exec(value) : null;
+  return match ? Number(match[1]) : null;
+}
+
+/**
+ * 세트가 늘었는지 줄었는지. 이름 밑에 블럭으로 단다.
+ *
+ * <p>"5세트 → 4세트" 는 이전·이후 칸을 둘 다 읽어야 방향이 잡히는데, 표에 세트가 여럿이면
+ * 그걸 줄마다 되풀이하게 된다. 요약 줄의 증가·감소 블럭과 같은 색으로 방향을 먼저 말한다.
+ */
+function setDirection(entry: EntryChange): 'up' | 'down' | null {
+  if (entry.previous == null) return 'up';
+  if (entry.current == null) return 'down';
+  const before = setCount(entry.previous);
+  const after = setCount(entry.current);
+  if (before == null || after == null || before === after) return null;
+  return after > before ? 'up' : 'down';
+}
+
+function EntryTable({ entries, source }: { entries: EntryChange[]; source: string }) {
   return (
     <table className="entry-table">
       <thead>
         <tr>{['항목', '이전', '이후'].map((title) => <th scope="col" key={title}>{title}</th>)}</tr>
       </thead>
       <tbody>
-        {entries.map((entry) => (
+        {entries.map((entry) => {
+          const direction = source === 'setEffect' ? setDirection(entry) : null;
+          return (
           <tr key={entry.name}>
             <td>
               {/* 사라진 항목은 아이콘을 바래게 둔다. 훑어볼 때 없어진 줄이 먼저 눈에 들어온다. */}
@@ -210,6 +233,9 @@ function EntryTable({ entries }: { entries: EntryChange[] }) {
                     <span className={entry.badge === '만료' ? 'entry-badge expired' : 'entry-badge'}>
                       {entry.badge}
                     </span>
+                  )}
+                  {direction && (
+                    <span className={`entry-badge ${direction}`}>{direction === 'up' ? '증가' : '감소'}</span>
                   )}
                 </span>
               </span>
@@ -225,10 +251,18 @@ function EntryTable({ entries }: { entries: EntryChange[] }) {
             </td>
             <td className="after">
               <ValueLines value={entry.current} />
+              {/* 헥사 코어에 이 구간 동안 부은 조각. 누적을 양쪽에 적으면 빼서 읽어야 한다. */}
+              {entry.fragmentDelta != null && (
+                <span className="stat-chip fragment entry-fragment">
+                  <span className="stat-chip-name">조각</span>
+                  <span className="stat-chip-value">{formatStatDelta('SOL_ERDA_FRAGMENT', entry.fragmentDelta)}</span>
+                </span>
+              )}
               {entry.detail && <EntryDetail detail={entry.detail} />}
             </td>
           </tr>
-        ))}
+          );
+        })}
       </tbody>
     </table>
   );
@@ -351,7 +385,7 @@ export function ChangeRow({ row, info, open, onToggle }: {
             <ItemCard item={row.change.currentItem} label={`${slotLabel} 후`} muted={false} />
           </div>
         )}
-        {entries.length > 0 && <EntryTable entries={entries} />}
+        {entries.length > 0 && row.kind === 'source' && <EntryTable entries={entries} source={row.change.source} />}
         {row.kind === 'source' && entries.length === 0 && (
           <p className="muted">추가로 표시할 스탯 변화가 없습니다.</p>
         )}

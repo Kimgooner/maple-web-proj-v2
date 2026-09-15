@@ -197,6 +197,14 @@ public class SetEffectParser {
         return value == null ? "" : value.replaceAll("\\s+", "");
     }
 
+    /**
+     * 우리 표로 직접 세는 세트인가. 표의 이름({@code 앱솔랩스 세트})과 넥슨이 주는 직업 접미사
+     * 이름({@code 앱솔랩스 세트(해적)}) 둘 다 받는다 — 별칭으로 맞춘다.
+     */
+    public boolean isSupportedSet(String setName) {
+        return isSupportedSet(setEffectTable.path("supportedSets"), setName);
+    }
+
     private boolean isSupportedSet(JsonNode supportedSets, String setName) {
         for (JsonNode supportedSet : supportedSets) {
             if (matchesSetAliases(setName, supportedSet.path("aliases"))) {

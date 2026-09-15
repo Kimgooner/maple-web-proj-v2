@@ -200,17 +200,30 @@ public class DataSheetCompareService {
                 changes.add(new EntryChange(entry.getKey(), oldValue, entry.getValue().value(),
                         entry.getValue().icon(),
                         old == null ? null : old.detail(), entry.getValue().detail(),
-                        entry.getValue().badge()));
+                        entry.getValue().badge(), spentDelta(old, entry.getValue())));
             }
         }
         for (Map.Entry<String, SourceEntry> entry : before.entrySet()) {
             if (!after.containsKey(entry.getKey())) {
                 changes.add(new EntryChange(entry.getKey(), entry.getValue().value(), null,
                         entry.getValue().icon(), entry.getValue().detail(), null,
-                        entry.getValue().badge()));
+                        entry.getValue().badge(), null));
             }
         }
         return changes;
+    }
+
+    /**
+     * 이 구간에 이 항목에 부은 조각. 헥사 코어만 누적을 실어 오고, 새로 생긴 코어는 누적이
+     * 곧 부은 양이다. 이전 것에만 누적이 있으면(사라진 코어) 적을 것이 없다.
+     */
+    private static Long spentDelta(SourceEntry before, SourceEntry after) {
+        if (after.spent() == null) {
+            return null;
+        }
+        long previous = before == null || before.spent() == null ? 0 : before.spent();
+        long delta = after.spent() - previous;
+        return delta == 0 ? null : delta;
     }
 
     /**
@@ -622,6 +635,8 @@ public class DataSheetCompareService {
      *                       적어서는 무엇이 어떻게 바뀌었는지 알 수 없어, 양쪽 문구를 각각 준다.
      *                       한쪽에만 있던 항목은 없는 쪽이 null 이다.
      * @param badge          이름 밑에 붙일 블럭. 헥사 코어의 종류.
+     * @param fragmentDelta  이 구간에 부은 솔 에르다 조각. 헥사 코어에만 있고, 이전·이후 누적을
+     *                       나란히 적는 대신 이 값을 이후 칸에 블럭으로 붙인다. 없으면 null.
      */
     public record EntryChange(
             String name,
@@ -630,10 +645,11 @@ public class DataSheetCompareService {
             String icon,
             String previousDetail,
             String detail,
-            String badge
+            String badge,
+            Long fragmentDelta
     ) {
         public EntryChange(String name, String previous, String current, String icon) {
-            this(name, previous, current, icon, null, null, null);
+            this(name, previous, current, icon, null, null, null, null);
         }
     }
 

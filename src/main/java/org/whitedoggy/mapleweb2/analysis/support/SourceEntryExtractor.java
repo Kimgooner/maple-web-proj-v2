@@ -7,6 +7,7 @@ import org.whitedoggy.mapleweb2.analysis.data.PresetSelection;
 import org.whitedoggy.mapleweb2.analysis.data.SourceEntry;
 import org.whitedoggy.mapleweb2.domain.common.stat.StatSheet;
 import org.whitedoggy.mapleweb2.domain.common.stat.StatSheetParser;
+import org.whitedoggy.mapleweb2.domain.common.support.EffectTextSplitter;
 import org.whitedoggy.mapleweb2.domain.set.parser.SetEffectParser;
 import org.whitedoggy.mapleweb2.domain.skill.SkillParser;
 import org.whitedoggy.mapleweb2.domain.union.raider.RaiderParser;
@@ -210,13 +211,41 @@ public class SourceEntryExtractor {
         return result;
     }
 
+    /**
+     * 적용 중인 세트. 전투력에 아무것도 안 주는 세트는 뺀다 — 쁘띠 귀살대처럼 스킬만 열어 주는
+     * 세트나 마이스터·파티 퀘스트 세트는 단계가 바뀌어도 변화 목록에 적을 것이 없고, 적어
+     * 놓으면 "4개 항목 변경" 에 끼어 진짜 변화를 가린다.
+     *
+     * <p>판정은 넥슨 문구를 우리 파서로 읽어 스탯이 하나라도 나오는가로 한다. 우리 표로 세는
+     * 세트(앱솔랩스·아케인셰이드 …)는 문구와 상관없이 스탯을 주므로 판정하지 않고 남긴다.
+     */
     private Map<String, SourceEntry> setEffects(JsonNode setEffect, JsonNode presetItems, String characterClass) {
         Map<String, SourceEntry> result = new LinkedHashMap<>();
         if (setEffect == null || presetItems == null) return result;
         setEffectParser.getAppliedSetCounts(setEffect, presetItems, characterClass)
-                .forEach((name, count) -> result.put(
-                        name, new SourceEntry(count + "세트", null, setOptions(setEffect, name, count))));
+                .forEach((name, count) -> {
+                    if (!setEffectParser.isSupportedSet(name) && !givesStat(setEffect, name, count)) {
+                        return;
+                    }
+                    result.put(name, new SourceEntry(count + "세트", null, setOptions(setEffect, name, count)));
+                });
         return result;
+    }
+
+    /** 지금 단계까지의 세트 문구에서 스탯이 하나라도 읽히는가. */
+    private boolean givesStat(JsonNode setEffect, String setName, int count) {
+        JsonNode set = findSet(setEffect, setName);
+        if (set == null) {
+            return false;
+        }
+        List<String> effects = new ArrayList<>();
+        for (JsonNode info : set.path("set_effect_info")) {
+            int tier = info.path("set_count").asInt(0);
+            if (tier > 0 && tier <= count) {
+                EffectTextSplitter.addSplit(effects, Jsons.text(info, "set_option"));
+            }
+        }
+        return !statSheetParser.parse(effects).isZero();
     }
 
     /**
@@ -386,10 +415,10 @@ public class SourceEntryExtractor {
     }
 
     /**
-     * 헥사 코어(스킬 강화). 코어 하나가 한 항목이고, 값은 종류·레벨·누적 조각이다.
+     * 헥사 코어(스킬 강화). 코어 하나가 한 항목이고, 값은 레벨, 종류는 배지, 누적 조각은 따로 싣는다.
      *
-     * <p>헥사 강화는 전투력에 잡히지 않아 증감 칸이 늘 빈다. 대신 조각을 값에 넣어
-     * 그 구간에 6차로 무엇을 얼마나 올렸는지가 이전·이후 표에서 바로 읽히게 한다.
+     * <p>헥사 강화는 전투력에 잡히지 않아 증감 칸이 늘 빈다. 대신 누적 조각을 실어 두면
+     * 비교하는 쪽이 이전·이후 차이를 내어 그 구간에 얼마를 부었는지 블럭으로 붙인다.
      *
      * <p>아이콘은 코어 문서에 없다. 6차 스킬 문서에서 걸린 스킬 이름으로 찾아 붙인다.
      */
@@ -397,9 +426,8 @@ public class SourceEntryExtractor {
         Map<String, SourceEntry> result = new LinkedHashMap<>();
         Map<String, String> icons = skillIcons(skill6);
         for (HexaCoreParser.Core core : hexaCoreParser.cores(hexa)) {
-            String value = "Lv." + core.level()
-                    + (core.spent() > 0 ? " · 조각 " + String.format("%,d", core.spent()) : "");
-            result.put(core.name(), new SourceEntry(value, iconOfCore(core, icons), null, core.type()));
+            result.put(core.name(), new SourceEntry(
+                    "Lv." + core.level(), iconOfCore(core, icons), null, core.type(), core.spent()));
         }
         return result;
     }

@@ -77,6 +77,50 @@ class SourceEntryExtractorTest {
     }
 
     /**
+     * 스킬만 열어 주는 세트(쁘띠 귀살대)나 문구가 없는 세트(마이스터)는 전투력에 아무것도
+     * 안 준다. 단계가 바뀌어도 변화 목록에 적을 것이 없으니 항목에서 뺀다.
+     */
+    @Test
+    void 스탯을_주지_않는_세트는_항목에_넣지_않는다() {
+        Map<NexonEndpoint, JsonNode> docs = new EnumMap<>(NexonEndpoint.class);
+        docs.put(NexonEndpoint.UNION_RAIDER, json("{}"));
+        docs.put(NexonEndpoint.SET_EFFECT, json("""
+                {"set_effect":[
+                  {"set_name":"쁘띠 귀살대 세트","total_set_count":3,"set_effect_info":[
+                    {"set_count":1,"set_option":"[쁘띠 귀살대의 힘 Lv.1] 스킬 사용 가능"},
+                    {"set_count":3,"set_option":"[쁘띠 귀살대의 힘 Lv.3] 스킬 사용 가능"}]},
+                  {"set_name":"마이스터 세트","total_set_count":1,"set_effect_info":[]},
+                  {"set_name":"임모탈 마이스터 히어로 세트","total_set_count":2,"set_effect_info":[
+                    {"set_count":2,"set_option":"올스탯 +18, 공격력 +10"}]}]}"""));
+
+        Map<String, Map<String, SourceEntry>> entries = extractor.extract(
+                docs, MAPPER.createArrayNode(), new PresetSelection(1, 1, 1, 1), "나이트로드", "스카니아",
+                LocalDate.of(2026, 9, 9));
+
+        assertThat(entries.get("setEffect")).containsOnlyKeys("임모탈 마이스터 히어로 세트");
+    }
+
+    /** 헥사 코어의 값은 레벨뿐이다. 누적 조각은 따로 실어, 비교하는 쪽이 차이만 블럭으로 붙인다. */
+    @Test
+    void 헥사_코어는_레벨과_누적_조각을_따로_싣는다() {
+        Map<NexonEndpoint, JsonNode> docs = new EnumMap<>(NexonEndpoint.class);
+        docs.put(NexonEndpoint.UNION_RAIDER, json("{}"));
+        docs.put(NexonEndpoint.HEXA_MATRIX, json("""
+                {"character_hexa_core_equipment":[
+                  {"hexa_core_name":"스피릿 오브 스나이프 VI","hexa_core_level":2,"hexa_core_type":"마스터리 코어",
+                   "linked_skill":[{"hexa_skill_id":"스피릿 오브 스나이프 VI"}]}]}"""));
+
+        Map<String, Map<String, SourceEntry>> entries = extractor.extract(
+                docs, MAPPER.createArrayNode(), new PresetSelection(1, 1, 1, 1), "나이트로드", "스카니아",
+                LocalDate.of(2026, 9, 9));
+
+        SourceEntry core = entries.get("hexaCore").get("스피릿 오브 스나이프 VI");
+        assertThat(core.value()).isEqualTo("Lv.2");
+        assertThat(core.badge()).isEqualTo("마스터리 코어");
+        assertThat(core.spent()).isPositive();
+    }
+
+    /**
      * 유니온 공격대는 같은 효과를 여러 줄로 준다. 늘어놓지 않고 합쳐야 읽을 수 있다.
      * (실측: 한 캐릭터의 union_raider_stat 에 "INT 100 증가"가 셋, "INT 80 증가"가 하나)
      */

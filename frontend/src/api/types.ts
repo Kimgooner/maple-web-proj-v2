@@ -112,6 +112,8 @@ export interface EntryChange {
   detail: string | null;
   /** 이름 밑에 붙일 블럭. 헥사 코어의 종류 */
   badge: string | null;
+  /** 이 구간에 부은 솔 에르다 조각. 헥사 코어만. 이후 칸에 블럭으로 붙는다 */
+  fragmentDelta: number | null;
 }
 
 export interface SourceChange {
