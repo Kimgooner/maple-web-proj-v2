@@ -101,12 +101,17 @@ public record GameData(
             return conversionHpPerStar.isEmpty() ? 0 : stars * conversionHpPerStar.getLast().hp();
         }
 
+        /**
+         * 상·하한은 게임이 단정밀도(float)로 들고 있다 — 0.85 는 0.8500000238 이다. 상한 구간
+         * 166명 중 128명이 이 값으로 정수 일치하고, 배정밀도 0.85 로는 전원이 -3 이하로 어긋난다
+         * (2026-09-15). 직선 구간은 배정밀도가 더 잘 맞는다.
+         */
         public double correctionOf(double base) {
             if (base <= 0) {
-                return correction.min();
+                return (float) correction.min();
             }
             double raw = correction.intercept() + correction.slope() * Math.log10(base);
-            return Math.max(correction.min(), Math.min(correction.max(), raw));
+            return Math.max((float) correction.min(), Math.min((float) correction.max(), raw));
         }
     }
 

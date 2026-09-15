@@ -156,10 +156,9 @@ public class CombatCalculationService {
                 equipmentHalf += hp / 2;
             }
         }
-        // 세트 효과 HP 는 부위가 아니라 내림 없이 절반이다 (칠흑 6세트 375x3 같은 홀수 합이 있는
-        // 캐릭터의 75일 패널에서 내림을 넣으면 다른 날짜와 1 스탯 어긋난다).
+        // 세트 효과 HP 도 절반인데 옵션 줄마다 내림된다 (DataSheetService.setEffectHpHalved).
         int setHp = dataSheet.getSetEffect() == null ? 0 : dataSheet.getSetEffect().getHP();
-        double equipmentHalfTotal = equipmentHalf + setHp / 2.0;
+        double equipmentHalfTotal = equipmentHalf + dataSheet.getSetEffectHpHalved();
         equipmentFull += setHp;
 
         // 종합 시트의 HP 에서 순수 HP 와 장비 HP 를 걷어내면 스킬·컨버전·의지 같은 나머지가 남는다.
@@ -168,9 +167,8 @@ public class CombatCalculationService {
         double multiplier = 1.0 + sum.getHP_PERCENT() / 100.0;
         double noPercent = sum.getHP_NO_PERCENT() + rule.noPercentHpAdjustment();
 
-        // HP% 를 곱한 총 HP 는 게임이 정수로 반올림한다 — 한 캐릭터의 75일 패널에서 소수부가
-        // .25/.75/.58 인 상태들이 반올림으로만 같은 잔차에 모인다(내림·올림은 갈라진다).
-        double totalWithPercent = Math.round((pure + extraFlat) * multiplier);
+        // HP% 를 곱한 총 HP 는 게임이 정수로 내린다 (2,894명에서 내림 29 / 반올림 15 정수 일치).
+        double totalWithPercent = Math.floor((pure + extraFlat) * multiplier);
         double extraHp = totalWithPercent + noPercent - pure;
 
         return pure / rule.pureHpDivisor() + extraHp / rule.extraHpDivisor();

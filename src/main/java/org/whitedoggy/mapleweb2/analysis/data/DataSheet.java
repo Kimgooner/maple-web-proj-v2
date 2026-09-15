@@ -36,6 +36,9 @@ public class DataSheet {
     /** 성향 의지의 최대 HP. 데몬어벤져의 주스탯(HP)에만 들어간다. */
     StatSheet propensity;
 
+    /** 데몬어벤져용. 세트 효과 최대 HP 를 옵션 줄마다 절반으로 내린 합 (DataSheetService 참고). */
+    int setEffectHpHalved;
+
     /**
      * HEXA 코어에 그때까지 들어간 솔 에르다 조각. 전투력에는 한 톨도 안 들어간다 —
      * 두 시점 사이에 6차로 얼마를 썼는지를 화면이 보여주려고 들고 있다.
@@ -151,6 +154,7 @@ public class DataSheet {
         this.unionRaider = other.unionRaider;
         this.conversionStarforce = other.conversionStarforce;
         this.propensity = other.propensity;
+        this.setEffectHpHalved = other.setEffectHpHalved;
         this.sourceEntries = other.sourceEntries;
 
         this.lucidTransformSuspected = other.lucidTransformSuspected;

@@ -264,6 +264,9 @@ public class DataSheetService {
                         && result.getItemEquip().get("장비 - 칭호").getExpired() != null);
         result.setConversionStarforce(setConversionStarforce(presetItems, characterClass));
         result.setSetEffect(setSetEffect(setEffect, presetItems, characterClass));
+        if (gameData.isDemonAvenger(characterClass)) {
+            result.setSetEffectHpHalved(setEffectHpHalved(setEffect, presetItems, characterClass));
+        }
         result.setConsumableItem(setConsumableItem(characterClass));
         result.setAbility(setAbility(ability, preset.abilityPreset(), result.getAbilityPoint()));
         result.setHyperStat(setHyperStat(hyper, preset.hyperStatPreset()));
@@ -459,6 +462,22 @@ public class DataSheetService {
 
     private StatSheet setSetEffect(JsonNode node, JsonNode presetItems, String characterClass) {
         return statSheetParser.parse(setEffectParser.getSetEffectByPreset(node, presetItems, characterClass), "setEffect");
+    }
+
+    /**
+     * 데몬어벤져용. 세트 효과의 최대 HP 를 <b>줄마다</b> 절반으로 내린 합.
+     *
+     * <p>게임은 장비 HP 를 절반만 스탯에 넣는데 세트 효과 HP 도 그 대상이고, 절반은 세트 옵션
+     * 한 줄 단위로 내림된다 — 칠흑 5세트부터 붙는 "최대 HP +375" 줄이 187 이 된다. 이걸 합계로
+     * 나누면 칠흑을 다 낀 상위 캐릭터 전원이 -12.7ppm 어긋나서 보정 상한이 0.85 가 아닌 것처럼
+     * 보였다(2026-09-15, 2,894명에서 줄 단위 내림으로 상한 구간 잔차 중앙 +0.03ppm).
+     */
+    private int setEffectHpHalved(JsonNode node, JsonNode presetItems, String characterClass) {
+        int halved = 0;
+        for (String effect : setEffectParser.getSetEffectByPreset(node, presetItems, characterClass)) {
+            halved += statSheetParser.parse(List.of(effect)).getHP() / 2;
+        }
+        return halved;
     }
 
     private StatSheet setConsumableItem(String characterClass) {
