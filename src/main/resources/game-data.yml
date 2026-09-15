@@ -154,7 +154,7 @@ maple:
     #   총 HP    = floor((순수 + 추가) x m) + 고정
     #   주스탯   = 순수/14 + (총 HP - 순수) / 17.5      (스탯은 내림 없이 소수)
     #   전투력   = floor(base x 보정), base = (주스탯 x 4 + STR)/100 x 공격력 x ...
-    #   보정     = clamp(intercept + slope x log10(base), min, max)
+    #   보정     = clamp(round(intercept + slope x log10(base), 6자리), min, max)  — min·max 는 float
     #            = 0.75 (base ≤ 10^7.45) … 0.85 (base ≥ 10^8.7). 제논과 반대로 셀수록 커진다.
     #
     # 14 / 17.5 는 블러드 컨트랙트 설명("순수 HP 14당 1, 추가 HP 17.5당 1")이고 실측과
@@ -216,6 +216,7 @@ maple:
         slope: 0.08
         min: 0.75
         max: 0.85
+        decimals: 6
 
     # 직업군별로 갈리는 세트 옵션에서 어느 갈래를 탈지 장비 이름으로 정한다.
     #
