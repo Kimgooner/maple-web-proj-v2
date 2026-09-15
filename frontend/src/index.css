@@ -2118,6 +2118,12 @@ the SVG uses its actual container width. */@media(min-width:851px) {
   stroke-dasharray:5 4;
 }
 
+/* 기준선이 축 밖으로 나가 가장자리에 붙었을 때 그 값. 선과 같은 회색으로 참고선임을 잇는다. */
+.chart svg text.median-edge {
+  fill:#9aa1ad;
+  font-size:10px;
+}
+
 /* 말풍선. 지점 위에 뜨고, 위쪽에 붙은 지점에서는 .below 로 아래에 뜬다.
    pointer-events 를 꺼야 말풍선 위로 커서가 올라가도 호버가 끊기지 않는다. */
 .chart-tip {

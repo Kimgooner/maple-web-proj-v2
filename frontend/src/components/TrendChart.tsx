@@ -97,14 +97,25 @@ export function TrendChart(
     : [];
 
   /**
-   * 축은 전투력과 기준선을 함께 담는다. 기준선만 화면 밖으로 나가면 "내가 중앙값 위인지
-   * 아래인지"라는 이 선의 유일한 쓸모가 사라진다. 대신 캐릭터가 중앙값에서 많이 떨어져
-   * 있으면 자기 선이 눌리는데, 그건 legend 에서 기준선을 끄면 된다.
+   * 축은 캐릭터의 전투력만으로 잡는다.
+   *
+   * <p>전에는 기준선까지 담았는데, 22억 캐릭터의 같은 레벨 중앙값이 2.5억이면 축이 0부터
+   * 25억이 되어 한 달치 오르내림이 직선으로 눌렸다 — 추이를 보는 화면에서 추이가 사라진
+   * 것이다. 기준선은 "내가 중앙값 위인지 아래인지"만 말하면 되므로, 축 밖으로 나가면
+   * 가장자리에 붙여 그리고 값을 적어 둔다. 축 안에 들어오는 캐릭터는 전과 같다.
    */
-  const y = scale([
-    ...points.map((p) => p.combatPower).filter((v): v is number => v != null),
-    ...medians,
-  ], layout);
+  const y = scale(points.map((p) => p.combatPower).filter((v): v is number => v != null), layout);
+  const floorY = HEIGHT - BOTTOM;
+  /** 기준선이 축 밖이면 가장자리에 붙인다. */
+  const clampY = (value: number) => Math.min(Math.max(y(value), TOP), floorY);
+  /**
+   * 기준선이 가장자리에 붙어 있는가. 마지막 지점 기준이다 — 레벨이 올라 구간이 바뀌면
+   * 중앙값도 뛰지만, 지금 어디쯤인지는 최근 값이 말한다. 붙어 있으면 값을 옆에 적어
+   * 선만 봐서는 얼마나 떨어져 있는지 모르는 것을 메운다.
+   */
+  const lastMedian = medians.length ? medians[medians.length - 1] : null;
+  const medianEdge = lastMedian == null ? null
+    : y(lastMedian) > floorY ? 'below' : y(lastMedian) < TOP ? 'above' : null;
   const fragValues = points.map((p) => p.solErdaFragments).filter((v): v is number => v != null);
   /**
    * 조각 축은 기간에 따라 다르게 잰다.
@@ -130,7 +141,7 @@ export function TrendChart(
     && Math.min(...fragValues) === Math.max(...fragValues);
 
   /** 지점이 아니라 인덱스로 값을 집는 선. 기준선은 값이 지점 안이 아니라 구간 통계에 있다. */
-  const lineAt = (pick: (index: number) => number | null, at: Scale): string => {
+  const lineAt = (pick: (index: number) => number | null, at: (value: number) => number): string => {
     let path = '';
     let open = false;
     points.forEach((_, index) => {
@@ -306,11 +317,21 @@ export function TrendChart(
         {showMedian && (
           <path
             className="median-line"
-            d={lineAt((i) => bandOf[i]?.stats.median ?? null, y)}
+            d={lineAt((i) => bandOf[i]?.stats.median ?? null, clampY)}
             fill="none"
             strokeWidth="1.6"
             strokeLinejoin="round"
           />
+        )}
+        {showMedian && medianEdge && lastMedian != null && (
+          <text
+            className="median-edge"
+            x={WIDTH - RIGHT - 6}
+            y={medianEdge === 'below' ? floorY - 5 : TOP + 12}
+            textAnchor="end"
+          >
+            {`같은 레벨 중앙값 ${compact(lastMedian)} ${medianEdge === 'below' ? '↓' : '↑'}`}
+          </text>
         )}
         <path d={line((p) => p.combatPower, y)} fill="none" stroke="#ed702e" strokeWidth="2.6" strokeLinejoin="round" />
 
