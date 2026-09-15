@@ -9,7 +9,6 @@ export function TopBar() {
       <Link to="/" className="brand" aria-label="MapleDelta 홈">
         <span className="brand-mark" aria-hidden="true"><BrandMark /></span>MapleDelta
       </Link>
-      <span className="brand-caption">캐릭터의 변화를 읽다</span>
       <SearchForm />
     </header>
   );

@@ -198,6 +198,7 @@ export function CharacterPage() {
                 loading={streaming}
                 preset={history.meta?.preset ?? null}
                 range={range}
+                breakdown={history.meta?.breakdown ?? null}
               />
             ) : (
               <div className="skeleton" style={{ height: 168, marginBottom: 22 }} />

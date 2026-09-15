@@ -1,6 +1,7 @@
 package org.whitedoggy.mapleweb2.analysis.history;
 
 import org.whitedoggy.mapleweb2.analysis.dto.CharacterInfo;
+import org.whitedoggy.mapleweb2.analysis.dto.CombatPowerBreakdown;
 import org.whitedoggy.mapleweb2.analysis.dto.CurrentPresetInfo;
 
 import java.time.LocalDate;
@@ -13,6 +14,7 @@ import java.util.List;
  * @param truncated      캐릭터가 없는 시점이 구간에 걸려 잘렸는가
  * @param truncatedFrom  잘려 나간 첫 날짜. 자르지 않았으면 null
  * @param points         과거 → 최신 순
+ * @param breakdown      오늘 전투력을 이루는 항들. 계산이 서지 않으면 null
  */
 public record CombatPowerHistoryResponse(
         String ocid,
@@ -24,6 +26,7 @@ public record CombatPowerHistoryResponse(
         int loadedCount,
         boolean truncated,
         LocalDate truncatedFrom,
-        List<CombatPowerHistoryPoint> points
+        List<CombatPowerHistoryPoint> points,
+        CombatPowerBreakdown breakdown
 ) {
 }

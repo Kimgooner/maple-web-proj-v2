@@ -6,7 +6,7 @@ const meta: HistoryMeta = {
   ocid: 'o', range: 'monthly',
   characterInfo: { name: '뚠버리', className: '플레임위자드', level: 290, guild: null, world: '챌린저스3', image: null, mainStats: ['INT'], subStats: ['LUK'], usesMagic: true }, preset: null,
   requestedCount: 12, plannedCount: 3, truncated: true, truncatedFrom: '2026-06-01',
-  dates: ['2026-09-01', '2026-08-01', '2026-07-01'], concurrent: 1,
+  dates: ['2026-09-01', '2026-08-01', '2026-07-01'], concurrent: 1, breakdown: null,
 };
 
 describe('applyHistoryEvent', () => {
@@ -34,6 +34,28 @@ describe('applyHistoryEvent', () => {
     state = applyHistoryEvent(state, { type: 'error', data: { code: 'ERROR', message: '없음' } });
     expect(state.status).toBe('error');
     expect(state.error).toBe('없음');
+  });
+});
+
+describe('reset', () => {
+  const shown = () => {
+    let state = applyHistoryEvent(loadingHistoryState(), { type: 'meta', data: meta });
+    state = applyHistoryEvent(state, { type: 'point', data: { index: 1, total: 3, point: { date: '2026-09-01', level: 290, combatPower: 100, apiCombatPower: 100, solErdaFragments: null, solErdaFragmentsRequired: null, cooldownSecond: null, cooldownSkipPercent: null, itemPreset: null, expired: null }, concurrent: 1 } });
+    return applyHistoryEvent(state, { type: 'done', data: {} as never });
+  };
+
+  it('같은 캐릭터의 다른 구간이면 보여 주던 것을 들고 있는다', () => {
+    const state = applyHistoryEvent(shown(), { type: 'reset' });
+    expect(state.status).toBe('loading');
+    expect(state.meta).not.toBeNull();
+    expect(state.points).toHaveLength(3);
+  });
+
+  it('다른 캐릭터로 넘어가면 옛 이름·전투력을 남기지 않는다', () => {
+    const state = applyHistoryEvent(shown(), { type: 'reset', hard: true });
+    expect(state.status).toBe('loading');
+    expect(state.meta).toBeNull();
+    expect(state.points).toHaveLength(0);
   });
 });
 

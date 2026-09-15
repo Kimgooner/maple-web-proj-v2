@@ -1,6 +1,7 @@
 package org.whitedoggy.mapleweb2.analysis.history;
 
 import org.whitedoggy.mapleweb2.analysis.dto.CharacterInfo;
+import org.whitedoggy.mapleweb2.analysis.dto.CombatPowerBreakdown;
 import org.whitedoggy.mapleweb2.analysis.dto.CurrentPresetInfo;
 
 import java.time.LocalDate;
@@ -18,11 +19,13 @@ import java.time.LocalDate;
  *
  * @param createdAt 캐릭터 생성일. 그 이전 구간을 잘라 내는 데 쓴다. 모르면 null
  * @param today     오늘 지점. 계산이 터졌으면 null 이고, 그때는 캐시하지 않는다
+ * @param breakdown 오늘 전투력을 이루는 항들. 시트를 펼치면 보인다. 계산이 터졌으면 null
  */
 public record TodayHead(
         CharacterInfo characterInfo,
         CurrentPresetInfo preset,
         LocalDate createdAt,
-        CombatPowerHistoryPoint today
+        CombatPowerHistoryPoint today,
+        CombatPowerBreakdown breakdown
 ) {
 }

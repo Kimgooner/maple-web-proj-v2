@@ -152,12 +152,6 @@ h1,h2,h3,p {
   height:26px;
 }
 
-.brand-caption {
-  font-size:13px;
-  color:var(--muted);
-  white-space:nowrap;
-}
-
 .search {
   display:flex;
   align-items:center;
@@ -243,6 +237,111 @@ h1,h2,h3,p {
   /* 캐릭터는 아바타 네모를 넘어도 되지만 패널 밖으로는 못 나간다. 탈것·날개처럼 폭이
      큰 코디가 카드 바깥까지 삐져나오면 의도가 아니라 깨진 것으로 보인다. */
   overflow:hidden;
+}
+
+/* 시트를 누르면 계산 과정이 아래로 펼쳐진다. 누를 수 있다는 것은 커서와 오른쪽 아래 글씨가 말한다. */
+.profile.expandable {
+  cursor:pointer;
+  position:relative;
+}
+
+.profile.expandable:hover {
+  border-color:#d5dae3;
+}
+
+.profile-toggle {
+  grid-column:1/-1;
+  justify-self:end;
+  display:inline-flex;
+  align-items:center;
+  gap:2px;
+  margin:-10px 0 -8px;
+  padding:4px 0;
+  border:0;
+  background:none;
+  color:var(--muted);
+  font:inherit;
+  font-size:12px;
+  cursor:pointer;
+}
+
+.profile-toggle .chevron {
+  font-size:16px;
+  line-height:1;
+}
+
+.profile.open .profile-toggle .chevron {
+  transform:rotate(90deg);
+}
+
+.profile-body {
+  grid-column:1/-1;
+  border-top:1px solid var(--line);
+  padding-top:22px;
+  cursor:default;
+}
+
+/* 식의 항을 카드로 늘어놓는다. 좁으면 줄을 바꾸고 × 는 카드 앞에 붙어 따라간다. */
+.formula-terms {
+  display:flex;
+  flex-wrap:wrap;
+  align-items:stretch;
+  gap:10px 8px;
+}
+
+.formula-term {
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.formula-op {
+  color:#9aa1ad;
+  font-size:15px;
+  font-weight:600;
+  white-space:nowrap;
+}
+
+.formula-card {
+  min-width:128px;
+  padding:10px 14px;
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:#fafbfc;
+}
+
+.formula-card.result {
+  background:#fff4ec;
+  border-color:#f3d2bd;
+}
+
+.formula-label {
+  font-size:11px;
+  color:var(--muted);
+}
+
+.formula-value {
+  margin-top:2px;
+  font-size:18px;
+  font-weight:700;
+  letter-spacing:-.4px;
+  white-space:nowrap;
+}
+
+.formula-card.result .formula-value {
+  color:#c9561d;
+}
+
+.formula-note {
+  margin-top:3px;
+  font-size:10.5px;
+  color:#8b939f;
+  white-space:nowrap;
+}
+
+.formula-foot {
+  margin:14px 0 0;
+  font-size:11px;
 }
 
 .identity {
@@ -1708,9 +1807,6 @@ footer {
     border:0;
     padding:0;
   }
-  .brand-caption {
-    display:none;
-  }
   .table-head,.change-summary {
     gap:8px 12px;
     grid-template-columns:minmax(180px,1.4fr) minmax(120px,1fr) 12px;
@@ -1734,6 +1830,16 @@ footer {
   .profile {
     gap:20px;
     padding:24px;
+  }
+  .formula-card {
+    min-width:0;
+    flex:1;
+  }
+  .formula-term {
+    width:100%;
+  }
+  .formula-note {
+    white-space:normal;
   }
   .identity {
     gap:14px;

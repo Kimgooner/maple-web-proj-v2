@@ -5,7 +5,8 @@ export type HistoryStatus = 'idle' | 'loading' | 'done' | 'error';
 /** 스트림을 새로 열기 전 상태를 비운다. 이름이나 재시도가 바뀔 때. */
 export type HistoryAction =
   | HistoryEvent
-  | { type: 'reset' }
+  /** 스트림을 새로 열기 전. {@code hard} 면 보여 주던 것도 버린다 — 다른 캐릭터로 넘어갈 때 */
+  | { type: 'reset'; hard?: boolean }
   /** 프리셋을 되돌려 다시 계산한 지점으로 통째로 갈아 끼운다 */
   | { type: 'repaired'; points: HistoryPoint[] };
 
@@ -96,8 +97,10 @@ export function isPending(point: HistoryPoint): boolean {
 export function applyHistoryEvent(state: HistoryState, event: HistoryAction): HistoryState {
   switch (event.type) {
     case 'reset':
-      // 보여 줄 것이 이미 있으면 들고 있는다. 새 것을 다 받으면 그때 갈아 끼운다.
-      return hasShowable(state)
+      // 같은 캐릭터의 다른 구간이면 보여 줄 것을 들고 있다가 다 받으면 갈아 끼운다.
+      // 다른 캐릭터면 들고 있을 이유가 없다 — 옛 사람의 이름·전투력이 새 이름 위에
+      // 남아 있다가 다 받은 뒤에야 바뀌는 것은 잘못 조회된 것처럼 보인다.
+      return !event.hard && hasShowable(state)
         ? { ...state, status: 'loading', received: 0, total: 0, error: null, errorCode: null, pending: null }
         : loadingHistoryState();
     case 'meta': {

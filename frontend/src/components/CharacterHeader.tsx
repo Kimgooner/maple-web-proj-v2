@@ -1,6 +1,8 @@
-import type { CharacterInfo, HistoryPoint, HistoryRange, PresetInfo } from '../api/types';
+import { useState } from 'react';
+import type { CharacterInfo, CombatPowerBreakdown, HistoryPoint, HistoryRange, PresetInfo } from '../api/types';
 import { dateLabel, formatGameNumber, formatPercentChange, formatSignedGame, shortDate } from '../lib/format';
 import { INCOMPLETE_CLASSES } from '../lib/labels';
+import { CombatPowerFormula } from './CombatPowerFormula';
 
 interface Props {
   info: CharacterInfo | null;
@@ -11,6 +13,8 @@ interface Props {
   preset: PresetInfo | null;
   /** 지금 보고 있는 기간. "최근 30일 변화" 처럼 라벨에 적는다 */
   range: HistoryRange;
+  /** 오늘 전투력의 계산 과정. 시트를 누르면 펼쳐진다. 없으면 펼칠 것이 없다 */
+  breakdown: CombatPowerBreakdown | null;
 }
 
 const RANGE_LABEL: Record<HistoryRange, string> = { daily: '최근 30일', monthly: '최근 12개월' };
@@ -34,8 +38,16 @@ function tone(value: number | null): string {
   return value > 0 ? 'positive' : 'negative';
 }
 
-/** 캐릭터 요약. 이름·전투력·기간 변화 셋을 나란히 둔다. */
-export function CharacterHeader({ info, name, points, loading, preset, range }: Props) {
+/**
+ * 캐릭터 요약. 이름·전투력·기간 변화 셋을 나란히 둔다.
+ *
+ * <p>시트 어디를 눌러도 아래로 펼쳐져 전투력의 계산 과정이 나온다. 전투력 숫자 하나만
+ * 보면 "왜 이 값인지"를 물을 곳이 없어서다. 접혀 있는 것이 기본이라 훑어보는 흐름은
+ * 그대로다.
+ */
+export function CharacterHeader({ info, name, points, loading, preset, range, breakdown }: Props) {
+  const [open, setOpen] = useState(false);
+  const expandable = breakdown != null;
   const valid = points.filter((point) => point.combatPower != null);
   const first = valid[0];
   const latest = valid[valid.length - 1];
@@ -48,7 +60,11 @@ export function CharacterHeader({ info, name, points, loading, preset, range }: 
   const delta = comparable ? latest.combatPower! - first.combatPower! : null;
 
   return (
-    <section className="profile panel" aria-label="캐릭터 요약">
+    <section
+      className={`profile panel${expandable ? ' expandable' : ''}${open ? ' open' : ''}`}
+      aria-label="캐릭터 요약"
+      onClick={() => expandable && setOpen((v) => !v)}
+    >
       <div className="identity">
         <div className="avatar" aria-hidden="true">
           {info?.image ? <img src={info.image} alt="" /> : '✦'}
@@ -97,6 +113,24 @@ export function CharacterHeader({ info, name, points, loading, preset, range }: 
           <p className="period-empty muted">{loading ? '' : '비교할 데이터가 없어요'}</p>
         )}
       </div>
+
+      {expandable && (
+        <button
+          type="button"
+          className="profile-toggle"
+          aria-expanded={open}
+          onClick={(event) => { event.stopPropagation(); setOpen((v) => !v); }}
+        >
+          {open ? '계산 과정 접기' : '전투력 계산 과정'}
+          <span className="chevron" aria-hidden="true">›</span>
+        </button>
+      )}
+      {expandable && open && (
+        // 펼친 안쪽을 눌러 값을 긁어도 시트가 닫히지 않게 한다.
+        <div className="profile-body" onClick={(event) => event.stopPropagation()}>
+          <CombatPowerFormula breakdown={breakdown} />
+        </div>
+      )}
     </section>
   );
 }

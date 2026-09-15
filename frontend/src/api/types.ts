@@ -65,6 +65,34 @@ export interface HistoryMeta {
   dates: string[];
   /** 이 순간 함께 추이를 받고 있는 사람 수. 자기 자신을 포함한다 */
   concurrent: number;
+  /** 오늘 전투력을 이루는 항들. 계산이 서지 않으면 null */
+  breakdown: CombatPowerBreakdown | null;
+}
+
+/**
+ * 전투력 식의 항들. 곱하면 combatPower 가 나온다.
+ *
+ * 전투력 = floor( statTerm × power × (100+damage+bossDamage) × (135+criticalDamage)
+ *                 × (100+finalDamage) / 1,000,000 × correction )
+ */
+export interface CombatPowerBreakdown {
+  /** 최종 주스탯. 데몬어벤져는 HP 환산값이라 소수일 수 있다 */
+  mainStat: number;
+  /** 최종 부스탯. 둘이면 합, 제논은 0 */
+  subStat: number;
+  /** (주스탯 × 4 + 부스탯) / 100 */
+  statTerm: number;
+  usesMagic: boolean;
+  /** 공격력(마력)에 %를 곱해 내린 값 */
+  power: number;
+  damage: number;
+  bossDamage: number;
+  criticalDamage: number;
+  /** 설명문에만 있는 장비까지 곱한 최종 데미지 배수(%) */
+  finalDamage: number;
+  /** 직업 보정 상수. 데몬어벤져·제논만, 나머지는 null */
+  correction: number | null;
+  combatPower: number;
 }
 
 export interface HistoryPointEvent {

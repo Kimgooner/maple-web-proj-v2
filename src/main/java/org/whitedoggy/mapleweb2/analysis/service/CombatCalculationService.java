@@ -3,6 +3,7 @@ package org.whitedoggy.mapleweb2.analysis.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.whitedoggy.mapleweb2.analysis.data.DataSheet;
+import org.whitedoggy.mapleweb2.analysis.dto.CombatPowerBreakdown;
 import org.whitedoggy.mapleweb2.domain.common.stat.GameData;
 import org.whitedoggy.mapleweb2.domain.common.stat.StatSheet;
 import org.whitedoggy.mapleweb2.domain.item.data.ItemSnapShot;
@@ -56,6 +57,11 @@ public class CombatCalculationService {
     }
 
     public long estimateCombatPower(DataSheet dataSheet, String characterClass, Integer characterLevel) {
+        return breakdown(dataSheet, characterClass, characterLevel).combatPower();
+    }
+
+    /** 전투력과 그것을 이루는 항들. 화면이 "어떻게 계산됐나"를 이 값으로 적는다. */
+    public CombatPowerBreakdown breakdown(DataSheet dataSheet, String characterClass, Integer characterLevel) {
         StatSheet sheet = dataSheet.getSumSheet();
         List<String> mainStats = gameData.mainStats(characterClass);
         List<String> subStats = gameData.subStats(characterClass);
@@ -120,13 +126,20 @@ public class CombatCalculationService {
         System.out.println("========================");
         */
         double base = (finalStat * power * damage * critDamage * finalDamage) / 1_000_000.0;
+        Double correction = null;
         if (gameData.isDemonAvenger(characterClass)) {
-            base *= gameData.demonAvenger().correctionOf(base);
+            correction = gameData.demonAvenger().correctionOf(base);
         } else if (gameData.hasJobCorrection(characterClass)) {
             // 주스탯 계산이 다른 직업은 직업 간 비교를 위해 보정 상수가 한 번 더 곱해진다.
-            base *= gameData.jobCorrectionOf(base);
+            correction = gameData.jobCorrectionOf(base);
         }
-        return (long) Math.floor(base);
+        if (correction != null) {
+            base *= correction;
+        }
+        return new CombatPowerBreakdown(
+                finalMainStat, finalSubStat, finalStat, isMageClass(characterClass), power,
+                sheet.getDAMAGE(), sheet.getBOSS_DAMAGE(), sheet.getCRITICAL_DAMAGE(),
+                finalDamage - 100.0, correction, (long) Math.floor(base));
     }
 
     /** 부위 HP 절반. 파서가 소스별로 내린 값이 있으면 그것, 없으면(펫·캐시) 부위 통째 내림. */

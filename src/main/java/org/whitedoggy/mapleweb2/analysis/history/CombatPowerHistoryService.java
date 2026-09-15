@@ -11,7 +11,9 @@ import org.whitedoggy.mapleweb2.analysis.data.DataSheet;
 import org.whitedoggy.mapleweb2.domain.common.stat.StatSheet;
 import org.whitedoggy.mapleweb2.analysis.dto.CharacterInfo;
 import org.whitedoggy.mapleweb2.analysis.data.PresetSelection;
+import org.whitedoggy.mapleweb2.analysis.dto.CombatPowerBreakdown;
 import org.whitedoggy.mapleweb2.analysis.dto.CurrentPresetInfo;
+import org.whitedoggy.mapleweb2.analysis.service.CombatCalculationService;
 import org.whitedoggy.mapleweb2.analysis.service.DataSheetService;
 import org.whitedoggy.mapleweb2.analysis.service.OcidService;
 import org.whitedoggy.mapleweb2.analysis.service.SnapshotService;
@@ -65,6 +67,7 @@ public class CombatPowerHistoryService {
     private final OcidService ocidService;
     private final SnapshotService snapshotService;
     private final DataSheetService dataSheetService;
+    private final CombatCalculationService combatCalculationService;
     private final BasicParser basicParser;
     private final StatParser statParser;
     private final HexaCoreParser hexaCoreParser;
@@ -96,7 +99,8 @@ public class CombatPowerHistoryService {
                         plan.truncatedFrom(),
                         points.stream()
                                 .sorted(Comparator.comparing(CombatPowerHistoryPoint::date))
-                                .toList()
+                                .toList(),
+                        plan.head().breakdown()
                 )));
     }
 
@@ -132,7 +136,8 @@ public class CombatPowerHistoryService {
                             plan.truncated(),
                             plan.truncatedFrom(),
                             plan.dates(),
-                            traffic.current()
+                            traffic.current(),
+                            plan.head().breakdown()
                     ));
 
                     Flux<ServerSentEvent<Object>> points = points(plan)
@@ -226,7 +231,7 @@ public class CombatPowerHistoryService {
         return new CombatPowerHistoryResponse(
                 original.ocid(), original.range(), original.characterInfo(), original.preset(),
                 original.requestedCount(), original.loadedCount(),
-                original.truncated(), original.truncatedFrom(), merged);
+                original.truncated(), original.truncatedFrom(), merged, original.breakdown());
     }
 
     /** 최신 → 과거 순으로 지점을 만든다. 빈 응답을 만나면 그 앞까지만 내보낸다. */
@@ -423,12 +428,32 @@ public class CombatPowerHistoryService {
 
     private TodayHead buildHead(CharacterSnapshot current, LocalDate today) {
         JsonNode basic = current.document(NexonEndpoint.BASIC);
-        Loaded loaded = toPoint(current, today, combatDataSheet(current), hexaMatrix(current));
+        DataSheet dataSheet = combatDataSheet(current);
+        Loaded loaded = toPoint(current, today, dataSheet, hexaMatrix(current));
         return new TodayHead(
                 characterInfo(basic),
                 presetOf(current),
                 basicParser.characterCreatedAt(basic),
-                loaded.exists() ? loaded.point() : null);
+                loaded.exists() ? loaded.point() : null,
+                breakdownOf(dataSheet, basic));
+    }
+
+    /**
+     * 오늘 전투력의 항들. 시트가 못 만들어졌으면 null.
+     *
+     * <p>시트의 종합은 파이렛 블레스를 켠 쪽이 높으면 그쪽으로 바꿔 둔 뒤라, 여기서 다시
+     * 계산해도 {@code DataSheet.combatPower} 와 같은 수가 나온다.
+     */
+    private CombatPowerBreakdown breakdownOf(DataSheet dataSheet, JsonNode basic) {
+        if (dataSheet == null || dataSheet.getCombatPower() == null) {
+            return null;
+        }
+        try {
+            return combatCalculationService.breakdown(
+                    dataSheet, basicParser.characterClass(basic), basicParser.characterLevel(basic));
+        } catch (RuntimeException ignored) {
+            return null;
+        }
     }
 
     private CurrentPresetInfo presetOf(CharacterSnapshot current) {
@@ -439,7 +464,7 @@ public class CombatPowerHistoryService {
     }
 
     private static String todayHeadCacheKey(String ocid) {
-        return "maple:todayhead:v1:" + (ocid == null ? "" : ocid.trim());
+        return "maple:todayhead:v2:" + (ocid == null ? "" : ocid.trim());
     }
 
     private Plan buildPlan(String ocid, HistoryRange range, LocalDate today, TodayHead head) {

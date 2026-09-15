@@ -109,8 +109,9 @@ function ItemCard({ item, label, muted }: { item: ItemDetail | null; label: stri
         </div>
       </div>
 
+      {/* "최대 HP" 가 고정값과 % 로 두 줄 오는 장비가 있어 이름만으로는 키가 겹친다. */}
       {item.stats.length > 0 && (
-        <div className="item-stats">{item.stats.map((line) => <StatLine line={line} key={line.name} />)}</div>
+        <div className="item-stats">{item.stats.map((line, index) => <StatLine line={line} key={`${line.name}-${index}`} />)}</div>
       )}
       {/* 칭호는 옵션 필드가 없고 설명문이 곧 스탯이다. 계산이 읽는 줄을 그대로 적는다. */}
       {item.stats.length === 0 && (item.descriptionLines ?? []).length > 0 && (

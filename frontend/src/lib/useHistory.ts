@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useReducer } from 'react';
+import { useCallback, useEffect, useReducer, useRef } from 'react';
 import { openHistoryStream } from '../api/historyStream';
 import type { HistoryPoint, HistoryRange } from '../api/types';
 import { applyHistoryEvent, loadingHistoryState, type HistoryState } from './history';
@@ -15,10 +15,13 @@ export function useHistory(
   retry: number,
 ): [HistoryState, (points: HistoryPoint[]) => void] {
   const [state, dispatch] = useReducer(applyHistoryEvent, undefined, loadingHistoryState);
+  /** 직전에 연 이름. 이름이 바뀐 것과 구간·재시도가 바뀐 것을 가른다. */
+  const openedName = useRef<string | null>(null);
 
   useEffect(() => {
     if (!name) return;
-    dispatch({ type: 'reset' });
+    dispatch({ type: 'reset', hard: openedName.current !== null && openedName.current !== name });
+    openedName.current = name;
     return openHistoryStream(name, range, dispatch);
   }, [name, range, retry]);
 
