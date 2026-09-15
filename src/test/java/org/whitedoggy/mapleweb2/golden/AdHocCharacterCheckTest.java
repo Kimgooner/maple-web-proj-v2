@@ -262,6 +262,14 @@ class AdHocCharacterCheckTest {
         }
         System.out.println(str);
 
+        // 데몬어벤져용. 장비·펫·캐시 부위별 HP (절반 내림 단위를 오프라인에서 바꿔 볼 때).
+        StringBuilder ihp = new StringBuilder("[ITEMHP]\t" + payload.path("characterName").asText());
+        for (Map.Entry<String, ItemSnapShot> e : sheet.getItemEquip().entrySet()) ihp.append('\t').append(e.getKey()).append('=').append(e.getValue().getStatSheet().getHP());
+        for (Map.Entry<String, ItemSnapShot> e : sheet.getPetEquip().entrySet()) ihp.append('\t').append("펫 - ").append(e.getKey()).append('=').append(e.getValue().getStatSheet().getHP());
+        for (Map.Entry<String, ItemSnapShot> e : sheet.getCashEquip().entrySet()) ihp.append('\t').append("캐시 - ").append(e.getKey()).append('=').append(e.getValue().getStatSheet().getHP());
+        ihp.append('\t').append("세트절반=").append(sheet.getSetEffectHpHalved());
+        System.out.println(ihp);
+
         System.out.printf("[TSV]\t%s\t%s\t%s\t%d\t%d\t%d\t%d\t%s\t%d\t%s\t%d\t%s\t%s\t%d\t%d"
                         + "\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%d"
                         + extra + sources + "%n",

@@ -240,6 +240,20 @@ public class ItemParser {
         snapShot.setPotentialLines(List.copyOf(effects.potential));
         snapShot.setAdditionalPotentialLines(List.copyOf(effects.additionalPotential));
         snapShot.setExceptionalLines(List.copyOf(effects.exceptional));
+        snapShot.setHpHalvedForDemonAvenger(hpHalved(effects));
+    }
+
+    /**
+     * 데몬어벤져의 장비 HP 절반. 옵션 덩어리·잠재 줄·익셉셔널을 각각 내린다 —
+     * 랭킹 3,804명에서 부위 통째 내림 3,022명, 잠재 줄 따로 3,411명 정수 일치(2026-09-15).
+     */
+    private int hpHalved(ItemEffects effects) {
+        int halved = statSheetParser.parse(effects.option).getHP() / 2;
+        for (String line : effects.allPotential()) {
+            halved += statSheetParser.parse(List.of(line)).getHP() / 2;
+        }
+        halved += statSheetParser.parse(effects.exceptional).getHP() / 2;
+        return halved;
     }
 
     private StatSheet nonZeroOrNull(List<String> effects, String sheetName) {

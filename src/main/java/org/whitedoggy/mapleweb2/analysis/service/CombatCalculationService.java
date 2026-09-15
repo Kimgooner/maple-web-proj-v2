@@ -129,6 +129,12 @@ public class CombatCalculationService {
         return (long) Math.floor(base);
     }
 
+    /** 부위 HP 절반. 파서가 소스별로 내린 값이 있으면 그것, 없으면(펫·캐시) 부위 통째 내림. */
+    private static int halvedHp(ItemSnapShot item) {
+        Integer halved = item.getHpHalvedForDemonAvenger();
+        return halved != null ? halved : item.getStatSheet().getHP() / 2;
+    }
+
     /**
      * 데몬어벤져의 주스탯. HP 를 셋으로 갈라 환산한다 — 순수 HP(기본 + 레벨 + AP)는 14당 1,
      * 그 밖의 HP(장비 절반·스킬·컨버전·의지·HP% 로 불어난 몫)는 17.5당 1, 심볼·헥사처럼
@@ -141,19 +147,20 @@ public class CombatCalculationService {
         int apHp = dataSheet.getAbilityPoint() == null ? 0 : dataSheet.getAbilityPoint().getHP();
         double pure = rule.baseHp() + (double) rule.hpPerLevel() * characterLevel + apHp;
 
-        // 장비 HP 는 부위마다 절반(내림). 칭호만 전액이다 — 칭호 HP 1000 착용자 1,840명이 전액으로 맞는다.
+        // 장비 HP 는 절반(내림). 내림 단위는 ItemSnapShot.hpHalvedForDemonAvenger 참고. 칭호만 전액이다 —
+        // 칭호 HP 1000 착용자 1,840명이 전액으로 맞는다.
         int equipmentFull = 0;
         int equipmentHalf = 0;
         for (Map.Entry<String, ItemSnapShot> entry : dataSheet.getItemEquip().entrySet()) {
             int hp = entry.getValue().getStatSheet().getHP();
             equipmentFull += hp;
-            equipmentHalf += entry.getKey().endsWith("칭호") ? hp : hp / 2;
+            equipmentHalf += entry.getKey().endsWith("칭호") ? hp : halvedHp(entry.getValue());
         }
         for (Map<String, ItemSnapShot> map : List.of(dataSheet.getPetEquip(), dataSheet.getCashEquip())) {
             for (ItemSnapShot item : map.values()) {
                 int hp = item.getStatSheet().getHP();
                 equipmentFull += hp;
-                equipmentHalf += hp / 2;
+                equipmentHalf += halvedHp(item);
             }
         }
         // 세트 효과 HP 도 절반인데 옵션 줄마다 내림된다 (DataSheetService.setEffectHpHalved).
