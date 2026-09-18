@@ -83,6 +83,12 @@ class DataSheetCopyTest {
         if (type == Long.class) {
             return 1234L;
         }
+        if (type == Integer.class) {
+            return 287;
+        }
+        if (type == String.class) {
+            return field.getName() + "-값";
+        }
         if (type == StatSheet.class) {
             return new StatSheet(field.getName());
         }

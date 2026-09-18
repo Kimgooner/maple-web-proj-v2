@@ -110,6 +110,16 @@ public class DataSheetService {
                                 CacheTtlPolicy.forDataSheet(date, LocalDateTime.now(KST), dataSheet)))));
     }
 
+    /**
+     * 오늘 시트를 캐시에 둔다. 오늘 앞머리를 만들 때 이미 시트를 만들었으니, 계산 과정을 펼칠 때
+     * 넥슨을 다시 부르지 않고 그 시트를 꺼내 쓰게 한다. 앞머리가 5분마다 새로 만들어지면 이것도
+     * 같이 덮어써서, 시트를 펼쳐 본 계산 과정이 위에 적힌 전투력과 같은 시트에서 나온다.
+     */
+    public Mono<DataSheet> rememberTodaySheet(String ocid, LocalDate today, DataSheet dataSheet) {
+        return calculated.put(dataSheetCacheKey(ocid, today), dataSheet,
+                CacheTtlPolicy.forDataSheet(today, LocalDateTime.now(KST), dataSheet));
+    }
+
     private DataSheet forPreset(CharacterSnapshot snapshot, Integer itemPreset) {
         if (itemPreset == null) {
             return getCombatDataSheet(snapshot);
@@ -164,6 +174,8 @@ public class DataSheetService {
         Integer characterLevel = basicParser.characterLevel(basic);
 
         DataSheet dataSheet = getDataSheetFromSnapshot(snapshot.documents(), characterClass, presetSelection, referenceDate);
+        dataSheet.setCharacterClass(characterClass);
+        dataSheet.setCharacterLevel(characterLevel);
         dataSheet.setIncompleteSnapshot(snapshot.hasMissingDocuments());
         dataSheet.setSolErdaFragments(
                 hexaCoreParser.solErdaFragments(snapshot.document(NexonEndpoint.HEXA_MATRIX)));

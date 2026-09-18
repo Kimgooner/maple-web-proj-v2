@@ -6,7 +6,7 @@ const meta: HistoryMeta = {
   ocid: 'o', range: 'monthly',
   characterInfo: { name: '뚠버리', className: '플레임위자드', level: 290, guild: null, world: '챌린저스3', image: null, mainStats: ['INT'], subStats: ['LUK'], usesMagic: true }, preset: null,
   requestedCount: 12, plannedCount: 3, truncated: true, truncatedFrom: '2026-06-01',
-  dates: ['2026-09-01', '2026-08-01', '2026-07-01'], concurrent: 1, breakdown: null,
+  dates: ['2026-09-01', '2026-08-01', '2026-07-01'], concurrent: 1,
 };
 
 describe('applyHistoryEvent', () => {

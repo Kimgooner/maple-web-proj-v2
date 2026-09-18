@@ -11,9 +11,7 @@ import org.whitedoggy.mapleweb2.analysis.data.DataSheet;
 import org.whitedoggy.mapleweb2.domain.common.stat.StatSheet;
 import org.whitedoggy.mapleweb2.analysis.dto.CharacterInfo;
 import org.whitedoggy.mapleweb2.analysis.data.PresetSelection;
-import org.whitedoggy.mapleweb2.analysis.dto.CombatPowerBreakdown;
 import org.whitedoggy.mapleweb2.analysis.dto.CurrentPresetInfo;
-import org.whitedoggy.mapleweb2.analysis.service.CombatCalculationService;
 import org.whitedoggy.mapleweb2.analysis.service.DataSheetService;
 import org.whitedoggy.mapleweb2.analysis.service.OcidService;
 import org.whitedoggy.mapleweb2.analysis.service.SnapshotService;
@@ -67,7 +65,6 @@ public class CombatPowerHistoryService {
     private final OcidService ocidService;
     private final SnapshotService snapshotService;
     private final DataSheetService dataSheetService;
-    private final CombatCalculationService combatCalculationService;
     private final BasicParser basicParser;
     private final StatParser statParser;
     private final HexaCoreParser hexaCoreParser;
@@ -100,8 +97,7 @@ public class CombatPowerHistoryService {
                         plan.truncatedFrom(),
                         points.stream()
                                 .sorted(Comparator.comparing(CombatPowerHistoryPoint::date))
-                                .toList(),
-                        plan.head().breakdown()
+                                .toList()
                 )));
     }
 
@@ -137,8 +133,7 @@ public class CombatPowerHistoryService {
                             plan.truncated(),
                             plan.truncatedFrom(),
                             plan.dates(),
-                            traffic.current(),
-                            plan.head().breakdown()
+                            traffic.current()
                     ));
 
                     Flux<ServerSentEvent<Object>> points = points(plan)
@@ -232,7 +227,7 @@ public class CombatPowerHistoryService {
         return new CombatPowerHistoryResponse(
                 original.ocid(), original.range(), original.characterInfo(), original.preset(),
                 original.requestedCount(), original.loadedCount(),
-                original.truncated(), original.truncatedFrom(), merged, original.breakdown());
+                original.truncated(), original.truncatedFrom(), merged);
     }
 
     /** 최신 → 과거 순으로 지점을 만든다. 빈 응답을 만나면 그 앞까지만 내보낸다. */
@@ -422,38 +417,24 @@ public class CombatPowerHistoryService {
     private Mono<TodayHead> todayHead(String characterName, String ocid, LocalDate today) {
         return calculated.getOrLoad(todayHeadCacheKey(ocid), TodayHead.class, TODAY_HEAD_TTL,
                         () -> snapshotService.getCurrentSnapshotByOcid(ocid, today)
-                                .map(current -> buildHead(current, today)))
+                                .flatMap(current -> buildHead(ocid, current, today)))
                 .doOnNext(head -> requireHighEnoughLevel(characterName, head));
     }
 
-    private TodayHead buildHead(CharacterSnapshot current, LocalDate today) {
+    /** 앞머리를 만들며 얻은 오늘 시트는 캐시에 남겨, 계산 과정을 펼칠 때 넥슨을 다시 부르지 않게 한다. */
+    private Mono<TodayHead> buildHead(String ocid, CharacterSnapshot current, LocalDate today) {
         JsonNode basic = current.document(NexonEndpoint.BASIC);
         DataSheet dataSheet = combatDataSheet(current);
         Loaded loaded = toPoint(current, today, dataSheet, hexaMatrix(current));
-        return new TodayHead(
+        TodayHead head = new TodayHead(
                 characterInfo(basic),
                 presetOf(current),
                 basicParser.characterCreatedAt(basic),
-                loaded.exists() ? loaded.point() : null,
-                breakdownOf(dataSheet, basic));
-    }
-
-    /**
-     * 오늘 전투력의 항들. 시트가 못 만들어졌으면 null.
-     *
-     * <p>시트의 종합은 파이렛 블레스를 켠 쪽이 높으면 그쪽으로 바꿔 둔 뒤라, 여기서 다시
-     * 계산해도 {@code DataSheet.combatPower} 와 같은 수가 나온다.
-     */
-    private CombatPowerBreakdown breakdownOf(DataSheet dataSheet, JsonNode basic) {
-        if (dataSheet == null || dataSheet.getCombatPower() == null) {
-            return null;
+                loaded.exists() ? loaded.point() : null);
+        if (dataSheet == null) {
+            return Mono.just(head);
         }
-        try {
-            return combatCalculationService.breakdown(
-                    dataSheet, basicParser.characterClass(basic), basicParser.characterLevel(basic));
-        } catch (RuntimeException ignored) {
-            return null;
-        }
+        return dataSheetService.rememberTodaySheet(ocid, today, dataSheet).thenReturn(head);
     }
 
     private CurrentPresetInfo presetOf(CharacterSnapshot current) {

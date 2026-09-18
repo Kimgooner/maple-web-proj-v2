@@ -60,6 +60,10 @@ public class DataSheet {
     StatSheet sumSheet = new StatSheet("종합");
     Long combatPower;
 
+    /** 이 시트를 만든 캐릭터의 직업·레벨. 시트만 꺼내 다시 계산(계산 과정)할 때 필요하다. */
+    String characterClass;
+    Integer characterLevel;
+
     boolean lucidTransformSuspected;
 
     /**
@@ -171,6 +175,8 @@ public class DataSheet {
         this.incompleteSnapshot = other.incompleteSnapshot;
         this.unionChampionUnverified = other.unionChampionUnverified;
         this.solErdaFragments = other.solErdaFragments;
+        this.characterClass = other.characterClass;
+        this.characterLevel = other.characterLevel;
     }
 
     public void buildSum(){
