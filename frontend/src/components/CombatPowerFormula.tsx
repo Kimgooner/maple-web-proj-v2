@@ -71,18 +71,18 @@ function Cell({ value, isPercent }: { value: number; isPercent?: boolean }) {
  * 전투력이 어떻게 나왔는지. 세 단계로 적는다.
  *
  * <ol>
- * <li>요소별 스탯 합 — 장비·세트·스킬… 각 소스가 종합에 더한 스탯을 한 줄씩. 맨 오른쪽은 그 소스를
- *     빼면 전투력이 몇 % 떨어지는지다. 식이 곱이라 몫을 더해도 100 이 되지 않는다 — "이게 없으면
- *     얼마나 잃나"로 읽는다.</li>
+ * <li>요소별 스탯 합 — 장비·세트·스킬… 각 소스가 종합에 더한 스탯을 한 줄씩. 맨 오른쪽은 전투력
+ *     구성 비율(섀플리 값)이라 다 더하면 100% 다.</li>
  * <li>총합 — 위를 전부 더한 종합. 표의 마지막 줄.</li>
  * <li>계산 — 총합에서 나온 항을 곱해 전투력이 되는 식. 항마다 무엇으로 이루어졌는지를 같이 적는다.</li>
  * </ol>
  */
 export function CombatPowerFormula({ breakdown, info }: { breakdown: CombatPowerBreakdown; info: CharacterInfo | null }) {
-  const sources = breakdown.sources ?? [];
+  // 비율이 큰 것부터. 표의 첫 줄이 곧 "전투력을 가장 많이 만드는 요소"다.
+  const sources = [...(breakdown.sources ?? [])].sort((a, b) => b.sharePercent - a.sharePercent);
   const total = breakdown.total;
   const columns = total ? columnsFor(info, total) : [];
-  const maxShare = Math.max(1, ...sources.map((s) => Math.abs(s.sharePercent)));
+  const maxShare = Math.max(1, ...sources.map((s) => s.sharePercent));
 
   const terms: { label: string; value: string; note: string }[] = [
     {
@@ -130,7 +130,7 @@ export function CombatPowerFormula({ breakdown, info }: { breakdown: CombatPower
                 <tr>
                   <th scope="col">요소</th>
                   {columns.map((c) => <th scope="col" key={c.key}>{c.label}</th>)}
-                  <th scope="col" className="share" title="이 요소를 빼고 다시 계산했을 때 전투력이 떨어지는 비율">없으면</th>
+                  <th scope="col" className="share" title="전투력 구성 비율. 요소를 하나씩 더해 갈 때 늘어난 몫을 모든 순서에 대해 평균한 값(섀플리)이라 다 더하면 100%">비율</th>
                 </tr>
               </thead>
               <tbody>
@@ -139,8 +139,8 @@ export function CombatPowerFormula({ breakdown, info }: { breakdown: CombatPower
                     <th scope="row">{sourceLabel(s.source)}</th>
                     {columns.map((c) => <Cell key={c.key} value={c.pick(s.stats)} isPercent={c.percent} />)}
                     <td className="share">
-                      <span className="share-bar" style={{ width: `${(Math.abs(s.sharePercent) / maxShare) * 100}%` }} />
-                      <span className="share-value">−{percent(Math.abs(s.sharePercent))}</span>
+                      <span className="share-bar" style={{ width: `${(Math.max(0, s.sharePercent) / maxShare) * 100}%` }} />
+                      <span className="share-value">{percent(Math.round(s.sharePercent * 10) / 10)}</span>
                     </td>
                   </tr>
                 ))}
@@ -149,14 +149,15 @@ export function CombatPowerFormula({ breakdown, info }: { breakdown: CombatPower
                 <tr>
                   <th scope="row">총합</th>
                   {columns.map((c) => <Cell key={c.key} value={c.pick(total)} isPercent={c.percent} />)}
-                  <td className="share" />
+                  <td className="share"><span className="share-value">100%</span></td>
                 </tr>
               </tfoot>
             </table>
           </div>
           <p className="formula-foot muted">
-            "없으면"은 그 요소를 빼고 다시 계산했을 때 전투력이 떨어지는 비율입니다. 전투력이 곱셈이라
-            요소별 비율을 더해도 100% 가 되지 않습니다. 고정 = 스탯 % 를 받지 않는 값(심볼·헥사스탯).
+            비율은 전투력이 곱셈이라 항을 그대로 나눌 수 없어, 요소를 하나씩 더해 갈 때 늘어난 몫을 모든
+            순서에 대해 평균한 값(섀플리 값)입니다. 다 더하면 100% 입니다. 고정 = 스탯 % 를 받지 않는
+            값(심볼·헥사스탯).
           </p>
         </section>
       )}

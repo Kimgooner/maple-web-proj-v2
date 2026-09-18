@@ -46,8 +46,7 @@ public record CombatPowerBreakdown(
      *
      * @param source       시트 이름 (items, setEffect, skill …)
      * @param stats        이 소스가 종합에 더한 스탯
-     * @param sharePercent 이 소스를 빼고 다시 계산하면 전투력이 몇 % 떨어지는가. 식이 곱이라 소스별 몫을
-     *                     더해도 100 이 되지 않는다 — "이게 없으면 얼마나 잃나"로 읽는다
+     * @param sharePercent 전투력 구성 비율(%). 섀플리 값이라 소스를 다 더하면 100 이다
      */
     public record SourceShare(String source, StatSheetSummary stats, double sharePercent) {
     }

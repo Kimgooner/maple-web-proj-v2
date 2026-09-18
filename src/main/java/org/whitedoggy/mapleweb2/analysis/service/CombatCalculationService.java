@@ -63,27 +63,82 @@ public class CombatCalculationService {
     }
 
     /**
-     * 전투력과 그것을 이루는 항들, 그리고 소스별 몫. 화면이 "어떻게 계산됐나"를 이 값으로 적는다.
+     * 전투력과 그것을 이루는 항들, 그리고 소스별 구성 비율. 화면이 "어떻게 계산됐나"를 이 값으로 적는다.
      *
-     * <p>소스별 몫은 그 소스를 뺀 시트로 다시 계산해 잰다 — 전투력이 곱이라 항을 나눠 줄 수 없으니,
-     * "이게 없으면 얼마나 잃나"가 유일하게 정직한 몫이다. 소스가 열여덟이라 계산도 열여덟 번이지만
-     * 산수뿐이라 시트 한 장 만드는 값에 비하면 없는 셈이다.
+     * <p>전투력이 곱이라 "장비가 몇 %" 를 항에서 바로 나눠 줄 수 없다. 그래서 섀플리 값으로 잰다 —
+     * 소스를 아무 차례로나 하나씩 더해 갈 때 그 소스가 늘린 전투력을 모든 차례에 대해 평균한 것.
+     * 차례에 기대지 않고, 전부 더하면 정확히 전투력이 되어 비율이 100% 로 떨어진다. 소스가
+     * 열여덟이면 조합 2^18 = 26만 가지를 다 계산한다. 소스별 시트를 미리 합쳐 두고 종합만 갈아
+     * 끼우면 조합 하나가 시트 열여덟 장 더하기라 전부 해도 100ms 안이다.
      */
     public CombatPowerBreakdown breakdown(DataSheet dataSheet, String characterClass, Integer characterLevel) {
         CombatPowerBreakdown terms = terms(dataSheet, characterClass, characterLevel);
+        Map<String, StatSheet> parts = dataSheet.contributions();
+        List<String> names = List.copyOf(parts.keySet());
+        double[] shapley = shapley(dataSheet, names, parts, characterClass, characterLevel);
         List<CombatPowerBreakdown.SourceShare> sources = new ArrayList<>();
-        for (Map.Entry<String, StatSheet> entry : dataSheet.contributions().entrySet()) {
-            long without = terms(dataSheet.without(entry.getKey()), characterClass, characterLevel).combatPower();
-            double share = terms.combatPower() == 0 ? 0.0
-                    : (terms.combatPower() - without) * 100.0 / terms.combatPower();
+        for (int i = 0; i < names.size(); i++) {
+            double share = terms.combatPower() == 0 ? 0.0 : shapley[i] * 100.0 / terms.combatPower();
             sources.add(new CombatPowerBreakdown.SourceShare(
-                    entry.getKey(), StatSheetSummary.of(entry.getValue()), share));
+                    names.get(i), StatSheetSummary.of(parts.get(names.get(i))), share));
         }
         return new CombatPowerBreakdown(
                 terms.mainStat(), terms.subStat(), terms.statTerm(), terms.usesMagic(), terms.power(),
                 terms.damage(), terms.bossDamage(), terms.criticalDamage(), terms.finalDamage(),
                 terms.correction(), terms.combatPower(),
                 List.copyOf(sources), StatSheetSummary.of(dataSheet.getSumSheet()));
+    }
+
+    /**
+     * 소스별 섀플리 값. {@code v[mask]} 는 그 조합만 넣은 전투력이고,
+     * φ_i = Σ_{S∌i} |S|!(n-|S|-1)!/n! · (v(S∪{i}) − v(S)).
+     *
+     * <p>데몬어벤져는 주스탯이 종합 시트가 아니라 장비 목록·세트·AP 에서 직접 나오므로 종합만
+     * 갈아 끼울 수 없다. 그 직업만 소스를 비운 사본을 만들어 다시 합친다 — 느리지만 한 직업이고
+     * 오늘 앞머리는 5분 캐시라 견딜 만하다.
+     */
+    private double[] shapley(DataSheet dataSheet, List<String> names, Map<String, StatSheet> parts,
+                             String characterClass, Integer characterLevel) {
+        int n = names.size();
+        boolean demonAvenger = gameData.isDemonAvenger(characterClass);
+        int itemsBit = names.indexOf("items");
+        long[] v = new long[1 << n];
+        for (int mask = 1; mask < (1 << n); mask++) {
+            DataSheet variant;
+            if (demonAvenger) {
+                java.util.Set<String> kept = new java.util.HashSet<>();
+                for (int i = 0; i < n; i++) {
+                    if ((mask & (1 << i)) != 0) kept.add(names.get(i));
+                }
+                variant = dataSheet.keeping(kept);
+            } else {
+                StatSheet sum = new StatSheet("종합");
+                for (int i = 0; i < n; i++) {
+                    if ((mask & (1 << i)) != 0) sum.merge(parts.get(names.get(i)));
+                }
+                variant = dataSheet.withSum(sum, itemsBit < 0 || (mask & (1 << itemsBit)) != 0);
+            }
+            v[mask] = terms(variant, characterClass, characterLevel).combatPower();
+        }
+        // 조합 크기별 가중치 |S|!(n-|S|-1)!/n!. 팩토리얼을 직접 곱하면 넘치므로 비율로 쌓는다.
+        double[] weight = new double[n];
+        for (int s = 0; s < n; s++) {
+            double w = 1.0 / n;
+            for (int k = 1; k <= s; k++) {
+                w *= (double) k / (n - k);
+            }
+            weight[s] = w;
+        }
+        double[] phi = new double[n];
+        for (int mask = 0; mask < (1 << n); mask++) {
+            int size = Integer.bitCount(mask);
+            for (int i = 0; i < n; i++) {
+                if ((mask & (1 << i)) == 0) {
+                    phi[i] += weight[size] * (v[mask | (1 << i)] - v[mask]);
+                }
+            }
+        }
+        return phi;
     }
 
     /** 식의 항과 전투력만. 소스별 몫은 비어 있다. */

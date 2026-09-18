@@ -204,14 +204,48 @@ public class DataSheet {
         return out;
     }
 
-    /**
-     * 한 소스를 뺀 사본. 전투력에서 그 소스가 차지하는 몫을 재는 데 쓴다 — 빼고 다시 계산한 값과의
-     * 차이가 곧 그 소스의 기여다. 원본은 건드리지 않는다.
-     */
+    /** 한 소스를 뺀 사본. 원본은 건드리지 않는다. */
     public DataSheet without(String source) {
+        java.util.Set<String> kept = new java.util.HashSet<>(SOURCE_ORDER);
+        kept.remove(source);
+        return keeping(kept);
+    }
+
+    /**
+     * 주어진 소스만 남긴 사본. 전투력에서 소스들이 차지하는 몫을 재는 데 쓴다 — 소스를 넣고 뺀
+     * 조합마다 다시 계산한 값의 차이가 곧 기여다. 원본은 건드리지 않는다.
+     */
+    public DataSheet keeping(java.util.Set<String> sources) {
         DataSheet copy = new DataSheet();
         copy.copy(this);
         copy.pirateBlessApplied = this.pirateBlessApplied;
+        for (String source : SOURCE_ORDER) {
+            if (!sources.contains(source)) {
+                copy.blank(source);
+            }
+        }
+        copy.buildSum(this.pirateBlessApplied);
+        return copy;
+    }
+
+    /**
+     * 종합만 갈아 끼운 사본. 소스별 시트를 미리 합쳐 둔 쪽이 종합을 만들어 넣을 때 쓴다 —
+     * {@link #buildSum} 을 다시 도는 것보다 훨씬 싸다. 장비를 뺀 조합이면 장비 목록도 비워
+     * 설명문에만 있는 장비 효과(루인 포스실드)가 따라 빠지게 한다.
+     */
+    public DataSheet withSum(StatSheet sum, boolean itemsIncluded) {
+        DataSheet copy = new DataSheet();
+        copy.copy(this);
+        copy.pirateBlessApplied = this.pirateBlessApplied;
+        copy.sumSheet = sum;
+        if (!itemsIncluded) {
+            copy.itemEquip = Map.of();
+        }
+        return copy;
+    }
+
+    private void blank(String source) {
+        DataSheet copy = this;
         switch (source) {
             case "items" -> copy.itemEquip = Map.of();
             case "cash" -> copy.cashEquip = Map.of();
@@ -233,8 +267,6 @@ public class DataSheet {
             case "conversionStarforce" -> copy.conversionStarforce = new StatSheet("conversionStarforce");
             default -> throw new IllegalArgumentException(source);
         }
-        copy.buildSum(this.pirateBlessApplied);
-        return copy;
     }
 
     private StatSheet sheetOf(String source) {
