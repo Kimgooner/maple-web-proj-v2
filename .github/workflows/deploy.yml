@@ -136,7 +136,7 @@ jobs:
 
       - name: Copy compose files
         run: |
-          scp -i ~/.ssh/deploy deploy/docker-compose.yml deploy/Caddyfile \
+          scp -i ~/.ssh/deploy deploy/docker-compose.yml \
             "${{ secrets.OCI_USER }}@${{ secrets.OCI_HOST }}:/opt/mapledelta/"
 
       # 서버는 GHCR 에 상시 로그인하지 않는다. 배포 순간에만 이 워크플로의 토큰으로 pull 한다.
@@ -147,6 +147,9 @@ jobs:
           cd /opt/mapledelta
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
           docker compose pull --quiet app web redis
+          # Caddy 를 걷어낸 뒤 첫 배포: 80/443 을 아직 Caddy 가 쥐고 있으면 web 이 못 뜬다.
+          # compose 파일에 없는 서비스라 stop 이 안 먹어, 컨테이너를 이름으로 지운다. 없으면 그냥 지나간다.
+          docker rm -f mapledelta-caddy-1 >/dev/null 2>&1 || true
           docker compose up -d --remove-orphans
           docker logout ghcr.io >/dev/null
           for i in $(seq 1 30); do
@@ -156,6 +159,8 @@ jobs:
             if [ "$i" = 30 ]; then echo "app did not come up"; docker compose logs --tail 50 app; exit 1; fi
             sleep 2
           done
-          curl -sf -o /dev/null http://127.0.0.1/ && echo "caddy -> web ok"
+          # 원본 TLS 로 정적 화면이 나오는지. Origin CA 라 -k, Host/SNI 는 --resolve 로 맞춘다.
+          curl -skf -o /dev/null --resolve mapledelta.kr:443:127.0.0.1 https://mapledelta.kr/ || { echo "web tls failed"; exit 1; }
+          echo "web tls ok"
           docker image prune -f >/dev/null
           REMOTE

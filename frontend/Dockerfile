@@ -3,4 +3,5 @@
 FROM nginx:1.27-alpine
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY cloudflare-ips.conf /etc/nginx/cloudflare-ips.conf
 COPY dist/ /usr/share/nginx/html/

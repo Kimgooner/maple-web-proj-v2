@@ -22,14 +22,19 @@ services:
         max-size: "20m"
         max-file: "5"
 
-  # 프런트를 서빙하고 /api 만 app 으로 넘긴다. Caddy 는 TLS 만 맡는다.
+  # 프런트를 서빙하고 /api 만 app 으로 넘긴다. TLS 도 여기서 끝난다 — 앞은 Cloudflare 다.
+  # 인증서는 Cloudflare Origin CA. 서버의 ./certs (origin.pem, origin.key) 를 읽기 전용으로 마운트한다.
+  # Git 에도 이미지에도 넣지 않는다.
   web:
     image: ghcr.io/kimgooner/maple-web-proj-v2-web:${APP_TAG:-latest}
     restart: unless-stopped
     depends_on:
       - app
-    expose:
-      - "80"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./certs:/etc/nginx/certs:ro
     logging:
       driver: json-file
       options:
@@ -58,21 +63,5 @@ services:
         max-size: "20m"
         max-file: "5"
 
-  caddy:
-    image: caddy:2
-    restart: unless-stopped
-    depends_on:
-      - web
-    ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-
 volumes:
-  caddy_data:
-  caddy_config:
   redis_data:
