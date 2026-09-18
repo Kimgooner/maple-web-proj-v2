@@ -1383,6 +1383,13 @@ h2 {
 .potential-grade.unique { background:#fdf3d6; color:#a2740b; }
 .potential-grade.legendary { background:#eaf7dd; color:#3f7d1f; }
 
+/* 소울 이름. 등급 블럭 자리에 두되 등급이 아니라 색을 빼고 글자로만 적는다. */
+.soul-name {
+  margin-left:6px;
+  font-weight:500;
+  color:var(--muted);
+}
+
 .item-line {
   font-size:11px;
   line-height:1.7;

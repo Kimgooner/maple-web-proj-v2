@@ -294,7 +294,7 @@ public class AnalysisService {
                 item.potentialGrade(), item.additionalPotentialGrade(), item.expired(),
                 item.stats(), item.descriptionLines(),
                 item.potentialLines(), item.additionalPotentialLines(), item.exceptionalLines(),
-                item.soulPotentialGrade(), item.soulPotentialLines());
+                item.soulName(), item.soulLines(), item.soulPotentialGrade(), item.soulPotentialLines());
     }
 
     private StatDeltaGroupSummary toStatDeltaGroupSummary(DataSheetCompareService.StatDeltaGroup group) {

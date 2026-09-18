@@ -134,6 +134,13 @@ function ItemCard({ item, label, muted }: { item: ItemDetail | null; label: stri
       <PotentialBlock title="잠재능력" grade={item.potentialGrade} lines={item.potentialLines} />
       <PotentialBlock title="에디셔널 잠재능력" grade={item.additionalPotentialGrade} lines={item.additionalPotentialLines} />
       <PotentialBlock title="익셉셔널" grade={null} lines={item.exceptionalLines} />
+      {/* 소울은 게임 아이템 창처럼 잠재 아래. 이름을 제목 옆에 두고 옵션·상시 공격력을 줄로 적는다. */}
+      {item.soulName && (
+        <div className="item-potential">
+          <div className="item-section">소울<span className="soul-name">{item.soulName.replace(/ 적용$/, '')}</span></div>
+          {(item.soulLines ?? []).map((line, index) => <div className="item-line" key={`${line}-${index}`}>{line}</div>)}
+        </div>
+      )}
       <PotentialBlock title="소울 잠재능력" grade={item.soulPotentialGrade} lines={item.soulPotentialLines ?? []} />
     </div>
   );

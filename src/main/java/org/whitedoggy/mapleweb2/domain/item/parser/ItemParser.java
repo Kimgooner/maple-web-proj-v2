@@ -249,6 +249,28 @@ public class ItemParser {
         }
     }
 
+    /** 화면에 보여줄 소울. 계산은 {@link #addSoulEffects} 가 이미 넣었고 여기서는 원문만 남긴다. */
+    private void describeSoul(ItemSnapShot snapShot, JsonNode item) {
+        String soulName = Jsons.text(item, "soul_name");
+        snapShot.setSoulName(soulName.isEmpty() ? null : soulName);
+        List<String> lines = new ArrayList<>();
+        String option = Jsons.text(item, "soul_option");
+        if (!option.isEmpty()) {
+            lines.add(option);
+        }
+        int soulPad = Jsons.optionalInt(item, "soul_pad").orElse(0);
+        int soulMad = Jsons.optionalInt(item, "soul_mad").orElse(0);
+        if (soulPad > 0) {
+            lines.add("공격력 +" + soulPad);
+        }
+        if (soulMad > 0) {
+            lines.add("마력 +" + soulMad);
+        }
+        snapShot.setSoulLines(lines);
+        String soulGrade = Jsons.text(item, "soul_potential_grade");
+        snapShot.setSoulPotentialGrade(soulGrade.isEmpty() ? null : soulGrade);
+    }
+
     private void addPotentials(ItemEffects effects, JsonNode item) {
         for (String option : getPotentialOptions(item)) {
             EffectTextSplitter.addSplit(effects.potential, option);
@@ -389,8 +411,7 @@ public class ItemParser {
         snapShot.setWeaponNormalizationFailed(!normalized.stageResolved());
 
         addSoulEffects(effects, item);
-        String soulGrade = Jsons.text(item, "soul_potential_grade");
-        snapShot.setSoulPotentialGrade(soulGrade.isEmpty() ? null : soulGrade);
+        describeSoul(snapShot, item);
 
         addPotentials(effects, item);
         applyEffects(snapShot, itemName, effects);

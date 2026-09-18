@@ -61,6 +61,10 @@ public class ItemSnapShot {
     List<String> soulPotentialLines;
     /** 소울 잠재 등급. 없으면 null. */
     String soulPotentialGrade;
+    /** 무기 소울 이름("위대한 데미안의 소울 적용"). 없으면 null. */
+    String soulName;
+    /** 소울이 주는 것. 소울 옵션("공격력 +3%")과 상시 공격력·마력("공격력 +20"). */
+    List<String> soulLines;
 
     /** 게임 아이템 창처럼 보여줄 스탯 줄. 장비가 아니면 비어 있다. */
     List<ItemStatLine> statLines;
