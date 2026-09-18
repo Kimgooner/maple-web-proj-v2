@@ -270,14 +270,9 @@ export function CombatPowerFormula({ breakdown, info }: { breakdown: CombatPower
             <div className="formula-card result">
               <div className="formula-label">전투력</div>
               <div className="formula-value">{formatGameNumber(breakdown.combatPower)}</div>
-              <div className="formula-note">소수점은 버린다</div>
             </div>
           </div>
         </div>
-        <p className="formula-foot muted">
-          방어율 무시·크리티컬 확률·재사용 대기시간은 전투력에 들어가지 않습니다. 값은 오늘 시점의
-          계산에 실제로 쓴 것들입니다.
-        </p>
       </section>
     </div>
   );
