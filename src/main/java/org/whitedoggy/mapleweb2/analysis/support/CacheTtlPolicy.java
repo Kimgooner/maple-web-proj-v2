@@ -16,8 +16,15 @@ import java.time.LocalTime;
  */
 public final class CacheTtlPolicy {
 
-    /** 오늘치는 캐릭터가 움직이는 대로 계속 변한다. */
-    public static final Duration TODAY = Duration.ofHours(6);
+    /**
+     * 오늘치는 캐릭터가 움직이는 대로 계속 변한다. 30분만 둔다.
+     *
+     * <p>오늘 시트는 추이를 열 때(앞머리, 5분마다 새로) 만들어 여기 넣고, 계산 과정을 펼치거나
+     * 오늘 구간의 상세를 볼 때 꺼내 쓴다. 조회할 때마다 새 시트로 덮어쓰이므로 이 값은 "마지막
+     * 조회 뒤 얼마나 더 들고 있나"다 — 펼쳐 보는 데 30분이면 넉넉하고, 그보다 오래 두면 그
+     * 사이 성장한 캐릭터의 상세가 옛 시트로 나온다. 전에는 6시간이었다.
+     */
+    public static final Duration TODAY = Duration.ofMinutes(30);
 
     /** 굳은 과거. 스냅샷 한 지점이 넥슨 호출 15회라 다시 받을 이유가 없다. */
     public static final Duration SETTLED_PAST = Duration.ofDays(30);

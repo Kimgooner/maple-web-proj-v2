@@ -55,6 +55,11 @@ public class CombatPowerHistoryService {
 
     /** 넥슨 API 가 값을 주기 시작하는 첫 날. 이보다 이전은 전 필드 null 로 온다. */
     /** 오늘치 앞머리를 들고 있는 시간. 넥슨 반영 지연(평균 15분)보다 짧게 잡는다. */
+    /**
+     * 오늘 앞머리(이름·프리셋·오늘 지점)를 다시 만들기까지의 시간. 추이를 열 때마다 이보다 오래된
+     * 앞머리면 현재 스냅샷을 새로 받아 만들고, 그때 오늘 시트도 캐시에 같이 덮어쓴다
+     * ({@code CacheTtlPolicy.TODAY}, 30분). 5분 안의 재조회·구간 전환은 호출이 없다.
+     */
     private static final Duration TODAY_HEAD_TTL = Duration.ofMinutes(5);
 
     private static final LocalDate API_FIRST_DATE = LocalDate.of(2023, 12, 21);
