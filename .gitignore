@@ -58,3 +58,9 @@ src/test/resources/fixtures/*.json.gz
 
 ### 로컬 확인용 컨테이너 (로컬 전용, 커밋하지 않는다)
 local/
+
+# Cloudflare Origin CA 인증서. 서버에만 두고 절대 커밋하지 않는다.
+origin.pem
+origin.key
+*.pem
+*.key
