@@ -102,6 +102,16 @@ public class AnalysisController {
     private static final LocalDate API_FIRST_DATE = LocalDate.of(2023, 12, 21);
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
+    /**
+     * 장비 프리셋은 1~3 뿐이다. 다른 번호를 그대로 넘기면 번호마다 캐시 키가 새로 생기고 넥슨을
+     * 다시 부른다 — 파서는 없는 번호를 현재 장비로 대신해 결과는 같은데 자리만 늘어난다.
+     */
+    private void requireItemPreset(Integer itemPreset) {
+        if (itemPreset != null && (itemPreset < 1 || itemPreset > 3)) {
+            throw new IllegalArgumentException("itemPreset 은 1~3 이어야 합니다.");
+        }
+    }
+
     private void requireOpenDate(LocalDate date, String name) {
         if (date == null || date.isBefore(API_FIRST_DATE) || date.isAfter(LocalDate.now(KST))) {
             throw new IllegalArgumentException(
@@ -119,6 +129,7 @@ public class AnalysisController {
     ) {
         requireOpenDate(previousDate, "previousDate");
         requireOpenDate(currentDate, "currentDate");
+        requireItemPreset(itemPreset);
         return analysisService.getCombatPowerDetail(ocid, previousDate, currentDate, itemPreset);
     }
 

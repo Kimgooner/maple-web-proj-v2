@@ -442,7 +442,7 @@ public class CombatPowerHistoryService {
      * 5분 안에는 260 미만 캐릭터가 그냥 통과한다.
      */
     private Mono<TodayHead> todayHead(String characterName, String ocid, LocalDate today) {
-        return calculated.getOrLoad(todayHeadCacheKey(ocid), TodayHead.class, TODAY_HEAD_TTL,
+        return calculated.getOrLoad(todayHeadCacheKey(ocid, today), TodayHead.class, TODAY_HEAD_TTL,
                         () -> snapshotService.getCurrentSnapshotByOcid(ocid, today)
                                 .flatMap(current -> buildHead(ocid, current, today)))
                 .doOnNext(head -> requireHighEnoughLevel(characterName, head));
@@ -490,8 +490,13 @@ public class CombatPowerHistoryService {
                 chosen.hyperStatPreset(), chosen.unionRaiderPreset());
     }
 
-    private static String todayHeadCacheKey(String ocid) {
-        return "maple:todayhead:" + (ocid == null ? "" : ocid.trim());
+    /**
+     * 날짜가 키에 들어간다. 23:59 에 만든 앞머리를 00:01 에 꺼내면 "오늘 지점"의 날짜가 어제라,
+     * 새 날짜의 목록에 어제 날짜 지점이 오늘 자리에 들어간다. 날짜를 넣으면 자정 뒤 첫 조회가
+     * 새로 만든다.
+     */
+    private static String todayHeadCacheKey(String ocid, LocalDate today) {
+        return "maple:todayhead:" + (ocid == null ? "" : ocid.trim()) + ":" + today;
     }
 
     private Plan buildPlan(String ocid, HistoryRange range, LocalDate today, TodayHead head) {
