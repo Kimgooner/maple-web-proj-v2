@@ -215,7 +215,7 @@ public class CombatPowerHistoryService {
         }
         String cacheKey = historyPointCacheKey(ocid, date) + ":p" + itemPreset;
         return calculated.get(cacheKey, CombatPowerHistoryPoint.class)
-                .switchIfEmpty(Mono.defer(() -> snapshotService.getSnapshotByOcid(ocid, date)
+                .switchIfEmpty(calculated.singleFlight(cacheKey, () -> snapshotService.getSnapshotByOcid(ocid, date)
                         .map(snapshot -> forcedPoint(snapshot, date, itemPreset))
                         .flatMap(point -> calculated.put(cacheKey, point,
                                 CacheTtlPolicy.forHistoryPoint(date, LocalDateTime.now(KST), null, true)))));
@@ -276,10 +276,11 @@ public class CombatPowerHistoryService {
             return Mono.just(new Loaded(true, CombatPowerHistoryPoint.awaiting(date)));
         }
 
+        // 같은 지점을 동시에 만드는 요청은 첫 것의 결과를 같이 기다린다 (CalculatedCache.singleFlight).
         String cacheKey = historyPointCacheKey(plan.ocid(), date);
         return calculated.get(cacheKey, CombatPowerHistoryPoint.class)
                 .map(point -> new Loaded(true, point))
-                .switchIfEmpty(Mono.defer(() -> snapshotService.getSnapshotByOcid(plan.ocid(), date)
+                .switchIfEmpty(calculated.singleFlight(cacheKey, () -> snapshotService.getSnapshotByOcid(plan.ocid(), date)
                         .flatMap(snapshot -> loadAndCachePoint(cacheKey, date, snapshot))));
     }
 

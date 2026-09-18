@@ -53,8 +53,27 @@ public class CalculatedCache {
 
     public <T> Mono<T> getOrLoad(String key, Class<T> type, Duration ttl, Supplier<Mono<T>> loader) {
         return get(key, type)
-                .switchIfEmpty(Mono.defer(() -> loader.get().flatMap(value -> put(key, value, ttl))));
+                .switchIfEmpty(singleFlight(key, () -> loader.get().flatMap(value -> put(key, value, ttl))));
     }
+
+    /**
+     * 같은 키를 동시에 만드는 일을 한 번으로 합친다.
+     *
+     * <p>캐시가 비어 있을 때 같은 캐릭터를 여럿이 열면(커뮤니티에 올린 글의 예시 캐릭터가 꼭 그렇다)
+     * 각자 넥슨을 540회씩 부른다. 첫 요청이 만드는 동안 뒤의 요청은 그 결과를 같이 기다리게 한다.
+     * 다 만들면 표에서 빼므로 캐시에 들어간 뒤로는 평소 경로(get 히트)다. 실패도 함께 받는다 —
+     * 다음 요청은 새로 만든다. 인스턴스 하나짜리 앱이라 분산 잠금은 두지 않는다.
+     */
+    @SuppressWarnings("unchecked")
+    public <T> Mono<T> singleFlight(String key, Supplier<Mono<T>> work) {
+        return Mono.defer(() -> (Mono<T>) inFlight.computeIfAbsent(key, k ->
+                Mono.defer(work)
+                        .doFinally(signal -> inFlight.remove(k))
+                        .cache()));
+    }
+
+    /** 지금 만드는 중인 키. 값은 완료되면 빠진다. */
+    private final java.util.concurrent.ConcurrentMap<String, Mono<?>> inFlight = new java.util.concurrent.ConcurrentHashMap<>();
 
     private boolean isCurrent(String key, Envelope envelope) {
         if (version.tag().equals(envelope.version())) {

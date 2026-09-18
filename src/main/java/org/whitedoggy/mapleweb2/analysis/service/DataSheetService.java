@@ -101,8 +101,9 @@ public class DataSheetService {
     ) {
         String cacheKey = dataSheetCacheKey(ocid, date)
                 + (itemPreset == null ? "" : ":p" + itemPreset);
+        // 같은 시트를 동시에 만드는 요청은 첫 것의 결과를 같이 기다린다 (CalculatedCache.singleFlight).
         return calculated.get(cacheKey, DataSheet.class)
-                .switchIfEmpty(Mono.defer(() -> snapshotLoader.get()
+                .switchIfEmpty(calculated.singleFlight(cacheKey, () -> snapshotLoader.get()
                         .map(snapshot -> forPreset(snapshot, itemPreset))
                         .flatMap(dataSheet -> calculated.put(
                                 cacheKey,
