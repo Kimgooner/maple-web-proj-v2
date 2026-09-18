@@ -13,6 +13,7 @@ services:
       NEXON_RPS: "450"
       MAPLE_LEVEL_BAND_ENABLED: "true"
       SPRING_DATA_REDIS_HOST: redis
+      # JVM 힙 상한(-Xmx2g)은 Dockerfile 의 JAVA_TOOL_OPTIONS 에 있다. 여기서 덮어쓰면 GC·시간대 옵션까지 사라진다.
     expose:
       - "8080"
     logging:
@@ -41,10 +42,14 @@ services:
   # volatile-lru 는 만료가 걸린 키만 밀어낸다. 캐시는 전부 TTL 이 있어 그대로 밀려나고,
   # 레벨 구간 표본처럼 만료 없이 넣은 값은 메모리가 차도 남는다. allkeys-lru 로 두면
   # 이게 쓸려 나갔을 때 부팅하며 다시 긁어, 배포할 때마다 8,000명을 다시 재게 된다.
+  #
+  # maxmemory 12GB: 24GB 서버에서 OS 3 + JVM 3 을 빼고, Redis RSS 가 maxmemory × 단편화(1.2~1.5)
+  # 까지 가는 것과 RDB 저장 fork 의 copy-on-write 여유까지 본 상한이다. gzip 시트 10KB 기준
+  # 60만 구간, 추이 지점 400B 기준 70만 캐릭터분이다. 이 위로는 LRU 가 안 읽힌 것부터 밀어낸다.
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    command: ["redis-server", "--maxmemory", "1gb", "--maxmemory-policy", "volatile-lru", "--save", "300", "1"]
+    command: ["redis-server", "--maxmemory", "12gb", "--maxmemory-policy", "volatile-lru", "--save", "300", "1"]
     volumes:
       - redis_data:/data
     logging:
