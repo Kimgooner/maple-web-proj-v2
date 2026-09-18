@@ -1,6 +1,7 @@
 package org.whitedoggy.mapleweb2.analysis.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClientRequestException;
@@ -25,6 +26,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class SnapshotService {
@@ -183,6 +185,9 @@ public class SnapshotService {
      */
     private Mono<JsonNode> missingDocument(NexonEndpoint endpoint, Throwable error, Set<NexonEndpoint> missing) {
         if (!isAbsent(error)) {
+            // 결손은 계산을 살리되 조용히 넘기지 않는다. 장비 문서가 버퍼 상한을 넘겨 빠졌을 때
+            // 로그가 없어 전투력이 200분의 1 로 찍히는 것을 이틀 뒤에야 알았다.
+            log.warn("넥슨 문서를 못 받아 비워 둡니다: {} - {}", endpoint, String.valueOf(error));
             missing.add(endpoint);
         }
         return Mono.just(nullNode());
