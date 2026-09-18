@@ -19,10 +19,11 @@ describe('format', () => {
     expect(formatStatDelta('ATTACK_POWER', -3.456)).toBe('-3.46');
   });
   it('axis date', () => {
-    expect(formatAxisDate('2026-09-04', 'daily')).toBe('9/4');
-    expect(formatAxisDate('2026-09-01', 'monthly')).toBe('2026.09');
+    expect(formatAxisDate('2026-09-04', 'weekly')).toBe('9/4');
+    expect(formatAxisDate('2026-09-06', 'monthly')).toBe('9/6');
+    expect(formatAxisDate('2026-09-01', 'yearly')).toBe('2026.09');
     // 월간의 오른쪽 끝(오늘)은 1일이 아니라 날짜로 적는다.
-    expect(formatAxisDate('2026-09-18', 'monthly')).toBe('9/18');
+    expect(formatAxisDate('2026-09-18', 'yearly')).toBe('9/18');
   });
 });
 

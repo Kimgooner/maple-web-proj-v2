@@ -17,7 +17,7 @@ interface Props {
   breakdown: CombatPowerBreakdown | null;
 }
 
-const RANGE_LABEL: Record<HistoryRange, string> = { daily: '최근 30일', monthly: '최근 12개월' };
+const RANGE_LABEL: Record<HistoryRange, string> = { weekly: '최근 7일', monthly: '최근 30일', yearly: '최근 12개월' };
 
 /**
  * 계산에 쓴 프리셋 번호. "보스 프리셋 기준" 이라고만 적으면 어느 번호를 골랐는지 알 수 없어,

@@ -1,6 +1,7 @@
 /** 백엔드 명세: .plan/general/2026-09-04-frontend-api-handoff.md */
 
-export type HistoryRange = 'daily' | 'monthly';
+/** 주간: 오늘 포함 7일 매일 · 월간: 오늘 + 지난 29일의 3일 격자 · 연간: 오늘 + 지난 11달의 1일 */
+export type HistoryRange = 'weekly' | 'monthly' | 'yearly';
 
 export interface CharacterInfo {
   name: string;

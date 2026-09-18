@@ -130,7 +130,7 @@ export function TrendChart(
    * <p>분모는 가장 마지막에 아는 값을 쓴다 — 코어를 새로 열면 분모가 늘어나므로,
    * 지금 기준으로 그려야 축이 구간마다 흔들리지 않는다.
    */
-  const required = range === 'monthly'
+  const required = range === 'yearly'
     ? [...points].reverse()
         .map((p) => p.solErdaFragmentsRequired)
         .find((v): v is number => v != null && v > 0) ?? null

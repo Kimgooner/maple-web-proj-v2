@@ -1,3 +1,4 @@
+import type { HistoryRange } from '../api/types';
 const PERCENT_STATS = new Set([
   'STR_PERCENT', 'DEX_PERCENT', 'INT_PERCENT', 'LUK_PERCENT', 'HP_PERCENT', 'ALL_STAT_PERCENT',
   'ATTACK_POWER_PERCENT', 'MAGIC_POWER_PERCENT',
@@ -88,14 +89,14 @@ export function shortDate(date: string): string {
 export const compact = formatCompact;
 
 /**
- * "2026-09-04" → "9/4", 월간이면 "2026.09".
+ * "2026-09-04" → "9/4". 연간의 1일 지점은 "2026.09".
  *
- * <p>월간의 오른쪽 끝은 1일이 아니라 오늘이다. 그것까지 "2026.09" 로 적으면 9/1 지점처럼 읽히므로
- * 1일이 아닌 날짜는 월간에서도 날짜로 적는다.
+ * <p>연간의 오른쪽 끝은 1일이 아니라 오늘이다. 그것까지 "2026.09" 로 적으면 9/1 지점처럼 읽히므로
+ * 1일이 아닌 날짜는 연간에서도 날짜로 적는다. 주간·월간은 전부 날짜다.
  */
-export function formatAxisDate(date: string, range: 'daily' | 'monthly'): string {
+export function formatAxisDate(date: string, range: HistoryRange): string {
   const [y, m, d] = date.split('-');
-  return range === 'monthly' && Number(d) === 1 ? `${y}.${m}` : `${Number(m)}/${Number(d)}`;
+  return range === 'yearly' && Number(d) === 1 ? `${y}.${m}` : `${Number(m)}/${Number(d)}`;
 }
 
 /** "2026-09-04" → "2026년 9월 4일" */

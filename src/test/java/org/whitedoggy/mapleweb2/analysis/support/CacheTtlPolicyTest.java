@@ -83,19 +83,24 @@ class CacheTtlPolicyTest {
         return sheet;
     }
 
-    /** 일간 추이가 더는 읽지 않는 날 이후로는 들고 있지 않는다. */
+    /** 어떤 구간도 더는 읽지 않는 날 이후로는 들고 있지 않는다. */
     @Test
-    void 일간_지점은_창을_벗어나는_날까지만_둔다() {
-        // 9/8 에 29일 전(8/10) 지점을 계산 — 일간 창은 오늘 포함 30일이라 9/8 이 마지막으로 읽는 날.
-        java.time.Duration ttl = CacheTtlPolicy.forHistoryPoint(TODAY.minusDays(29), NOW, settledSheet(), true);
-        assertEquals(java.time.Duration.between(NOW, LocalDate.of(2026, 9, 9).atStartOfDay()), ttl);
+    void 지점은_마지막으로_읽히는_날까지만_둔다() {
+        // 격자 밖 날짜는 주간(7일)만 읽는다. 9/8 에 9/7(격자 밖이면) 지점은 9/14 자정까지.
+        LocalDate offGrid = TODAY.minusDays(1);
+        while (org.whitedoggy.mapleweb2.analysis.history.HistoryRange.isOnGrid(offGrid)) offGrid = offGrid.minusDays(1);
+        assertEquals(java.time.Duration.between(NOW, offGrid.plusDays(7).atStartOfDay()),
+                CacheTtlPolicy.forHistoryPoint(offGrid, NOW, settledSheet(), true));
 
-        // 어제 지점은 아직 29일 남았다 — 30일 상한보다 짧은 쪽.
-        java.time.Duration yesterday = CacheTtlPolicy.forHistoryPoint(TODAY.minusDays(1), NOW, settledSheet(), true);
-        assertEquals(java.time.Duration.between(NOW, LocalDate.of(2026, 10, 7).atStartOfDay()), yesterday);
+        // 격자 날짜는 월간(30일)이 읽는다. 30일 상한과 창 상한 중 짧은 쪽.
+        LocalDate onGrid = TODAY.minusDays(2);
+        while (!org.whitedoggy.mapleweb2.analysis.history.HistoryRange.isOnGrid(onGrid) || onGrid.getDayOfMonth() == 1) onGrid = onGrid.minusDays(1);
+        java.time.Duration expected = java.time.Duration.between(NOW, onGrid.plusDays(30).atStartOfDay());
+        if (expected.compareTo(CacheTtlPolicy.SETTLED_PAST) > 0) expected = CacheTtlPolicy.SETTLED_PAST;
+        assertEquals(expected, CacheTtlPolicy.forHistoryPoint(onGrid, NOW, settledSheet(), true));
     }
 
-    /** 1일 지점은 월간 추이가 계속 읽으므로 창 상한을 받지 않는다. */
+    /** 1일 지점은 연간 추이가 계속 읽으므로 창 상한을 받지 않는다. */
     @Test
     void 매달_1일_지점은_그대로_30일이다() {
         assertEquals(CacheTtlPolicy.SETTLED_PAST,

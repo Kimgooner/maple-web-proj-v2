@@ -15,11 +15,11 @@ import { pushRecent } from '../lib/recent';
 import { useHistory } from '../lib/useHistory';
 import { defaultInterval, intervalEndingAt, pickPoint, type Interval } from '../lib/selection';
 
-const RANGE_LABEL: Record<HistoryRange, string> = { daily: '최근 30일', monthly: '최근 12개월' };
+const RANGE_LABEL: Record<HistoryRange, string> = { weekly: '최근 7일', monthly: '최근 30일', yearly: '최근 12개월' };
 
 export function CharacterPage() {
   const { name = '' } = useParams();
-  const [range, setRange] = useState<HistoryRange>('daily');
+  const [range, setRange] = useState<HistoryRange>('weekly');
   const [compare, setCompare] = useState(false);
   const [showFragments, setShowFragments] = useState(true);
   const [showMedian, setShowMedian] = useState(true);
@@ -212,7 +212,7 @@ export function CharacterPage() {
                     <p className="muted">변화 지점을 선택해 변경 내역을 확인하세요</p>
                   </div>
                   <div className="segmented" aria-label="조회 기간">
-                    {(['daily', 'monthly'] as HistoryRange[]).map((value) => (
+                    {(['weekly', 'monthly', 'yearly'] as HistoryRange[]).map((value) => (
                       <button
                         type="button" key={value}
                         aria-pressed={range === value}

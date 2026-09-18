@@ -54,14 +54,14 @@ public class AnalysisController {
     }
 
     /**
-     * 전투력 추이. {@code range=daily} 는 오늘 포함 30일, {@code range=monthly} 는
-     * 이번 달 포함 12개월(각 달 1일)이다. 캐릭터 생성 이전 구간은 잘라내고
-     * {@code truncated} 로 알린다.
+     * 전투력 추이. {@code range=weekly} 는 오늘 포함 7일(매일), {@code monthly} 는 오늘 + 지난 29일의
+     * 3일 격자, {@code yearly} 는 오늘 + 지난 11달의 1일이다. 캐릭터 생성 이전 구간은 잘라내고
+     * {@code truncated} 로 알린다. 옛 화면의 {@code daily} 는 주간으로 받는다.
      */
     @GetMapping("/api/analysis/combat-power/history")
     public Mono<CombatPowerHistoryResponse> getCombatPowerHistory(
             @RequestParam String characterName,
-            @RequestParam(defaultValue = "daily") String range
+            @RequestParam(defaultValue = "weekly") String range
     ) {
         return combatPowerHistoryService.getHistory(characterName, HistoryRange.from(range));
     }
@@ -76,7 +76,7 @@ public class AnalysisController {
     @GetMapping("/api/analysis/combat-power/history/repair")
     public Mono<CombatPowerHistoryResponse> repairCombatPowerHistory(
             @RequestParam String characterName,
-            @RequestParam(defaultValue = "daily") String range
+            @RequestParam(defaultValue = "weekly") String range
     ) {
         return combatPowerHistoryService.repairHistory(characterName, HistoryRange.from(range));
     }
@@ -86,7 +86,7 @@ public class AnalysisController {
             produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<Object>> streamCombatPowerHistory(
             @RequestParam String characterName,
-            @RequestParam(defaultValue = "daily") String range
+            @RequestParam(defaultValue = "weekly") String range
     ) {
         return combatPowerHistoryService.streamHistory(characterName, HistoryRange.from(range));
     }
