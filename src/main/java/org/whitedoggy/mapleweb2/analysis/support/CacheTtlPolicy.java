@@ -50,17 +50,39 @@ public final class CacheTtlPolicy {
         return isSettled(sheet) ? SETTLED_PAST : UNSETTLED;
     }
 
+    /** 일간 추이가 담는 날 수. {@code HistoryRange.DAILY} 와 같다 — 오늘 포함 30일. */
+    private static final int DAILY_WINDOW_DAYS = 30;
+
     /**
      * 추이 지점용. 시트 기준으로 정한 뒤, 헥사 문서를 못 받았으면 짧은 쪽으로 내린다 —
      * 조각이 빠진 지점을 30일 들고 있으면 그 캐릭터 그래프에 구멍이 굳는다.
+     *
+     * <p>그리고 <b>다시 읽힐 수 없는 날까지만</b> 둔다. 일간 추이는 오늘 포함 30일이라, 매달 1일이
+     * 아닌 날짜의 지점은 그 날짜로부터 30일이 지나면 어떤 조회도 읽지 않는다. 30일 전 지점을 오늘
+     * 계산해 놓고 다시 30일을 들고 있으면 그중 29일은 아무도 안 읽는 값이다 — 콜드 조회 한 번이
+     * 만드는 30점 중 절반이 그렇다. 1일 지점은 월간 추이가 12달 동안 읽으므로 그대로 30일이다.
      */
     public static Duration forHistoryPoint(
             LocalDate date, LocalDateTime nowKst, DataSheet sheet, boolean hexaLoaded) {
         Duration ttl = forDataSheet(date, nowKst, sheet);
-        if (hexaLoaded || ttl.compareTo(UNSETTLED) <= 0) {
-            return ttl;
+        if (!hexaLoaded && ttl.compareTo(UNSETTLED) > 0) {
+            ttl = UNSETTLED;
         }
-        return UNSETTLED;
+        return min(ttl, untilLeavesDailyWindow(date, nowKst));
+    }
+
+    /** 이 지점을 일간 추이가 마지막으로 읽는 날의 자정까지. 1일 지점은 상한이 없다. */
+    private static Duration untilLeavesDailyWindow(LocalDate date, LocalDateTime nowKst) {
+        if (date.getDayOfMonth() == 1) {
+            return SETTLED_PAST;
+        }
+        Duration left = Duration.between(nowKst, date.plusDays(DAILY_WINDOW_DAYS).atStartOfDay());
+        // 이미 창 밖인 지점(프리셋 되돌리기 등으로 계산될 수 있다)은 짧게만 둔다.
+        return left.compareTo(UNSETTLED) < 0 ? UNSETTLED : left;
+    }
+
+    private static Duration min(Duration a, Duration b) {
+        return a.compareTo(b) <= 0 ? a : b;
     }
 
     /**
