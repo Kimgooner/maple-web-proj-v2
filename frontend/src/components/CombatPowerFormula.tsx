@@ -174,7 +174,7 @@ export function CombatPowerFormula({ breakdown, info }: { breakdown: CombatPower
     <div className="formula" aria-label="전투력 계산 과정">
       {total && rows.length > 0 && (
         <section className="formula-step">
-          <h3><span className="formula-no">1</span>요소별 스탯 합 <span className="muted">→</span> <span className="formula-no">2</span>총합</h3>
+          <h3>요소별 스탯 합</h3>
           <div className="formula-table-wrap">
             <table className="formula-table">
               <thead>
@@ -206,15 +206,14 @@ export function CombatPowerFormula({ breakdown, info }: { breakdown: CombatPower
             </table>
           </div>
           <p className="formula-foot muted">
-            비율은 전투력이 곱셈이라 항을 그대로 나눌 수 없어, 요소를 하나씩 더해 갈 때 늘어난 몫을 모든
-            순서에 대해 평균한 값(섀플리 값)입니다. 다 더하면 100% 입니다. 고정 = 스탯 % 를 받지 않는
-            값(심볼·헥사스탯).
+            전투력에 들어가는 스탯만 실었습니다. 비율은 요소가 전투력에서 차지하는 몫(섀플리 값)으로, 다 더하면
+            100% 입니다. 고정 = 스탯 % 를 받지 않는 값.
           </p>
         </section>
       )}
 
       <section className="formula-step">
-        <h3><span className="formula-no">3</span>계산</h3>
+        <h3>계산</h3>
         <div className="formula-terms">
           {terms.map((term, index) => (
             <div className="formula-term" key={term.label}>

@@ -346,30 +346,14 @@ h1,h2,h3,p {
   font-size:11px;
 }
 
-/* 계산 과정의 단계. 번호를 앞에 세워 "합 → 총합 → 계산" 차례가 읽히게 한다. */
+/* 계산 과정의 두 단계: 요소별 스탯 합(표, 마지막 줄이 총합) → 계산(항 카드). */
 .formula-step + .formula-step {
   margin-top:22px;
 }
 
 .formula-step h3 {
-  display:flex;
-  align-items:center;
-  gap:6px;
   margin:0 0 10px;
   font-size:13px;
-  font-weight:700;
-}
-
-.formula-no {
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  width:18px;
-  height:18px;
-  border-radius:50%;
-  background:#202735;
-  color:#fff;
-  font-size:10px;
   font-weight:700;
 }
 
