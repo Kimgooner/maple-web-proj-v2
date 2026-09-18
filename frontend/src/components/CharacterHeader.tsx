@@ -1,5 +1,4 @@
-import { useEffect, useState } from 'react';
-import { fetchBreakdown } from '../api/breakdown';
+import { useState } from 'react';
 import type { CharacterInfo, CombatPowerBreakdown, HistoryPoint, HistoryRange, PresetInfo } from '../api/types';
 import { dateLabel, formatGameNumber, formatPercentChange, formatSignedGame, shortDate } from '../lib/format';
 import { INCOMPLETE_CLASSES } from '../lib/labels';
@@ -14,6 +13,8 @@ interface Props {
   preset: PresetInfo | null;
   /** 지금 보고 있는 기간. "최근 30일 변화" 처럼 라벨에 적는다 */
   range: HistoryRange;
+  /** 오늘 전투력의 계산 과정. 시트를 누르면 펼쳐진다. 없으면 펼칠 것이 없다 */
+  breakdown: CombatPowerBreakdown | null;
 }
 
 const RANGE_LABEL: Record<HistoryRange, string> = { daily: '최근 30일', monthly: '최근 12개월' };
@@ -44,32 +45,9 @@ function tone(value: number | null): string {
  * 보면 "왜 이 값인지"를 물을 곳이 없어서다. 접혀 있는 것이 기본이라 훑어보는 흐름은
  * 그대로다.
  */
-export function CharacterHeader({ info, name, points, loading, preset, range }: Props) {
+export function CharacterHeader({ info, name, points, loading, preset, range, breakdown }: Props) {
   const [open, setOpen] = useState(false);
-  /*
-   * 계산 과정은 펼칠 때 받는다. 소스 조합을 다 도는 비율 계산이라 매 조회에 얹지 않고,
-   * 펼친 사람에게만 그때 계산해 준다. 한 번 받으면 이름이 바뀌기 전까지 들고 있는다.
-   */
-  const [breakdown, setBreakdown] = useState<CombatPowerBreakdown | null>(null);
-  const [breakdownError, setBreakdownError] = useState<string | null>(null);
-  const [breakdownLoading, setBreakdownLoading] = useState(false);
-  useEffect(() => { setBreakdown(null); setBreakdownError(null); setOpen(false); }, [name]);
-  useEffect(() => {
-    if (!open || breakdown || breakdownLoading) return;
-    const controller = new AbortController();
-    setBreakdownLoading(true);
-    setBreakdownError(null);
-    fetchBreakdown(info?.name || name, controller.signal)
-      .then(setBreakdown)
-      .catch((error: unknown) => {
-        if (controller.signal.aborted) return;
-        setBreakdownError(error instanceof Error ? error.message : '계산 과정을 불러오지 못했습니다');
-      })
-      .finally(() => { if (!controller.signal.aborted) setBreakdownLoading(false); });
-    return () => controller.abort();
-  }, [open, name]);
-  /** 오늘 값이 있어야 펼칠 계산이 있다. */
-  const expandable = points.some((point) => point.combatPower != null);
+  const expandable = breakdown != null;
   const valid = points.filter((point) => point.combatPower != null);
   const first = valid[0];
   const latest = valid[valid.length - 1];
@@ -150,22 +128,7 @@ export function CharacterHeader({ info, name, points, loading, preset, range }: 
       {expandable && open && (
         // 펼친 안쪽을 눌러 값을 긁어도 시트가 닫히지 않게 한다.
         <div className="profile-body" onClick={(event) => event.stopPropagation()}>
-          {breakdown ? (
-            <CombatPowerFormula breakdown={breakdown} info={info} />
-          ) : breakdownError ? (
-            <p className="muted formula-loading">
-              {breakdownError}
-              <button type="button" className="outline retry" onClick={() => { setBreakdownError(null); setBreakdown(null); }}>다시 시도</button>
-            </p>
-          ) : (
-            <div className="formula-loading" aria-live="polite">
-              <div className="skeleton" style={{ height: 14, width: 180 }} />
-              <div className="skeleton" style={{ height: 200 }} />
-              <div className="skeleton" style={{ height: 14, width: 60 }} />
-              <div className="skeleton" style={{ height: 76 }} />
-              <p className="muted">요소별 구성 비율을 계산하고 있어요 — 소스 조합을 전부 돌려 보는 중이라 잠깐 걸려요.</p>
-            </div>
-          )}
+          <CombatPowerFormula breakdown={breakdown} info={info} />
         </div>
       )}
     </section>

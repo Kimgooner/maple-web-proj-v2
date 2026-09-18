@@ -65,6 +65,8 @@ export interface HistoryMeta {
   dates: string[];
   /** 이 순간 함께 추이를 받고 있는 사람 수. 자기 자신을 포함한다 */
   concurrent: number;
+  /** 오늘 전투력을 이루는 항들. 계산이 서지 않으면 null */
+  breakdown: CombatPowerBreakdown | null;
 }
 
 /**

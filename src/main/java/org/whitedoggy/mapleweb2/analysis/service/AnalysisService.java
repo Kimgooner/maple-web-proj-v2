@@ -7,7 +7,6 @@ import org.whitedoggy.mapleweb2.analysis.data.CharacterSnapshot;
 import org.whitedoggy.mapleweb2.analysis.data.DataSheet;
 import org.whitedoggy.mapleweb2.analysis.dto.AnalysisCombatPowerResponse;
 import org.whitedoggy.mapleweb2.analysis.dto.AnalysisResponse;
-import org.whitedoggy.mapleweb2.analysis.dto.CombatPowerBreakdown;
 import org.whitedoggy.mapleweb2.analysis.dto.ChangeSlotSummary;
 import org.whitedoggy.mapleweb2.analysis.dto.ItemDetailSummary;
 import org.whitedoggy.mapleweb2.analysis.dto.ChangeSourceSummary;
@@ -94,21 +93,6 @@ public class AnalysisService {
                         tuple.getT1(),
                         tuple.getT2()
                 ));
-    }
-
-    /**
-     * 오늘 전투력의 계산 과정. 시트를 펼칠 때만 부른다 — 소스 조합을 다 도는 섀플리 계산이라
-     * 매 조회에 얹지 않고, 오늘 시트(6시간 캐시)를 꺼내 그때 계산한다.
-     */
-    public Mono<CombatPowerBreakdown> getCombatPowerBreakdown(String characterName) {
-        LocalDate today = LocalDate.now(KST);
-        return ocidService.getOcid(characterName)
-                .flatMap(ocid -> dataSheetService.getOrLoadDataSheet(ocid, today, () -> loadSnapshotByDate(ocid, today)))
-                .map(sheet -> {
-                    // 캐시에서 온 시트는 종합이 실려 있지만, 파이렛 블레스를 켠 채로 다시 합쳐 두는 편이 안전하다.
-                    sheet.buildSum(sheet.isPirateBlessApplied());
-                    return combatCalculationService.breakdown(sheet, sheet.getCharacterClass(), sheet.getCharacterLevel());
-                });
     }
 
     public Mono<AnalysisResponse> getAnalysis(String characterName, String dateType) {

@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.whitedoggy.mapleweb2.analysis.dto.AnalysisResponse;
-import org.whitedoggy.mapleweb2.analysis.dto.CombatPowerBreakdown;
 import org.whitedoggy.mapleweb2.analysis.dto.CombatPowerDetailResponse;
 import org.whitedoggy.mapleweb2.analysis.history.CharacterNotFoundException;
 import org.whitedoggy.mapleweb2.analysis.history.CharacterTooLowException;
@@ -108,12 +107,6 @@ public class AnalysisController {
             throw new IllegalArgumentException(
                     name + " 는 " + API_FIRST_DATE + " 부터 오늘까지만 조회할 수 있습니다.");
         }
-    }
-
-    /** 오늘 전투력의 계산 과정. 화면이 캐릭터 시트를 펼칠 때 부른다. */
-    @GetMapping("/api/analysis/combat-power/breakdown")
-    public Mono<CombatPowerBreakdown> getCombatPowerBreakdown(@RequestParam String characterName) {
-        return analysisService.getCombatPowerBreakdown(characterName);
     }
 
     @GetMapping("/api/analysis/combat-power/detail")

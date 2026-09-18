@@ -11,7 +11,9 @@ import org.whitedoggy.mapleweb2.analysis.data.DataSheet;
 import org.whitedoggy.mapleweb2.domain.common.stat.StatSheet;
 import org.whitedoggy.mapleweb2.analysis.dto.CharacterInfo;
 import org.whitedoggy.mapleweb2.analysis.data.PresetSelection;
+import org.whitedoggy.mapleweb2.analysis.dto.CombatPowerBreakdown;
 import org.whitedoggy.mapleweb2.analysis.dto.CurrentPresetInfo;
+import org.whitedoggy.mapleweb2.analysis.service.CombatCalculationService;
 import org.whitedoggy.mapleweb2.analysis.service.DataSheetService;
 import org.whitedoggy.mapleweb2.analysis.service.OcidService;
 import org.whitedoggy.mapleweb2.analysis.service.SnapshotService;
@@ -70,6 +72,7 @@ public class CombatPowerHistoryService {
     private final OcidService ocidService;
     private final SnapshotService snapshotService;
     private final DataSheetService dataSheetService;
+    private final CombatCalculationService combatCalculationService;
     private final BasicParser basicParser;
     private final StatParser statParser;
     private final HexaCoreParser hexaCoreParser;
@@ -102,7 +105,8 @@ public class CombatPowerHistoryService {
                         plan.truncatedFrom(),
                         points.stream()
                                 .sorted(Comparator.comparing(CombatPowerHistoryPoint::date))
-                                .toList()
+                                .toList(),
+                        plan.head().breakdown()
                 )));
     }
 
@@ -138,7 +142,8 @@ public class CombatPowerHistoryService {
                             plan.truncated(),
                             plan.truncatedFrom(),
                             plan.dates(),
-                            traffic.current()
+                            traffic.current(),
+                            plan.head().breakdown()
                     ));
 
                     Flux<ServerSentEvent<Object>> points = points(plan)
@@ -232,7 +237,7 @@ public class CombatPowerHistoryService {
         return new CombatPowerHistoryResponse(
                 original.ocid(), original.range(), original.characterInfo(), original.preset(),
                 original.requestedCount(), original.loadedCount(),
-                original.truncated(), original.truncatedFrom(), merged);
+                original.truncated(), original.truncatedFrom(), merged, original.breakdown());
     }
 
     /** 최신 → 과거 순으로 지점을 만든다. 빈 응답을 만나면 그 앞까지만 내보낸다. */
@@ -426,7 +431,12 @@ public class CombatPowerHistoryService {
                 .doOnNext(head -> requireHighEnoughLevel(characterName, head));
     }
 
-    /** 앞머리를 만들며 얻은 오늘 시트는 캐시에 남겨, 계산 과정을 펼칠 때 넥슨을 다시 부르지 않게 한다. */
+    /**
+     * 앞머리에는 계산 과정(항·소스별 합·구성 비율)도 같이 싣는다. 섀플리 계산이 일반 직업 4ms,
+     * 데몬어벤져 53ms 라 조회마다 해 두어도 스냅샷 한 번(넥슨 18회) 값에 비하면 없는 셈이고,
+     * 펼칠 때 따로 받으면 그 사이 캐릭터가 움직여 위 숫자와 안 맞는 일이 생긴다.
+     * 오늘 시트도 캐시에 남겨 오늘 구간의 상세가 넥슨을 다시 부르지 않게 한다.
+     */
     private Mono<TodayHead> buildHead(String ocid, CharacterSnapshot current, LocalDate today) {
         JsonNode basic = current.document(NexonEndpoint.BASIC);
         DataSheet dataSheet = combatDataSheet(current);
@@ -435,11 +445,25 @@ public class CombatPowerHistoryService {
                 characterInfo(basic),
                 presetOf(current),
                 basicParser.characterCreatedAt(basic),
-                loaded.exists() ? loaded.point() : null);
+                loaded.exists() ? loaded.point() : null,
+                breakdownOf(dataSheet, basic));
         if (dataSheet == null) {
             return Mono.just(head);
         }
         return dataSheetService.rememberTodaySheet(ocid, today, dataSheet).thenReturn(head);
+    }
+
+    /** 오늘 전투력의 계산 과정. 시트가 못 만들어졌으면 null. */
+    private CombatPowerBreakdown breakdownOf(DataSheet dataSheet, JsonNode basic) {
+        if (dataSheet == null || dataSheet.getCombatPower() == null) {
+            return null;
+        }
+        try {
+            return combatCalculationService.breakdown(
+                    dataSheet, basicParser.characterClass(basic), basicParser.characterLevel(basic));
+        } catch (RuntimeException ignored) {
+            return null;
+        }
     }
 
     private CurrentPresetInfo presetOf(CharacterSnapshot current) {

@@ -346,18 +346,6 @@ h1,h2,h3,p {
   font-size:11px;
 }
 
-/* 계산 과정을 받는 동안. 표와 카드 자리를 뼈대로 잡아 두어 펼친 뒤 높이가 튀지 않게 한다. */
-.formula-loading {
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-  font-size:12px;
-}
-
-.formula-loading .retry {
-  margin-left:10px;
-}
-
 /* 계산 과정의 단계. 번호를 앞에 세워 "합 → 총합 → 계산" 차례가 읽히게 한다. */
 .formula-step + .formula-step {
   margin-top:22px;

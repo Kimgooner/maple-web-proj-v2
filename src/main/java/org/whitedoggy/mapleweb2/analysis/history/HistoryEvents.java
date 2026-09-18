@@ -1,6 +1,7 @@
 package org.whitedoggy.mapleweb2.analysis.history;
 
 import org.whitedoggy.mapleweb2.analysis.dto.CharacterInfo;
+import org.whitedoggy.mapleweb2.analysis.dto.CombatPowerBreakdown;
 import org.whitedoggy.mapleweb2.analysis.dto.CurrentPresetInfo;
 
 import java.time.LocalDate;
@@ -28,7 +29,9 @@ public final class HistoryEvents {
             LocalDate truncatedFrom,
             List<LocalDate> dates,
             /** 이 순간 함께 추이를 받고 있는 사람 수. 자기 자신을 포함한다. */
-            int concurrent
+            int concurrent,
+            /** 오늘 전투력을 이루는 항들. 계산이 서지 않으면 null */
+            CombatPowerBreakdown breakdown
     ) {
     }
 
