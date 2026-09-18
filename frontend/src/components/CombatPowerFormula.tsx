@@ -62,6 +62,58 @@ function columnsFor(info: CharacterInfo | null, total: StatSheetSummary): Column
   return all.filter((c) => c.keep || c.pick(total) !== 0);
 }
 
+/**
+ * 표의 줄 차례. 비율 순으로 늘어놓으면 캐릭터마다 자리가 바뀌어 눈이 매번 다시 찾는다.
+ * 게임에서 손대는 차례(장비 → 펫·캐시 → 세트 → 심볼·헥사 → 스킬 → AP → 유니온 → 하이퍼·어빌 → 기타)로
+ * 고정하고, 유니온 넷은 한 줄로 묶는다. 여기 없는 소스(컨버전·성향·소모품)는 값이 있을 때만 뒤에 붙는다.
+ */
+const ROWS: { label: string; sources: string[] }[] = [
+  { label: '장비', sources: ['items'] },
+  { label: '펫 장비', sources: ['pet'] },
+  { label: '캐시 장비', sources: ['cash'] },
+  { label: '세트 효과', sources: ['setEffect'] },
+  { label: '심볼', sources: ['symbol'] },
+  { label: '헥사스탯', sources: ['hexaStat'] },
+  { label: '스킬(0차)', sources: ['skill'] },
+  { label: 'AP 분배', sources: ['abilityPoint'] },
+  { label: '유니온', sources: ['unionRaider', 'unionOccupied', 'unionArtifact', 'unionChampion'] },
+  { label: '하이퍼스탯', sources: ['hyperStat'] },
+  { label: '어빌리티', sources: ['ability'] },
+  { label: '기타', sources: ['otherStat'] },
+];
+
+type Row = { label: string; stats: StatSheetSummary; sharePercent: number };
+
+/** 소스 여럿을 한 줄로. 스탯은 필드마다 더하고 비율도 더한다. */
+function sumStats(list: StatSheetSummary[]): StatSheetSummary {
+  const out = { ...list[0] } as Record<string, number>;
+  for (const s of list.slice(1)) {
+    for (const [key, value] of Object.entries(s)) out[key] = (out[key] ?? 0) + (value as number);
+  }
+  return out as unknown as StatSheetSummary;
+}
+
+function rowsOf(sources: { source: string; stats: StatSheetSummary; sharePercent: number }[]): Row[] {
+  const bySource = new Map(sources.map((s) => [s.source, s]));
+  const rows: Row[] = [];
+  const used = new Set<string>();
+  for (const row of ROWS) {
+    const present = row.sources.filter((key) => bySource.has(key));
+    if (present.length === 0) continue;
+    present.forEach((key) => used.add(key));
+    const parts = present.map((key) => bySource.get(key)!);
+    rows.push({
+      label: row.label,
+      stats: sumStats(parts.map((p) => p.stats)),
+      sharePercent: parts.reduce((sum, p) => sum + p.sharePercent, 0),
+    });
+  }
+  for (const s of sources) {
+    if (!used.has(s.source)) rows.push({ label: sourceLabel(s.source), stats: s.stats, sharePercent: s.sharePercent });
+  }
+  return rows;
+}
+
 function Cell({ value, isPercent }: { value: number; isPercent?: boolean }) {
   if (value === 0) return <td className="zero">·</td>;
   return <td>{isPercent ? percent(value) : stat(value)}</td>;
@@ -71,18 +123,17 @@ function Cell({ value, isPercent }: { value: number; isPercent?: boolean }) {
  * 전투력이 어떻게 나왔는지. 세 단계로 적는다.
  *
  * <ol>
- * <li>요소별 스탯 합 — 장비·세트·스킬… 각 소스가 종합에 더한 스탯을 한 줄씩. 맨 오른쪽은 전투력
- *     구성 비율(섀플리 값)이라 다 더하면 100% 다.</li>
+ * <li>요소별 스탯 합 — 장비·세트·스킬… 각 소스가 종합에 더한 스탯을 정해진 차례로 한 줄씩. 맨 오른쪽은
+ *     전투력 구성 비율(섀플리 값)이라 다 더하면 100% 다.</li>
  * <li>총합 — 위를 전부 더한 종합. 표의 마지막 줄.</li>
  * <li>계산 — 총합에서 나온 항을 곱해 전투력이 되는 식. 항마다 무엇으로 이루어졌는지를 같이 적는다.</li>
  * </ol>
  */
 export function CombatPowerFormula({ breakdown, info }: { breakdown: CombatPowerBreakdown; info: CharacterInfo | null }) {
-  // 비율이 큰 것부터. 표의 첫 줄이 곧 "전투력을 가장 많이 만드는 요소"다.
-  const sources = [...(breakdown.sources ?? [])].sort((a, b) => b.sharePercent - a.sharePercent);
+  const rows = rowsOf(breakdown.sources ?? []);
   const total = breakdown.total;
   const columns = total ? columnsFor(info, total) : [];
-  const maxShare = Math.max(1, ...sources.map((s) => s.sharePercent));
+  const maxShare = Math.max(1, ...rows.map((r) => r.sharePercent));
 
   const terms: { label: string; value: string; note: string }[] = [
     {
@@ -121,7 +172,7 @@ export function CombatPowerFormula({ breakdown, info }: { breakdown: CombatPower
 
   return (
     <div className="formula" aria-label="전투력 계산 과정">
-      {total && sources.length > 0 && (
+      {total && rows.length > 0 && (
         <section className="formula-step">
           <h3><span className="formula-no">1</span>요소별 스탯 합 <span className="muted">→</span> <span className="formula-no">2</span>총합</h3>
           <div className="formula-table-wrap">
@@ -134,13 +185,13 @@ export function CombatPowerFormula({ breakdown, info }: { breakdown: CombatPower
                 </tr>
               </thead>
               <tbody>
-                {sources.map((s) => (
-                  <tr key={s.source}>
-                    <th scope="row">{sourceLabel(s.source)}</th>
-                    {columns.map((c) => <Cell key={c.key} value={c.pick(s.stats)} isPercent={c.percent} />)}
+                {rows.map((row) => (
+                  <tr key={row.label}>
+                    <th scope="row">{row.label}</th>
+                    {columns.map((c) => <Cell key={c.key} value={c.pick(row.stats)} isPercent={c.percent} />)}
                     <td className="share">
-                      <span className="share-bar" style={{ width: `${(Math.max(0, s.sharePercent) / maxShare) * 100}%` }} />
-                      <span className="share-value">{percent(Math.round(s.sharePercent * 10) / 10)}</span>
+                      <span className="share-bar" style={{ width: `${(Math.max(0, row.sharePercent) / maxShare) * 100}%` }} />
+                      <span className="share-value">{percent(Math.round(row.sharePercent * 10) / 10)}</span>
                     </td>
                   </tr>
                 ))}
