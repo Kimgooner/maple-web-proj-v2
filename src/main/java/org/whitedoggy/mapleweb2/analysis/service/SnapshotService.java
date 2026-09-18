@@ -40,16 +40,26 @@ public class SnapshotService {
     private final MapleCache cache;
 
     public Mono<CharacterSnapshot> getSnapshotByOcid(String ocid, LocalDate date) {
-        return fetchSnapshot(ocid, date, true);
+        return getSnapshotByOcid(ocid, date, true);
+    }
+
+    /**
+     * @param withPropensity 성향 문서를 받을지. 전투력에 성향(의지 HP)을 쓰는 직업은 데몬어벤져뿐이라,
+     *                       직업을 아는 쪽(추이 지점)은 다른 직업이면 끄고 지점당 한 번을 아낀다.
+     *                       직업을 모르는 쪽은 켠 채로 부른다 — 시트가 지점과 달라지면 안 된다.
+     */
+    public Mono<CharacterSnapshot> getSnapshotByOcid(String ocid, LocalDate date, boolean withPropensity) {
+        return fetchSnapshot(ocid, date, true, withPropensity);
     }
 
     public Mono<CharacterSnapshot> getCurrentSnapshotByOcid(String ocid, LocalDate date) {
-        return fetchSnapshot(ocid, date, false);
+        return fetchSnapshot(ocid, date, false, true);
     }
 
-    private Mono<CharacterSnapshot> fetchSnapshot(String ocid, LocalDate date, boolean includeDateParam) {
+    private Mono<CharacterSnapshot> fetchSnapshot(
+            String ocid, LocalDate date, boolean includeDateParam, boolean withPropensity) {
         // 구독마다 새로 만든다. 어느 문서를 못 받았는지는 조립이 끝나야 알 수 있다.
-        return Mono.defer(() -> fetchSnapshot(ocid, date, includeDateParam, ConcurrentHashMap.newKeySet()));
+        return Mono.defer(() -> fetchSnapshot(ocid, date, includeDateParam, withPropensity, ConcurrentHashMap.newKeySet()));
     }
 
     /**
@@ -80,9 +90,20 @@ public class SnapshotService {
             NexonEndpoint.PROPENSITY);
 
     private Mono<CharacterSnapshot> fetchSnapshot(
-            String ocid, LocalDate date, boolean includeDateParam, Set<NexonEndpoint> missing) {
+            String ocid, LocalDate date, boolean includeDateParam, boolean withPropensity, Set<NexonEndpoint> missing) {
         List<Mono<JsonNode>> calls = SNAPSHOT_ENDPOINTS.stream()
-                .map(endpoint -> fetchEndpoint(endpoint, ocid, date, includeDateParam, missing))
+                .map(endpoint -> switch (endpoint) {
+                    // 6차 스킬 문서는 계산엔 안 쓰고 헥사 코어 아이콘에만 쓴다. 아이콘은 날짜와 무관하니
+                    // 날짜 붙은 조회는 현재 문서를 30일 캐시에서 꺼내 쓴다 — 지점당 한 번을 아낀다.
+                    case SKILL_6 -> includeDateParam
+                            ? currentSkill6(ocid)
+                            : fetchEndpoint(endpoint, ocid, date, false, missing)
+                                    .flatMap(document -> cache.put(skill6CacheKey(ocid), document, SKILL6_TTL));
+                    case PROPENSITY -> withPropensity
+                            ? fetchEndpoint(endpoint, ocid, date, includeDateParam, missing)
+                            : Mono.just(nullNode());
+                    default -> fetchEndpoint(endpoint, ocid, date, includeDateParam, missing);
+                })
                 .toList();
         return Mono.zip(calls, values -> {
             Map<NexonEndpoint, JsonNode> documents = new EnumMap<>(NexonEndpoint.class);
@@ -159,6 +180,21 @@ public class SnapshotService {
         documents.put(NexonEndpoint.UNION_CHAMPION, repaired);
         return new CharacterSnapshot(
                 snapshot.ocid(), snapshot.date(), documents, snapshot.missingDocuments());
+    }
+
+    /** 6차 스킬 문서(아이콘용)를 얼마나 둘지. 스킬 목록과 아이콘은 사실상 안 바뀐다. */
+    private static final Duration SKILL6_TTL = Duration.ofDays(30);
+
+    /** 캐시에 없으면 현재 문서를 한 번 받아 둔다. 그것도 실패하면 빈 문서 — 아이콘만 빠진다. */
+    private Mono<JsonNode> currentSkill6(String ocid) {
+        return cache.getOrLoad(skill6CacheKey(ocid), JsonNode.class, SKILL6_TTL,
+                () -> nexonApiClient.get(NexonEndpoint.SKILL_6, ocid, null, false)
+                        .retryWhen(retrySpec())
+                        .onErrorReturn(nullNode()));
+    }
+
+    private static String skill6CacheKey(String ocid) {
+        return "maple:skill6:" + (ocid == null ? "" : ocid.trim());
     }
 
     private String championRosterCacheKey(String ocid) {

@@ -280,8 +280,13 @@ public class CombatPowerHistoryService {
         String cacheKey = historyPointCacheKey(plan.ocid(), date);
         return calculated.get(cacheKey, CombatPowerHistoryPoint.class)
                 .map(point -> new Loaded(true, point))
-                .switchIfEmpty(calculated.singleFlight(cacheKey, () -> snapshotService.getSnapshotByOcid(plan.ocid(), date)
+                .switchIfEmpty(calculated.singleFlight(cacheKey, () -> snapshotService.getSnapshotByOcid(plan.ocid(), date, needsPropensity(plan))
                         .flatMap(snapshot -> loadAndCachePoint(cacheKey, date, snapshot))));
+    }
+
+    /** 성향(의지 HP)은 데몬어벤져만 쓴다. 직업을 아니까 다른 직업은 그 문서를 안 받는다. */
+    private boolean needsPropensity(Plan plan) {
+        return plan.characterInfo() != null && gameData.isDemonAvenger(plan.characterInfo().className());
     }
 
     /** 헥사 코어 문서는 이제 스냅샷이 들고 온다. 따로 부르면 같은 날짜를 두 번 받는다. */
