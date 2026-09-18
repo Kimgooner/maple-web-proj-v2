@@ -114,6 +114,39 @@ function rowsOf(sources: { source: string; stats: StatSheetSummary; sharePercent
   return rows;
 }
 
+/**
+ * 주스탯·부스탯 한 줄씩: (스탯 + 올스탯) × (100 + 스탯% + 올스탯%) ÷ 100 + 고정. 계산이 실제로 하는
+ * 식({@code calculateStat})을 총합 시트의 수로 적은 것이다. 데몬어벤져의 HP 환산이나 제논의
+ * 세 스탯 합처럼 식이 다른 직업은 이 줄을 적지 않는다 — 틀린 식을 적느니 안 적는다.
+ */
+function statNotes(info: CharacterInfo | null, total: StatSheetSummary | null): string[] {
+  if (!info || !total) return [];
+  const mains = info.mainStats.filter((m) => m !== 'HP');
+  if (mains.length !== 1 || info.mainStats.includes('HP')) return [];
+  const perLevel: Record<string, keyof StatSheetSummary> = {
+    STR: 'strPerLevel9', DEX: 'dexPerLevel9', INT: 'intPerLevel9', LUK: 'lukPerLevel9',
+  };
+  const line = (name: string, title: string) => {
+    const f = STAT_FIELD[name];
+    if (!f) return null;
+    // 9레벨마다 붙는 몫(AP 자동 분배). 0 이면 적지 않는다.
+    const byLevel = Math.floor((info.level ?? 0) / 9) * (total[perLevel[name]] as number);
+    const pct = (total[f.pct] as number) + total.allStatPercent;
+    const fixed = (total[f.fixed] as number) + total.allStatNoPercent;
+    const flat = `${name} ${formatNumber(total[f.flat] as number)} + 올스탯 ${formatNumber(total.allStat)}`
+      + (byLevel ? ` + 레벨 ${formatNumber(byLevel)}` : '');
+    return `${title} = (${flat}) × (100 + ${percent(pct)}) ÷ 100 + 고정 ${formatNumber(fixed)}`;
+  };
+  const notes: string[] = [];
+  const main = line(mains[0], '주스탯');
+  if (main) notes.push(main);
+  for (const sub of info.subStats.filter((s) => !mains.includes(s))) {
+    const note = line(sub, info.subStats.length > 1 ? `부스탯 ${sub}` : '부스탯');
+    if (note) notes.push(note);
+  }
+  return notes;
+}
+
 function Cell({ value, isPercent }: { value: number; isPercent?: boolean }) {
   if (value === 0) return <td className="zero">·</td>;
   return <td>{isPercent ? percent(value) : stat(value)}</td>;
@@ -135,38 +168,44 @@ export function CombatPowerFormula({ breakdown, info }: { breakdown: CombatPower
   const columns = total ? columnsFor(info, total) : [];
   const maxShare = Math.max(1, ...rows.map((r) => r.sharePercent));
 
-  const terms: { label: string; value: string; note: string }[] = [
+  const powerName = breakdown.usesMagic ? '마력' : '공격력';
+  const terms: { label: string; value: string; notes: string[] }[] = [
     {
       label: '스탯',
       value: stat(breakdown.statTerm),
-      note: `(주스탯 ${stat(breakdown.mainStat)} × 4${breakdown.subStat ? ` + 부스탯 ${stat(breakdown.subStat)}` : ''}) ÷ 100`,
+      notes: [
+        ...statNotes(info, total),
+        `(주스탯 ${stat(breakdown.mainStat)} × 4${breakdown.subStat ? ` + 부스탯 ${stat(breakdown.subStat)}` : ''}) ÷ 100`,
+      ],
     },
     {
-      label: breakdown.usesMagic ? '마력' : '공격력',
+      label: powerName,
       value: formatNumber(breakdown.power),
-      note: '% 까지 곱한 값',
+      notes: total
+        ? [`${powerName} ${formatNumber(breakdown.usesMagic ? total.magicPower : total.attackPower)} × (100 + ${percent(breakdown.usesMagic ? total.magicPowerPercent : total.attackPowerPercent)}) ÷ 100`]
+        : [],
     },
     {
       label: '데미지',
       value: percent(100 + breakdown.damage + breakdown.bossDamage),
-      note: `100 + 데미지 ${signed(breakdown.damage)} + 보공 ${signed(breakdown.bossDamage)}`,
+      notes: [`100 + 데미지 ${signed(breakdown.damage)} + 보공 ${signed(breakdown.bossDamage)}`],
     },
     {
       label: '크리티컬 데미지',
       value: percent(135 + breakdown.criticalDamage),
-      note: `135 + 크뎀 ${signed(breakdown.criticalDamage)}`,
+      notes: [`135 + 크뎀 ${signed(breakdown.criticalDamage)}`],
     },
     {
       label: '최종 데미지',
       value: percent(100 + breakdown.finalDamage),
-      note: `100 + 최종 데미지 ${signed(breakdown.finalDamage)}`,
+      notes: [`100 + 최종 데미지 ${signed(breakdown.finalDamage)}`],
     },
   ];
   if (breakdown.correction != null) {
     terms.push({
       label: '직업 보정',
       value: `× ${formatNumber(Math.round(breakdown.correction * 1e6) / 1e6)}`,
-      note: '스탯 계산이 다른 직업의 보정 상수',
+      notes: ['스탯 계산이 다른 직업의 보정 상수'],
     });
   }
 
@@ -222,7 +261,7 @@ export function CombatPowerFormula({ breakdown, info }: { breakdown: CombatPower
               <div className="formula-card">
                 <div className="formula-label">{term.label}</div>
                 <div className="formula-value">{term.value}</div>
-                <div className="formula-note">{term.note}</div>
+                {term.notes.map((note, i) => <div className="formula-note" key={i}>{note}</div>)}
               </div>
             </div>
           ))}
