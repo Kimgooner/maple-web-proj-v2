@@ -36,6 +36,7 @@ import org.whitedoggy.mapleweb2.domain.union.champion.ChampionParser;
 import org.whitedoggy.mapleweb2.domain.union.raider.RaiderParser;
 import org.whitedoggy.mapleweb2.external.nexon.config.NexonEndpoint;
 import org.whitedoggy.mapleweb2.global.Jsons;
+import org.whitedoggy.mapleweb2.global.cache.CalculationVersion;
 import org.whitedoggy.mapleweb2.global.cache.MapleCache;
 import reactor.core.publisher.Mono;
 import tools.jackson.databind.JsonNode;
@@ -78,6 +79,7 @@ public class DataSheetService {
     private final SourceEntryExtractor sourceEntryExtractor;
     private final CombatCalculationService combatCalculationService;
     private final MapleCache cache;
+    private final CalculationVersion calculationVersion;
     private final GameData gameData;
 
     public Mono<DataSheet> getOrLoadDataSheet(
@@ -576,9 +578,9 @@ public class DataSheetService {
         return statSheetParser.parseNoPercentStat(raiderParser.getUnionRaiderStatByPreset(node, presetNo), "unionRaider");
     }
 
-    /** 직렬화 형식이 바뀌면 접두사 버전을 올려 옛 값과 섞이지 않게 한다. */
+    /** 키에 계산 세대가 들어간다. 시트 모양이나 계산 규칙이 바뀌면 옛 값은 닿지 않는다. */
     private String dataSheetCacheKey(String ocid, LocalDate date) {
-        return "maple:datasheet:v15:" + normalizeOcid(ocid) + ":" + date;
+        return "maple:datasheet:" + calculationVersion.tag() + ":" + normalizeOcid(ocid) + ":" + date;
     }
 
     private String normalizeOcid(String ocid) {
