@@ -1,5 +1,7 @@
 package org.whitedoggy.mapleweb2.analysis.dto;
 
+import java.util.List;
+
 /**
  * 전투력이 어떻게 나왔는지. 식의 항 하나가 필드 하나다.
  *
@@ -21,6 +23,8 @@ package org.whitedoggy.mapleweb2.analysis.dto;
  *                          포스실드)를 곱해 놓은 값이라, 식에는 100 + 이 값이 들어간다
  * @param correction        직업 보정 상수. 데몬어벤져·제논처럼 스탯 계산이 다른 직업만 있고 나머지는 null
  * @param combatPower       위 항을 곱해 내린 전투력
+ * @param sources           종합에 들어간 소스별 스탯 합과 전투력 몫. 종합 차례({@code DataSheet.SOURCE_ORDER})다
+ * @param total             종합 시트. 소스를 전부 더한 것이고 위 항들은 여기서 나온다
  */
 public record CombatPowerBreakdown(
         double mainStat,
@@ -33,6 +37,18 @@ public record CombatPowerBreakdown(
         double criticalDamage,
         double finalDamage,
         Double correction,
-        long combatPower
+        long combatPower,
+        List<SourceShare> sources,
+        StatSheetSummary total
 ) {
+    /**
+     * 소스 하나의 몫.
+     *
+     * @param source       시트 이름 (items, setEffect, skill …)
+     * @param stats        이 소스가 종합에 더한 스탯
+     * @param sharePercent 이 소스를 빼고 다시 계산하면 전투력이 몇 % 떨어지는가. 식이 곱이라 소스별 몫을
+     *                     더해도 100 이 되지 않는다 — "이게 없으면 얼마나 잃나"로 읽는다
+     */
+    public record SourceShare(String source, StatSheetSummary stats, double sharePercent) {
+    }
 }

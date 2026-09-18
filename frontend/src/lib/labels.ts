@@ -24,6 +24,9 @@ const SOURCE_LABELS: Record<string, string> = {
   ability: '어빌리티', hyperStat: '하이퍼스탯', setEffect: '세트효과',
   unionOccupied: '유니온 점령 효과', unionRaider: '유니온 공격대', unionArtifact: '유니온 아티팩트',
   unionChampion: '유니온 챔피언',
+  // 계산 과정의 "요소별 스탯 합"에서만 쓰는 소스. 변경 내역은 장비·캐시·펫을 부위별로 따로 다룬다.
+  items: '장비', cash: '캐시 장비', pet: '펫 장비', consumableItem: '소모품',
+  propensity: '성향(의지)', conversionStarforce: '컨버전 스타포스',
 };
 
 export function sourceLabel(source: string): string {

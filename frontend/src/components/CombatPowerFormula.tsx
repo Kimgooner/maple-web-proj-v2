@@ -1,5 +1,6 @@
-import type { CombatPowerBreakdown } from '../api/types';
+import type { CharacterInfo, CombatPowerBreakdown, StatSheetSummary } from '../api/types';
 import { formatGameNumber, formatNumber } from '../lib/format';
+import { sourceLabel } from '../lib/labels';
 
 /** 소수가 있으면 한 자리까지. 데몬어벤져 주스탯처럼 환산값이 소수인 것만 해당된다. */
 function stat(value: number): string {
@@ -14,14 +15,75 @@ function signed(value: number): string {
   return `${value >= 0 ? '+' : ''}${percent(value)}`;
 }
 
+/** 시트의 한 칸. 이름·값 뽑기·% 여부. */
+type Column = { key: string; label: string; pick: (s: StatSheetSummary) => number; percent?: boolean };
+
+const STAT_FIELD: Record<string, { flat: keyof StatSheetSummary; pct: keyof StatSheetSummary; fixed: keyof StatSheetSummary }> = {
+  STR: { flat: 'str', pct: 'strPercent', fixed: 'strNoPercent' },
+  DEX: { flat: 'dex', pct: 'dexPercent', fixed: 'dexNoPercent' },
+  INT: { flat: 'intStat', pct: 'intPercent', fixed: 'intNoPercent' },
+  LUK: { flat: 'luk', pct: 'lukPercent', fixed: 'lukNoPercent' },
+  HP: { flat: 'hp', pct: 'hpPercent', fixed: 'hpNoPercent' },
+};
+
 /**
- * 전투력이 어떻게 나왔는지. 게임 식의 항을 차례로 늘어놓고 마지막에 전투력을 둔다.
+ * 이 직업에서 전투력에 걸리는 칸만 고른다.
  *
- * <p>항마다 위에 이름, 가운데 식에 들어간 값, 아래에 그 값이 무엇으로 이루어졌는지를 적는다.
- * 데미지는 "542%" 만 보면 어디서 온 수인지 모르는데, "100 + 데미지 32 + 보공 410" 이라고
- * 풀어 두면 자기 스탯창과 맞춰 볼 수 있다.
+ * <p>주스탯은 고정·%·%미적용(심볼·헥사) 셋, 부스탯은 고정, 그 뒤 올스탯·공격력(마력)·데미지·보공·크뎀·최뎀.
+ * 종합이 0 인 칸은 빼서 표가 옆으로 길어지지 않게 한다 — 주스탯과 공격력은 0 이어도 남긴다.
  */
-export function CombatPowerFormula({ breakdown }: { breakdown: CombatPowerBreakdown }) {
+function columnsFor(info: CharacterInfo | null, total: StatSheetSummary): Column[] {
+  const mains = info?.mainStats ?? ['STR'];
+  const subs = (info?.subStats ?? []).filter((s) => !mains.includes(s));
+  const usesMagic = info?.usesMagic ?? false;
+  const all: (Column & { keep?: boolean })[] = [];
+  for (const m of mains) {
+    const f = STAT_FIELD[m];
+    if (!f) continue;
+    all.push({ key: `${m}`, label: m, pick: (s) => s[f.flat] as number, keep: true });
+    all.push({ key: `${m}%`, label: `${m} %`, pick: (s) => s[f.pct] as number, percent: true });
+    all.push({ key: `${m}fixed`, label: `${m} 고정`, pick: (s) => s[f.fixed] as number });
+  }
+  for (const sub of subs) {
+    const f = STAT_FIELD[sub];
+    if (!f) continue;
+    all.push({ key: sub, label: sub, pick: (s) => s[f.flat] as number });
+    all.push({ key: `${sub}%`, label: `${sub} %`, pick: (s) => s[f.pct] as number, percent: true });
+  }
+  all.push({ key: 'all', label: '올스탯', pick: (s) => s.allStat });
+  all.push({ key: 'all%', label: '올스탯 %', pick: (s) => s.allStatPercent, percent: true });
+  all.push({ key: 'allfixed', label: '올스탯 고정', pick: (s) => s.allStatNoPercent });
+  all.push({ key: 'power', label: usesMagic ? '마력' : '공격력', pick: (s) => (usesMagic ? s.magicPower : s.attackPower), keep: true });
+  all.push({ key: 'power%', label: usesMagic ? '마력 %' : '공격력 %', pick: (s) => (usesMagic ? s.magicPowerPercent : s.attackPowerPercent), percent: true, keep: true });
+  all.push({ key: 'dmg', label: '데미지', pick: (s) => s.damage, percent: true });
+  all.push({ key: 'boss', label: '보공', pick: (s) => s.bossDamage, percent: true });
+  all.push({ key: 'crit', label: '크뎀', pick: (s) => s.criticalDamage, percent: true });
+  all.push({ key: 'final', label: '최종뎀', pick: (s) => s.finalDamage, percent: true });
+  return all.filter((c) => c.keep || c.pick(total) !== 0);
+}
+
+function Cell({ value, isPercent }: { value: number; isPercent?: boolean }) {
+  if (value === 0) return <td className="zero">·</td>;
+  return <td>{isPercent ? percent(value) : stat(value)}</td>;
+}
+
+/**
+ * 전투력이 어떻게 나왔는지. 세 단계로 적는다.
+ *
+ * <ol>
+ * <li>요소별 스탯 합 — 장비·세트·스킬… 각 소스가 종합에 더한 스탯을 한 줄씩. 맨 오른쪽은 그 소스를
+ *     빼면 전투력이 몇 % 떨어지는지다. 식이 곱이라 몫을 더해도 100 이 되지 않는다 — "이게 없으면
+ *     얼마나 잃나"로 읽는다.</li>
+ * <li>총합 — 위를 전부 더한 종합. 표의 마지막 줄.</li>
+ * <li>계산 — 총합에서 나온 항을 곱해 전투력이 되는 식. 항마다 무엇으로 이루어졌는지를 같이 적는다.</li>
+ * </ol>
+ */
+export function CombatPowerFormula({ breakdown, info }: { breakdown: CombatPowerBreakdown; info: CharacterInfo | null }) {
+  const sources = breakdown.sources ?? [];
+  const total = breakdown.total;
+  const columns = total ? columnsFor(info, total) : [];
+  const maxShare = Math.max(1, ...sources.map((s) => Math.abs(s.sharePercent)));
+
   const terms: { label: string; value: string; note: string }[] = [
     {
       label: '스탯',
@@ -59,30 +121,73 @@ export function CombatPowerFormula({ breakdown }: { breakdown: CombatPowerBreakd
 
   return (
     <div className="formula" aria-label="전투력 계산 과정">
-      <div className="formula-terms">
-        {terms.map((term, index) => (
-          <div className="formula-term" key={term.label}>
-            {index > 0 && <span className="formula-op" aria-hidden="true">×</span>}
-            <div className="formula-card">
-              <div className="formula-label">{term.label}</div>
-              <div className="formula-value">{term.value}</div>
-              <div className="formula-note">{term.note}</div>
+      {total && sources.length > 0 && (
+        <section className="formula-step">
+          <h3><span className="formula-no">1</span>요소별 스탯 합 <span className="muted">→</span> <span className="formula-no">2</span>총합</h3>
+          <div className="formula-table-wrap">
+            <table className="formula-table">
+              <thead>
+                <tr>
+                  <th scope="col">요소</th>
+                  {columns.map((c) => <th scope="col" key={c.key}>{c.label}</th>)}
+                  <th scope="col" className="share" title="이 요소를 빼고 다시 계산했을 때 전투력이 떨어지는 비율">없으면</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sources.map((s) => (
+                  <tr key={s.source}>
+                    <th scope="row">{sourceLabel(s.source)}</th>
+                    {columns.map((c) => <Cell key={c.key} value={c.pick(s.stats)} isPercent={c.percent} />)}
+                    <td className="share">
+                      <span className="share-bar" style={{ width: `${(Math.abs(s.sharePercent) / maxShare) * 100}%` }} />
+                      <span className="share-value">−{percent(Math.abs(s.sharePercent))}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <th scope="row">총합</th>
+                  {columns.map((c) => <Cell key={c.key} value={c.pick(total)} isPercent={c.percent} />)}
+                  <td className="share" />
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          <p className="formula-foot muted">
+            "없으면"은 그 요소를 빼고 다시 계산했을 때 전투력이 떨어지는 비율입니다. 전투력이 곱셈이라
+            요소별 비율을 더해도 100% 가 되지 않습니다. 고정 = 스탯 % 를 받지 않는 값(심볼·헥사스탯).
+          </p>
+        </section>
+      )}
+
+      <section className="formula-step">
+        <h3><span className="formula-no">3</span>계산</h3>
+        <div className="formula-terms">
+          {terms.map((term, index) => (
+            <div className="formula-term" key={term.label}>
+              {index > 0 && <span className="formula-op" aria-hidden="true">×</span>}
+              <div className="formula-card">
+                <div className="formula-label">{term.label}</div>
+                <div className="formula-value">{term.value}</div>
+                <div className="formula-note">{term.note}</div>
+              </div>
+            </div>
+          ))}
+          <div className="formula-term">
+            <span className="formula-op" aria-hidden="true">÷ 1,000,000 =</span>
+            <div className="formula-card result">
+              <div className="formula-label">전투력</div>
+              <div className="formula-value">{formatGameNumber(breakdown.combatPower)}</div>
+              <div className="formula-note">소수점은 버린다</div>
             </div>
           </div>
-        ))}
-        <div className="formula-term">
-          <span className="formula-op" aria-hidden="true">÷ 1,000,000 =</span>
-          <div className="formula-card result">
-            <div className="formula-label">전투력</div>
-            <div className="formula-value">{formatGameNumber(breakdown.combatPower)}</div>
-            <div className="formula-note">소수점은 버린다</div>
-          </div>
         </div>
-      </div>
-      <p className="formula-foot muted">
-        방어율 무시·크리티컬 확률·재사용 대기시간은 전투력에 들어가지 않습니다. 값은 오늘 시점의
-        계산에 실제로 쓴 것들입니다.
-      </p>
+        <p className="formula-foot muted">
+          방어율 무시·크리티컬 확률·재사용 대기시간은 전투력에 들어가지 않습니다. 값은 오늘 시점의
+          계산에 실제로 쓴 것들입니다.
+        </p>
+      </section>
     </div>
   );
 }

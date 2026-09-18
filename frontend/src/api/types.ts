@@ -93,6 +93,31 @@ export interface CombatPowerBreakdown {
   /** 직업 보정 상수. 데몬어벤져·제논만, 나머지는 null */
   correction: number | null;
   combatPower: number;
+  /** 종합에 들어간 소스별 스탯 합과 전투력 몫. 종합 차례다 */
+  sources: SourceShare[];
+  /** 종합 시트. 소스를 전부 더한 것 */
+  total: StatSheetSummary;
+}
+
+/** 소스 하나가 종합에 더한 스탯과, 그것을 빼면 전투력이 몇 % 떨어지는지 */
+export interface SourceShare {
+  source: string;
+  stats: StatSheetSummary;
+  sharePercent: number;
+}
+
+/** 스탯 시트 한 장. 필드 이름은 백엔드 StatSheetSummary 와 같다 */
+export interface StatSheetSummary {
+  str: number; dex: number; intStat: number; luk: number; hp: number; allStat: number;
+  strPerLevel9: number; dexPerLevel9: number; intPerLevel9: number; lukPerLevel9: number;
+  strNoPercent: number; dexNoPercent: number; intNoPercent: number; lukNoPercent: number;
+  hpNoPercent: number; allStatNoPercent: number;
+  attackPower: number; magicPower: number;
+  strPercent: number; dexPercent: number; intPercent: number; lukPercent: number;
+  hpPercent: number; allStatPercent: number;
+  attackPowerPercent: number; magicPowerPercent: number;
+  damage: number; bossDamage: number; criticalDamage: number; finalDamage: number;
+  cooldownSecond: number; cooldownSkipPercent: number;
 }
 
 export interface HistoryPointEvent {

@@ -276,6 +276,8 @@ h1,h2,h3,p {
 
 .profile-body {
   grid-column:1/-1;
+  /* 그리드 칸은 min-width:auto 라 안의 넓은 표가 칸을 밀어 페이지가 옆으로 넘친다. 칸을 줄이고 표만 넘기게. */
+  min-width:0;
   border-top:1px solid var(--line);
   padding-top:22px;
   cursor:default;
@@ -342,6 +344,108 @@ h1,h2,h3,p {
 .formula-foot {
   margin:14px 0 0;
   font-size:11px;
+}
+
+/* 계산 과정의 단계. 번호를 앞에 세워 "합 → 총합 → 계산" 차례가 읽히게 한다. */
+.formula-step + .formula-step {
+  margin-top:22px;
+}
+
+.formula-step h3 {
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin:0 0 10px;
+  font-size:13px;
+  font-weight:700;
+}
+
+.formula-no {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:18px;
+  height:18px;
+  border-radius:50%;
+  background:#202735;
+  color:#fff;
+  font-size:10px;
+  font-weight:700;
+}
+
+/* 요소별 스탯 합. 칸이 많아 좁으면 옆으로 넘겨 본다. */
+.formula-table-wrap {
+  overflow-x:auto;
+  border:1px solid var(--line);
+  border-radius:10px;
+}
+
+.formula-table {
+  width:100%;
+  border-collapse:collapse;
+  font-size:11.5px;
+  white-space:nowrap;
+}
+
+.formula-table th,.formula-table td {
+  padding:6px 10px;
+  text-align:right;
+  border-bottom:1px solid #eef0f4;
+}
+
+.formula-table th[scope="col"] {
+  background:#fafbfc;
+  color:var(--muted);
+  font-weight:600;
+  font-size:10.5px;
+}
+
+.formula-table th[scope="row"] {
+  text-align:left;
+  font-weight:600;
+  color:var(--ink);
+  position:sticky;
+  left:0;
+  background:#fff;
+}
+
+.formula-table td.zero {
+  color:#c3c8d1;
+}
+
+.formula-table tfoot th,.formula-table tfoot td {
+  border-top:2px solid #d5dae3;
+  border-bottom:0;
+  background:#fff4ec;
+  font-weight:700;
+}
+
+.formula-table tfoot th[scope="row"] {
+  background:#fff4ec;
+}
+
+/* "없으면" 칸. 막대 위에 숫자를 얹어 크기가 한눈에 비교되게 한다. */
+.formula-table td.share {
+  position:relative;
+  min-width:96px;
+  text-align:left;
+}
+
+.share-bar {
+  position:absolute;
+  left:6px;
+  top:7px;
+  bottom:7px;
+  border-radius:3px;
+  background:#fbd9c4;
+  max-width:calc(100% - 12px);
+}
+
+.share-value {
+  position:relative;
+  padding-left:4px;
+  color:#c9561d;
+  font-weight:700;
 }
 
 .identity {

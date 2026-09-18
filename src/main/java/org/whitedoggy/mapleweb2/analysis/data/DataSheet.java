@@ -5,6 +5,7 @@ import lombok.Setter;
 import org.whitedoggy.mapleweb2.domain.common.stat.StatSheet;
 import org.whitedoggy.mapleweb2.domain.item.data.ItemSnapShot;
 
+import java.util.List;
 import java.util.Map;
 
 @Getter
@@ -174,6 +175,102 @@ public class DataSheet {
 
     public void buildSum(){
         buildSum(false);
+    }
+
+    /** 종합 시트를 이루는 소스의 차례. 화면이 "요소별 스탯 합"을 이 차례로 놓는다. */
+    public static final List<String> SOURCE_ORDER = List.of(
+            "items", "setEffect", "cash", "pet", "skill", "hexaStat", "symbol", "hyperStat", "ability",
+            "unionRaider", "unionOccupied", "unionArtifact", "unionChampion",
+            "abilityPoint", "otherStat", "consumableItem", "propensity", "conversionStarforce");
+
+    /**
+     * 종합에 들어가는 몫을 소스별로. {@link #buildSum(boolean)} 과 같은 규칙이라 전부 더하면 종합이다 —
+     * 장비·캐시·펫은 부위를 합쳐 한 장으로, 파이렛 블레스를 켰으면 장비의 힘·민첩도 바뀐 채로.
+     * 비어 있는 소스는 뺀다.
+     */
+    public Map<String, StatSheet> contributions() {
+        Map<String, StatSheet> out = new java.util.LinkedHashMap<>();
+        for (String source : SOURCE_ORDER) {
+            StatSheet sheet = switch (source) {
+                case "items" -> mergedItems(itemEquip, pirateBlessApplied);
+                case "cash" -> mergedItems(cashEquip, false);
+                case "pet" -> mergedItems(petEquip, false);
+                default -> sheetOf(source);
+            };
+            if (sheet != null && !sheet.isZero()) {
+                out.put(source, sheet);
+            }
+        }
+        return out;
+    }
+
+    /**
+     * 한 소스를 뺀 사본. 전투력에서 그 소스가 차지하는 몫을 재는 데 쓴다 — 빼고 다시 계산한 값과의
+     * 차이가 곧 그 소스의 기여다. 원본은 건드리지 않는다.
+     */
+    public DataSheet without(String source) {
+        DataSheet copy = new DataSheet();
+        copy.copy(this);
+        copy.pirateBlessApplied = this.pirateBlessApplied;
+        switch (source) {
+            case "items" -> copy.itemEquip = Map.of();
+            case "cash" -> copy.cashEquip = Map.of();
+            case "pet" -> copy.petEquip = Map.of();
+            case "setEffect" -> { copy.setEffect = new StatSheet("setEffect"); copy.setEffectHpHalved = 0; }
+            case "skill" -> copy.skill = new StatSheet("skill");
+            case "hexaStat" -> copy.hexaStat = new StatSheet("hexaStat");
+            case "symbol" -> copy.symbol = new StatSheet("symbol");
+            case "hyperStat" -> copy.hyperStat = new StatSheet("hyperStat");
+            case "ability" -> copy.ability = new StatSheet("ability");
+            case "unionRaider" -> copy.unionRaider = new StatSheet("unionRaider");
+            case "unionOccupied" -> copy.unionOccupied = new StatSheet("unionOccupied");
+            case "unionArtifact" -> copy.unionArtifact = new StatSheet("unionArtifact");
+            case "unionChampion" -> copy.unionChampion = new StatSheet("unionChampion");
+            case "abilityPoint" -> copy.abilityPoint = new StatSheet("abilityPoint");
+            case "otherStat" -> copy.otherStat = new StatSheet("otherStat");
+            case "consumableItem" -> copy.consumableItem = new StatSheet("consumableItem");
+            case "propensity" -> copy.propensity = new StatSheet("propensity");
+            case "conversionStarforce" -> copy.conversionStarforce = new StatSheet("conversionStarforce");
+            default -> throw new IllegalArgumentException(source);
+        }
+        copy.buildSum(this.pirateBlessApplied);
+        return copy;
+    }
+
+    private StatSheet sheetOf(String source) {
+        return switch (source) {
+            case "setEffect" -> setEffect;
+            case "skill" -> skill;
+            case "hexaStat" -> hexaStat;
+            case "symbol" -> symbol;
+            case "hyperStat" -> hyperStat;
+            case "ability" -> ability;
+            case "unionRaider" -> unionRaider;
+            case "unionOccupied" -> unionOccupied;
+            case "unionArtifact" -> unionArtifact;
+            case "unionChampion" -> unionChampion;
+            case "abilityPoint" -> abilityPoint;
+            case "otherStat" -> otherStat;
+            case "consumableItem" -> consumableItem;
+            case "propensity" -> propensity;
+            case "conversionStarforce" -> conversionStarforce;
+            default -> null;
+        };
+    }
+
+    private static StatSheet mergedItems(Map<String, ItemSnapShot> items, boolean pirateBless) {
+        if (items == null) {
+            return null;
+        }
+        StatSheet merged = new StatSheet("합");
+        for (Map.Entry<String, ItemSnapShot> m : items.entrySet()) {
+            StatSheet sheet = m.getValue().getStatSheet();
+            if (pirateBless && !PIRATE_BLESS_EXCLUDED_SLOTS.contains(slotOf(m.getKey()))) {
+                sheet = sheet.swappedStrDex();
+            }
+            merged.merge(sheet);
+        }
+        return merged;
     }
 
     /** {@code itemEquip}의 키는 {@code "장비 - 무기"}처럼 접두사가 붙어 온다. 뒤쪽 부위명만 뽑는다. */

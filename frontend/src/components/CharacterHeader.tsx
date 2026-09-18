@@ -128,7 +128,7 @@ export function CharacterHeader({ info, name, points, loading, preset, range, br
       {expandable && open && (
         // 펼친 안쪽을 눌러 값을 긁어도 시트가 닫히지 않게 한다.
         <div className="profile-body" onClick={(event) => event.stopPropagation()}>
-          <CombatPowerFormula breakdown={breakdown} />
+          <CombatPowerFormula breakdown={breakdown} info={info} />
         </div>
       )}
     </section>

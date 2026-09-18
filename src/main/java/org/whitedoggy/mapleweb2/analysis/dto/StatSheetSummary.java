@@ -1,5 +1,7 @@
 package org.whitedoggy.mapleweb2.analysis.dto;
 
+import org.whitedoggy.mapleweb2.domain.common.stat.StatSheet;
+
 public record StatSheetSummary(
         int str,
         int dex,
@@ -35,4 +37,17 @@ public record StatSheetSummary(
         int cooldownSecond,
         double cooldownSkipPercent
 ) {
+    public static StatSheetSummary of(StatSheet sheet) {
+        return new StatSheetSummary(
+                sheet.getSTR(), sheet.getDEX(), sheet.getINT(), sheet.getLUK(), sheet.getHP(), sheet.getALL_STAT(),
+                sheet.getSTR_PER_LEVEL9(), sheet.getDEX_PER_LEVEL9(), sheet.getINT_PER_LEVEL9(), sheet.getLUK_PER_LEVEL9(),
+                sheet.getSTR_NO_PERCENT(), sheet.getDEX_NO_PERCENT(), sheet.getINT_NO_PERCENT(), sheet.getLUK_NO_PERCENT(),
+                sheet.getHP_NO_PERCENT(), sheet.getALL_STAT_NO_PERCENT(),
+                sheet.getATTACK_POWER(), sheet.getMAGIC_POWER(),
+                sheet.getSTR_PERCENT(), sheet.getDEX_PERCENT(), sheet.getINT_PERCENT(), sheet.getLUK_PERCENT(),
+                sheet.getHP_PERCENT(), sheet.getALL_STAT_PERCENT(),
+                sheet.getATTACK_POWER_PERCENT(), sheet.getMAGIC_POWER_PERCENT(),
+                sheet.getDAMAGE(), sheet.getBOSS_DAMAGE(), sheet.getCRITICAL_DAMAGE(), sheet.getFINAL_DAMAGE(),
+                sheet.getCOOLDOWN_SECOND(), sheet.getCOOLDOWN_SKIP_PERCENT());
+    }
 }

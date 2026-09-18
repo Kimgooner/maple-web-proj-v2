@@ -4,10 +4,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.whitedoggy.mapleweb2.analysis.data.DataSheet;
 import org.whitedoggy.mapleweb2.analysis.dto.CombatPowerBreakdown;
+import org.whitedoggy.mapleweb2.analysis.dto.StatSheetSummary;
 import org.whitedoggy.mapleweb2.domain.common.stat.GameData;
 import org.whitedoggy.mapleweb2.domain.common.stat.StatSheet;
 import org.whitedoggy.mapleweb2.domain.item.data.ItemSnapShot;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -57,11 +59,35 @@ public class CombatCalculationService {
     }
 
     public long estimateCombatPower(DataSheet dataSheet, String characterClass, Integer characterLevel) {
-        return breakdown(dataSheet, characterClass, characterLevel).combatPower();
+        return terms(dataSheet, characterClass, characterLevel).combatPower();
     }
 
-    /** 전투력과 그것을 이루는 항들. 화면이 "어떻게 계산됐나"를 이 값으로 적는다. */
+    /**
+     * 전투력과 그것을 이루는 항들, 그리고 소스별 몫. 화면이 "어떻게 계산됐나"를 이 값으로 적는다.
+     *
+     * <p>소스별 몫은 그 소스를 뺀 시트로 다시 계산해 잰다 — 전투력이 곱이라 항을 나눠 줄 수 없으니,
+     * "이게 없으면 얼마나 잃나"가 유일하게 정직한 몫이다. 소스가 열여덟이라 계산도 열여덟 번이지만
+     * 산수뿐이라 시트 한 장 만드는 값에 비하면 없는 셈이다.
+     */
     public CombatPowerBreakdown breakdown(DataSheet dataSheet, String characterClass, Integer characterLevel) {
+        CombatPowerBreakdown terms = terms(dataSheet, characterClass, characterLevel);
+        List<CombatPowerBreakdown.SourceShare> sources = new ArrayList<>();
+        for (Map.Entry<String, StatSheet> entry : dataSheet.contributions().entrySet()) {
+            long without = terms(dataSheet.without(entry.getKey()), characterClass, characterLevel).combatPower();
+            double share = terms.combatPower() == 0 ? 0.0
+                    : (terms.combatPower() - without) * 100.0 / terms.combatPower();
+            sources.add(new CombatPowerBreakdown.SourceShare(
+                    entry.getKey(), StatSheetSummary.of(entry.getValue()), share));
+        }
+        return new CombatPowerBreakdown(
+                terms.mainStat(), terms.subStat(), terms.statTerm(), terms.usesMagic(), terms.power(),
+                terms.damage(), terms.bossDamage(), terms.criticalDamage(), terms.finalDamage(),
+                terms.correction(), terms.combatPower(),
+                List.copyOf(sources), StatSheetSummary.of(dataSheet.getSumSheet()));
+    }
+
+    /** 식의 항과 전투력만. 소스별 몫은 비어 있다. */
+    private CombatPowerBreakdown terms(DataSheet dataSheet, String characterClass, Integer characterLevel) {
         StatSheet sheet = dataSheet.getSumSheet();
         List<String> mainStats = gameData.mainStats(characterClass);
         List<String> subStats = gameData.subStats(characterClass);
@@ -139,7 +165,7 @@ public class CombatCalculationService {
         return new CombatPowerBreakdown(
                 finalMainStat, finalSubStat, finalStat, isMageClass(characterClass), power,
                 sheet.getDAMAGE(), sheet.getBOSS_DAMAGE(), sheet.getCRITICAL_DAMAGE(),
-                finalDamage - 100.0, correction, (long) Math.floor(base));
+                finalDamage - 100.0, correction, (long) Math.floor(base), List.of(), null);
     }
 
     /** 부위 HP 절반. 파서가 소스별로 내린 값이 있으면 그것, 없으면(펫·캐시) 부위 통째 내림. */
