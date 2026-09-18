@@ -18,6 +18,11 @@ export interface CharacterInfo {
 }
 
 export interface HistoryPoint {
+  /**
+   * 집계 대기. 넥슨이 전일 데이터를 다음날 02시(KST)에 열어, 그 전의 어제는 값 없이 자리만 온다.
+   * 기록이 없는 것과 다르다 — 02시가 지나면 채워진다. 선은 이 자리를 건너 앞뒤를 잇는다
+   */
+  awaiting: boolean;
   date: string;
   level: number | null;
   combatPower: number | null;

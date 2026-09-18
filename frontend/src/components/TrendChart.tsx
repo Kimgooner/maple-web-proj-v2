@@ -157,12 +157,30 @@ export function TrendChart(
     let path = '';
     let open = false;
     points.forEach((point, index) => {
+      // 집계 대기 자리는 값이 없어도 끊지 않고 건너 앞뒤를 잇는다 — 02시 뒤에 채워질 자리다.
+      if (point.awaiting) return;
       const value = pick(point);
       if (value == null) { open = false; return; }
       path += `${open ? 'L' : 'M'}${x(index)},${at(value)} `;
       open = true;
     });
     return path.trim();
+  };
+
+  /**
+   * 집계 대기 자리의 세로 위치. 값이 없으니 앞뒤 값 있는 지점을 잇는 선 위에 놓는다 —
+   * 선이 지나는 자리에 표시가 있어야 "여기가 빈 날"로 읽힌다. 한쪽만 있으면 그쪽 높이.
+   */
+  const awaitingY = (index: number): number => {
+    let before: number | null = null;
+    let after: number | null = null;
+    for (let i = index - 1; i >= 0; i -= 1) { if (points[i].combatPower != null) { before = i; break; } }
+    for (let i = index + 1; i < points.length; i += 1) { if (points[i].combatPower != null) { after = i; break; } }
+    if (before == null && after == null) return HEIGHT - BOTTOM;
+    if (before == null) return y(points[after!].combatPower!);
+    if (after == null) return y(points[before].combatPower!);
+    const t = (index - before) / (after - before);
+    return y(points[before].combatPower!) + (y(points[after].combatPower!) - y(points[before].combatPower!)) * t;
   };
 
   /**
@@ -221,7 +239,7 @@ export function TrendChart(
    */
   const tip = hovered == null ? null : (() => {
     const point = points[hovered];
-    const at = point.combatPower != null ? y(point.combatPower) : HEIGHT - BOTTOM;
+    const at = point.combatPower != null ? y(point.combatPower) : point.awaiting ? awaitingY(hovered) : HEIGHT - BOTTOM;
     return {
       point,
       band: bandOf[hovered],
@@ -343,7 +361,7 @@ export function TrendChart(
             <g
               className="chart-point"
               key={point.date}
-              onClick={() => interactive && !pending && onPick(point.date)}
+              onClick={() => interactive && !pending && !point.awaiting && onPick(point.date)}
               onMouseEnter={() => setHovered(i)}
               onFocus={() => setHovered(i)}
             >
@@ -354,6 +372,10 @@ export function TrendChart(
                 />
               )}
               {pending && loading && <circle cx={x(i)} cy={HEIGHT - BOTTOM} r="2.5" fill="#dfe3e9" />}
+              {/* 집계 대기. 선이 지나는 자리에 점선 테두리의 빈 점 — 값이 아니라 자리임을 말한다. */}
+              {point.awaiting && (
+                <circle cx={x(i)} cy={awaitingY(i)} r="3" fill="#fff" stroke="#c9ced8" strokeWidth="1.5" strokeDasharray="2 1.5" />
+              )}
               {labelled.has(i) && (
                 <text x={x(i)} y={HEIGHT - 10} textAnchor="middle">
                   {formatAxisDate(point.date, range)}
@@ -377,16 +399,21 @@ export function TrendChart(
           </div>
 
           <div className="chart-tip-power">
-            {isPending(tip.point)
-              ? <span className="chart-tip-blank">{loading ? '불러오는 중' : '기록 없음'}</span>
-              : tip.point.combatPower == null
-                ? <span className="chart-tip-blank">계산 실패</span>
-                : formatGameNumber(tip.point.combatPower)}
+            {tip.point.awaiting
+              ? <span className="chart-tip-blank">집계 대기</span>
+              : isPending(tip.point)
+                ? <span className="chart-tip-blank">{loading ? '불러오는 중' : '기록 없음'}</span>
+                : tip.point.combatPower == null
+                  ? <span className="chart-tip-blank">계산 실패</span>
+                  : formatGameNumber(tip.point.combatPower)}
           </div>
 
           {/* 우리가 못 받은 것이 아니라 넥슨에 없는 기간이라는 것을 밝힌다. */}
           {!loading && isPending(tip.point) && (
             <div className="chart-tip-note">{BLANK_NOTE}</div>
+          )}
+          {tip.point.awaiting && (
+            <div className="chart-tip-note">전날 기록은 오전 2시 이후에 볼 수 있어요.</div>
           )}
 
           {/* 전투력에 안 들어가는 값이라 전투력 아래, 구간 통계 위에 둔다. */}

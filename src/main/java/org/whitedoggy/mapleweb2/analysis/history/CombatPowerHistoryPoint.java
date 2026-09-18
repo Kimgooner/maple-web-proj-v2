@@ -21,6 +21,9 @@ import java.time.LocalDate;
  * @param itemPreset        그날 계산에 쓴 장비 프리셋 번호. 점수가 같아 갈릴 때가 있어,
  *                          "다른 날은 몇 번을 썼나"를 알아야 되돌릴 수 있다.
  * @param expired           기간이 지나 스탯이 빠진 것들. 화면이 "만료됨"으로 알린다.
+ * @param awaiting          집계 대기. 넥슨이 전일 데이터를 다음날 02시(KST)에 열어서, 그 전에 어제를
+ *                          물으면 빈 문서가 온다. 그날을 빼 버리면 추이가 거기서 끊기므로 자리는
+ *                          남기고 값은 전부 null 로 둔다. 캐시하지 않는다 — 02시가 지나면 값이 생긴다.
  */
 public record CombatPowerHistoryPoint(
         LocalDate date,
@@ -32,8 +35,22 @@ public record CombatPowerHistoryPoint(
         Integer cooldownSecond,
         Double cooldownSkipPercent,
         Integer itemPreset,
-        Expired expired
+        Expired expired,
+        boolean awaiting
 ) {
+    public CombatPowerHistoryPoint(
+            LocalDate date, Integer level, Long combatPower, Long apiCombatPower, Long solErdaFragments,
+            Long solErdaFragmentsRequired, Integer cooldownSecond, Double cooldownSkipPercent,
+            Integer itemPreset, Expired expired) {
+        this(date, level, combatPower, apiCombatPower, solErdaFragments, solErdaFragmentsRequired,
+                cooldownSecond, cooldownSkipPercent, itemPreset, expired, false);
+    }
+
+    /** 집계 대기 자리. 날짜만 있고 값은 없다. */
+    public static CombatPowerHistoryPoint awaiting(LocalDate date) {
+        return new CombatPowerHistoryPoint(date, null, null, null, null, null, null, null, null, null, true);
+    }
+
     /**
      * 기간이 지나 계산에서 빠진 항목 수. 전부 0이면 {@code null} 로 두어 캐시와 응답이
      * 괜히 커지지 않게 한다.

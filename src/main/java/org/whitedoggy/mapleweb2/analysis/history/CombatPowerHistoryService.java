@@ -203,11 +203,15 @@ public class CombatPowerHistoryService {
     }
 
     private Mono<CombatPowerHistoryPoint> repairPoint(String ocid, LocalDate date, int itemPreset) {
-        LocalDate today = LocalDate.now(KST);
+        LocalDateTime now = LocalDateTime.now(KST);
+        LocalDate today = now.toLocalDate();
         // 오늘은 date 를 붙이면 API 가 거절한다(OPENAPI00004). 계속 변하는 값이라 캐시도 안 한다.
         if (date.equals(today)) {
             return snapshotService.getCurrentSnapshotByOcid(ocid, today)
                     .map(snapshot -> forcedPoint(snapshot, date, itemPreset));
+        }
+        if (PublicationSchedule.isAwaiting(date, now)) {
+            return Mono.just(CombatPowerHistoryPoint.awaiting(date));
         }
         String cacheKey = historyPointCacheKey(ocid, date) + ":p" + itemPreset;
         return calculated.get(cacheKey, CombatPowerHistoryPoint.class)
@@ -240,7 +244,11 @@ public class CombatPowerHistoryService {
                 original.truncated(), original.truncatedFrom(), merged, original.breakdown());
     }
 
-    /** 최신 → 과거 순으로 지점을 만든다. 빈 응답을 만나면 그 앞까지만 내보낸다. */
+    /**
+     * 최신 → 과거 순으로 지점을 만든다. 빈 응답을 만나면 그 앞까지만 내보낸다 — 캐릭터가 없던
+     * 시점이다. 다만 어제가 비어 오는 것은 캐릭터가 없어서가 아니라 넥슨이 아직 안 연 것이라
+     * ({@link PublicationSchedule}), 그 자리는 집계 대기로 남기고 계속 간다.
+     */
     private Flux<CombatPowerHistoryPoint> points(Plan plan) {
         return Flux.fromIterable(plan.dates())
                 .flatMapSequential(date -> loadPoint(plan, date), CONCURRENCY)
@@ -262,6 +270,10 @@ public class CombatPowerHistoryService {
         if (date.equals(plan.today())) {
             CombatPowerHistoryPoint point = plan.head().today();
             return Mono.just(point == null ? Loaded.missing() : new Loaded(true, point));
+        }
+        // 02시 전의 어제는 물어봐야 빈 문서(넥슨 호출 18회 낭비)라 묻지 않고 집계 대기로 둔다.
+        if (PublicationSchedule.isAwaiting(date, LocalDateTime.now(KST))) {
+            return Mono.just(new Loaded(true, CombatPowerHistoryPoint.awaiting(date)));
         }
 
         String cacheKey = historyPointCacheKey(plan.ocid(), date);
@@ -285,6 +297,10 @@ public class CombatPowerHistoryService {
         DataSheet dataSheet = combatDataSheet(snapshot);
         Loaded loaded = toPoint(snapshot, date, dataSheet, hexaMatrix(snapshot));
         if (!loaded.exists()) {
+            // 02시가 지났는데도 어제가 비어 오면 넥슨이 늦는 것이다. 끊지 말고 집계 대기로 둔다.
+            if (PublicationSchedule.isYesterday(date, LocalDate.now(KST))) {
+                return Mono.just(new Loaded(true, CombatPowerHistoryPoint.awaiting(date)));
+            }
             return Mono.just(loaded);
         }
         Duration ttl = CacheTtlPolicy.forHistoryPoint(date, LocalDateTime.now(KST), dataSheet,

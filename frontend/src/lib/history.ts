@@ -58,7 +58,7 @@ function blankPoints(dates: string[]): HistoryPoint[] {
   return [...dates].sort().map((date) => ({
     date, level: null, combatPower: null, apiCombatPower: null,
     solErdaFragments: null, solErdaFragmentsRequired: null,
-    cooldownSecond: null, cooldownSkipPercent: null, itemPreset: null, expired: null,
+    cooldownSecond: null, cooldownSkipPercent: null, itemPreset: null, expired: null, awaiting: false,
   }));
 }
 
@@ -89,9 +89,9 @@ function withoutZero(point: HistoryPoint): HistoryPoint {
   };
 }
 
-/** 아직 point 가 오지 않은 자리 */
+/** 아직 point 가 오지 않은 자리. 집계 대기는 값이 없어도 "온" 자리라 여기 들지 않는다. */
 export function isPending(point: HistoryPoint): boolean {
-  return point.level === null && point.combatPower === null && point.solErdaFragments === null;
+  return !point.awaiting && point.level === null && point.combatPower === null && point.solErdaFragments === null;
 }
 
 export function applyHistoryEvent(state: HistoryState, event: HistoryAction): HistoryState {

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { changedDates, defaultInterval, intervalEndingAt, pickPoint } from './selection';
 import type { HistoryPoint } from '../api/types';
 
-const p = (date: string, combatPower: number | null): HistoryPoint => ({ date, level: 1, combatPower, apiCombatPower: null, solErdaFragments: null, solErdaFragmentsRequired: null, cooldownSecond: null, cooldownSkipPercent: null, itemPreset: null, expired: null });
+const p = (date: string, combatPower: number | null): HistoryPoint => ({ date, level: 1, combatPower, apiCombatPower: null, solErdaFragments: null, solErdaFragmentsRequired: null, cooldownSecond: null, cooldownSkipPercent: null, itemPreset: null, expired: null, awaiting: false });
 
 describe('defaultInterval', () => {
   it('변한 곳이 있어도 끝은 오늘 - 최신 두 지점', () => {
