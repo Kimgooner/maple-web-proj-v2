@@ -1,7 +1,7 @@
 package org.whitedoggy.mapleweb2.global.cache;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
+import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.data.redis.core.ReactiveValueOperations;
 import reactor.core.publisher.Mono;
 import tools.jackson.databind.ObjectMapper;
@@ -27,28 +27,28 @@ class RedisMapleCacheNoExpiryTest {
 
     @Test
     void 만료_없이_넣으면_TTL_인자를_쓰지_않는다() {
-        ReactiveStringRedisTemplate redis = mock(ReactiveStringRedisTemplate.class);
-        ReactiveValueOperations<String, String> values = mock(ReactiveValueOperations.class);
+        ReactiveRedisTemplate<String, byte[]> redis = mock(ReactiveRedisTemplate.class);
+        ReactiveValueOperations<String, byte[]> values = mock(ReactiveValueOperations.class);
         when(redis.opsForValue()).thenReturn(values);
-        when(values.set(anyString(), anyString())).thenReturn(Mono.just(true));
+        when(values.set(anyString(), any(byte[].class))).thenReturn(Mono.just(true));
 
         new RedisMapleCache(redis, new ObjectMapper()).put("maple:levelband:v1:weeks", "값").block();
 
-        verify(values).set(eq("maple:levelband:v1:weeks"), anyString());
-        verify(values, never()).set(anyString(), anyString(), any(Duration.class));
+        verify(values).set(eq("maple:levelband:v1:weeks"), any(byte[].class));
+        verify(values, never()).set(anyString(), any(byte[].class), any(Duration.class));
     }
 
     @Test
     void 만료를_준_값은_그대로_TTL_이_걸린다() {
-        ReactiveStringRedisTemplate redis = mock(ReactiveStringRedisTemplate.class);
-        ReactiveValueOperations<String, String> values = mock(ReactiveValueOperations.class);
+        ReactiveRedisTemplate<String, byte[]> redis = mock(ReactiveRedisTemplate.class);
+        ReactiveValueOperations<String, byte[]> values = mock(ReactiveValueOperations.class);
         when(redis.opsForValue()).thenReturn(values);
-        when(values.set(anyString(), anyString(), any(Duration.class))).thenReturn(Mono.just(true));
+        when(values.set(anyString(), any(byte[].class), any(Duration.class))).thenReturn(Mono.just(true));
 
         new RedisMapleCache(redis, new ObjectMapper())
                 .put("maple:datasheet:v11:x:2026-09-09", "값", Duration.ofHours(6)).block();
 
-        verify(values).set(eq("maple:datasheet:v11:x:2026-09-09"), anyString(), eq(Duration.ofHours(6)));
-        verify(values, never()).set(anyString(), anyString());
+        verify(values).set(eq("maple:datasheet:v11:x:2026-09-09"), any(byte[].class), eq(Duration.ofHours(6)));
+        verify(values, never()).set(anyString(), any(byte[].class));
     }
 }
