@@ -2,3 +2,4 @@
 !dist
 !nginx.conf
 !cloudflare-ips.conf
+!cloudflare-allow.conf
