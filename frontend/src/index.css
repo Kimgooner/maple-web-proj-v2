@@ -346,6 +346,11 @@ h1,h2,h3,p {
   font-size:11px;
 }
 
+ul.formula-foot {
+  padding-left:16px;
+  line-height:1.7;
+}
+
 /* 계산 과정의 두 단계: 요소별 스탯 합(표, 마지막 줄이 총합) → 계산(항 카드). */
 .formula-step + .formula-step {
   margin-top:22px;

@@ -205,10 +205,11 @@ export function CombatPowerFormula({ breakdown, info }: { breakdown: CombatPower
               </tfoot>
             </table>
           </div>
-          <p className="formula-foot muted">
-            전투력에 들어가는 스탯만 실었습니다. 비율은 요소가 전투력에서 차지하는 몫(섀플리 값)으로, 다 더하면
-            100% 입니다. 고정 = 스탯 % 를 받지 않는 값.
-          </p>
+          <ul className="formula-foot muted">
+            <li>전투력에 영향을 주는 스탯만 포함</li>
+            <li>비율은 섀플리 값(Shapley Value)을 통해 계산</li>
+            <li>고정 = 스탯 % 미반영 스탯</li>
+          </ul>
         </section>
       )}
 
