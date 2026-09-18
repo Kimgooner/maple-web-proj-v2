@@ -367,10 +367,11 @@ public class CombatPowerHistoryService {
      * 계산 규칙이나 지점 모양을 바꾸면 접두사 버전을 올린다. 안 그러면 고친 값이 30일 동안
      * 안 보인다 ({@code maple:datasheet:v5} 와 같은 이유다).
      * v4 부터 조각 진행률의 분모가 들어 있다. v8 은 데몬어벤져를 계산하게 된 뒤 —
-     * 그전에 굳은 데벤 지점은 전투력이 0 이라 "계산 실패" 로 보였다.
+     * 그전에 굳은 데벤 지점은 전투력이 0 이라 "계산 실패" 로 보였다. v9 는 2026-09-17
+     * 업데이트(소울 상시 공격력·소울 잠재·아르고 호의 가호) 반영.
      */
     private static String historyPointCacheKey(String ocid, LocalDate date) {
-        return "maple:history:v8:" + (ocid == null ? "" : ocid.trim()) + ":" + date;
+        return "maple:history:v9:" + (ocid == null ? "" : ocid.trim()) + ":" + date;
     }
 
     private Long apiCombatPower(CharacterSnapshot snapshot) {

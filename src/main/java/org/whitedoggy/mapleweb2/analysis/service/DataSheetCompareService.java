@@ -476,7 +476,9 @@ public class DataSheetCompareService {
                 nullToEmpty(item.getDescriptionLines()),
                 nullToEmpty(item.getPotentialLines()),
                 nullToEmpty(item.getAdditionalPotentialLines()),
-                nullToEmpty(item.getExceptionalLines())
+                nullToEmpty(item.getExceptionalLines()),
+                item.getSoulPotentialGrade(),
+                nullToEmpty(item.getSoulPotentialLines())
         );
     }
 
@@ -690,7 +692,10 @@ public class DataSheetCompareService {
             List<String> descriptionLines,
             List<String> potentialLines,
             List<String> additionalPotentialLines,
-            List<String> exceptionalLines
+            List<String> exceptionalLines,
+            /** 무기 소울 잠재(2026-09-17). 무기가 아니면 비어 있고 등급은 null. */
+            String soulPotentialGrade,
+            List<String> soulPotentialLines
     ) {
     }
 

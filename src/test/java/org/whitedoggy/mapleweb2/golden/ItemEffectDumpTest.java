@@ -73,12 +73,12 @@ class ItemEffectDumpTest {
             }
             out.append(String.join("\t", fixture.job(), fixture.characterName(), kind + " - " + slot,
                     i(s.getSTR()), i(s.getDEX()), i(s.getINT()), i(s.getLUK()), i(s.getALL_STAT()),
-                    i(s.getSTR_PERCENT()), i(s.getDEX_PERCENT()), i(s.getINT_PERCENT()),
-                    i(s.getLUK_PERCENT()), i(s.getALL_STAT_PERCENT()),
+                    d(s.getSTR_PERCENT()), d(s.getDEX_PERCENT()), d(s.getINT_PERCENT()),
+                    d(s.getLUK_PERCENT()), d(s.getALL_STAT_PERCENT()),
                     i(s.getSTR_NO_PERCENT()), i(s.getDEX_NO_PERCENT()), i(s.getINT_NO_PERCENT()),
                     i(s.getLUK_NO_PERCENT()), i(s.getALL_STAT_NO_PERCENT()),
                     i(s.getATTACK_POWER()), i(s.getMAGIC_POWER()),
-                    i(s.getATTACK_POWER_PERCENT()), i(s.getMAGIC_POWER_PERCENT()),
+                    d(s.getATTACK_POWER_PERCENT()), d(s.getMAGIC_POWER_PERCENT()),
                     d(s.getDAMAGE()), d(s.getBOSS_DAMAGE()), d(s.getCRITICAL_DAMAGE()), d(s.getFINAL_DAMAGE())))
                     .append('\n');
         });

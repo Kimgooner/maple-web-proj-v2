@@ -160,7 +160,7 @@ class AdHocCharacterCheckTest {
         StatSheet sum = sheet.getSumSheet();
         boolean mage = gameData.isMageClass(basicParser.characterClass(documents.get(NexonEndpoint.BASIC)));
         int powerRaw = mage ? sum.getMAGIC_POWER() : sum.getATTACK_POWER();
-        int powerPct = mage ? sum.getMAGIC_POWER_PERCENT() : sum.getATTACK_POWER_PERCENT();
+        double powerPct = mage ? sum.getMAGIC_POWER_PERCENT() : sum.getATTACK_POWER_PERCENT();
 
         // 공식 입력값. 오차를 항별로 역산할 때 필요하다.
         List<String> mains = gameData.mainStats(basicParser.characterClass(documents.get(NexonEndpoint.BASIC)));
@@ -188,14 +188,14 @@ class AdHocCharacterCheckTest {
         // 기계 판독용 한 줄. TSV.
         // 제논(주스탯 3개)·데몬어벤져(주스탯 HP)는 mainName 하나로는 역산이 안 된다.
         // 네 스탯의 계산값과 HP 성분을 뒤에 붙인다.
-        String extra = String.format("\t%.0f\t%.0f\t%.0f\t%.0f\t%d\t%d\t%d\t%.2f\t%.2f\t%.2f",
+        String extra = String.format("\t%.0f\t%.0f\t%.0f\t%.0f\t%d\t%.2f\t%d\t%.2f\t%.2f\t%.2f",
                 statValue("STR", sum, level(documents)), statValue("DEX", sum, level(documents)),
                 statValue("INT", sum, level(documents)), statValue("LUK", sum, level(documents)),
                 sum.getHP(), sum.getHP_PERCENT(), sum.getHP_NO_PERCENT(),
                 // 제논은 세 스탯의 %가 서로 다를 수 있어 따로 남긴다.
                 pctOf("STR", sum), pctOf("DEX", sum), pctOf("LUK", sum))
                 // calculateStat 의 세 성분을 스탯마다 그대로. 내림 지점을 오프라인에서 바꿔 볼 수 있게 한다.
-                + String.format("\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%d\t%d\t%d",
+                + String.format("\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%d\t%.2f\t%d",
                 flatOf("STR", sum, level(documents)), noPctOf("STR", sum),
                 flatOf("DEX", sum, level(documents)), noPctOf("DEX", sum),
                 flatOf("LUK", sum, level(documents)), noPctOf("LUK", sum),
@@ -270,7 +270,7 @@ class AdHocCharacterCheckTest {
         ihp.append('\t').append("세트절반=").append(sheet.getSetEffectHpHalved());
         System.out.println(ihp);
 
-        System.out.printf("[TSV]\t%s\t%s\t%s\t%d\t%d\t%d\t%d\t%s\t%d\t%s\t%d\t%s\t%s\t%d\t%d"
+        System.out.printf("[TSV]\t%s\t%s\t%s\t%d\t%d\t%d\t%d\t%s\t%d\t%s\t%d\t%s\t%s\t%d\t%.2f"
                         + "\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%d"
                         + extra + sources + "%n",
                 path.getFileName(), payload.path("job").asText(), payload.path("characterName").asText(),
@@ -305,21 +305,21 @@ class AdHocCharacterCheckTest {
         for (Map.Entry<String, StatSheet> e : sources.entrySet()) {
             StatSheet v = e.getValue();
             if (v == null) continue;
-            System.out.printf("  %-16s %8d %8d %8.2f %8.2f %8.2f%n", e.getKey(),
+            System.out.printf("  %-16s %8d %8.2f %8.2f %8.2f %8.2f%n", e.getKey(),
                     v.getATTACK_POWER(), v.getATTACK_POWER_PERCENT(),
                     v.getDAMAGE(), v.getBOSS_DAMAGE(), v.getCRITICAL_DAMAGE());
         }
         for (String label : List.of("장비", "펫", "캐시")) {
             Map<String, ItemSnapShot> map = label.equals("장비") ? sheet.getItemEquip()
                     : label.equals("펫") ? sheet.getPetEquip() : sheet.getCashEquip();
-            int att = 0, pct = 0;
-            double dmg = 0, boss = 0, crit = 0;
+            int att = 0;
+            double pct = 0, dmg = 0, boss = 0, crit = 0;
             for (ItemSnapShot i : map.values()) {
                 StatSheet v = i.getStatSheet();
                 att += v.getATTACK_POWER(); pct += v.getATTACK_POWER_PERCENT();
                 dmg += v.getDAMAGE(); boss += v.getBOSS_DAMAGE(); crit += v.getCRITICAL_DAMAGE();
             }
-            System.out.printf("  %-16s %8d %8d %8.2f %8.2f %8.2f%n", label, att, pct, dmg, boss, crit);
+            System.out.printf("  %-16s %8d %8.2f %8.2f %8.2f %8.2f%n", label, att, pct, dmg, boss, crit);
         }
     }
 
@@ -458,7 +458,7 @@ class AdHocCharacterCheckTest {
     }
 
     private double pctOf(String stat, StatSheet s) {
-        int base = switch (stat) {
+        double base = switch (stat) {
             case "STR" -> s.getSTR_PERCENT(); case "DEX" -> s.getDEX_PERCENT();
             case "INT" -> s.getINT_PERCENT(); case "LUK" -> s.getLUK_PERCENT(); default -> 0;
         };

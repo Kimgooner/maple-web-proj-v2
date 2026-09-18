@@ -129,11 +129,14 @@ public class ItemParser {
         private final List<String> potential = new ArrayList<>();
         private final List<String> additionalPotential = new ArrayList<>();
         private final List<String> exceptional = new ArrayList<>();
+        /** 무기 소울 잠재. 잠재와 같은 성질(줄마다 독립)이라 잠재 시트에 함께 들어간다. */
+        private final List<String> soulPotential = new ArrayList<>();
 
-        /** 잠재와 에디셔널을 합친 것. 계산과 잠재 시트는 예전처럼 둘을 한 덩어리로 본다. */
+        /** 잠재·에디셔널·소울 잠재를 합친 것. 계산과 잠재 시트는 예전처럼 한 덩어리로 본다. */
         private List<String> allPotential() {
             List<String> all = new ArrayList<>(potential);
             all.addAll(additionalPotential);
+            all.addAll(soulPotential);
             return all;
         }
 
@@ -220,6 +223,32 @@ public class ItemParser {
     );
 
     /** 잠재와 에디셔널을 따로 모은다. 화면이 둘을 갈라 보여준다. */
+    /**
+     * 무기 소울. 소울 옵션("공격력 +3%") 한 줄에 더해 2026-09-17 업데이트로 둘이 생겼다.
+     *
+     * <ul>
+     * <li>{@code soul_pad}/{@code soul_mad}: 소울 게이지 충전 효과였던 공격력·마력이 상시 적용으로
+     *     바뀌면서 문서에 실린다. 09-17 표본 472명 중 460명이 이걸 넣어야 정수 일치한다.</li>
+     * <li>{@code soul_potential_option_1~3}: 소울 증폭으로 붙는 소울 잠재. 잠재처럼 줄 단위로 둔다 —
+     *     "공격력 +4.5%" 처럼 소수 % 가 오므로 % 시트는 double 이다.</li>
+     * </ul>
+     * 제로의 라피스(보조무기)에도 같은 소울이 복사돼 오지만 게임은 한 번만 적용하므로 무기에서만 읽는다.
+     */
+    private void addSoulEffects(ItemEffects effects, JsonNode item) {
+        EffectTextSplitter.addSplit(effects.option, Jsons.text(item, "soul_option"));
+        int soulPad = Jsons.optionalInt(item, "soul_pad").orElse(0);
+        int soulMad = Jsons.optionalInt(item, "soul_mad").orElse(0);
+        if (soulPad > 0) {
+            effects.option.add("공격력 " + soulPad);
+        }
+        if (soulMad > 0) {
+            effects.option.add("마력 " + soulMad);
+        }
+        for (String option : getSoulPotentialOptions(item)) {
+            EffectTextSplitter.addSplit(effects.soulPotential, option);
+        }
+    }
+
     private void addPotentials(ItemEffects effects, JsonNode item) {
         for (String option : getPotentialOptions(item)) {
             EffectTextSplitter.addSplit(effects.potential, option);
@@ -240,6 +269,7 @@ public class ItemParser {
         snapShot.setPotentialLines(List.copyOf(effects.potential));
         snapShot.setAdditionalPotentialLines(List.copyOf(effects.additionalPotential));
         snapShot.setExceptionalLines(List.copyOf(effects.exceptional));
+        snapShot.setSoulPotentialLines(List.copyOf(effects.soulPotential));
         snapShot.setHpHalvedForDemonAvenger(hpHalved(effects));
     }
 
@@ -358,8 +388,9 @@ public class ItemParser {
         effects.option.addAll(normalized.effects());
         snapShot.setWeaponNormalizationFailed(!normalized.stageResolved());
 
-        //무기 소울 옵션
-        EffectTextSplitter.addSplit(effects.option, Jsons.text(item, "soul_option"));
+        addSoulEffects(effects, item);
+        String soulGrade = Jsons.text(item, "soul_potential_grade");
+        snapShot.setSoulPotentialGrade(soulGrade.isEmpty() ? null : soulGrade);
 
         addPotentials(effects, item);
         applyEffects(snapShot, itemName, effects);
@@ -507,8 +538,11 @@ public class ItemParser {
                     int normalized = getNormalizedAttackForZero(item);
                     effects.add("공격력 " + (normalized)); // 공격력 정규화
 
-                    // 잠재, 에디 저장
+                    // 잠재, 에디, 소울 잠재 저장
                     for (String option : getPotentialOptions(item)) {
+                        EffectTextSplitter.addSplit(weaponPotentials, option);
+                    }
+                    for (String option : getSoulPotentialOptions(item)) {
                         EffectTextSplitter.addSplit(weaponPotentials, option);
                     }
                     for (String option : getAdditionalPotentialOptions(item)) {
@@ -631,6 +665,22 @@ public class ItemParser {
         String title = Jsons.text(item, "title_description");
         EffectTextSplitter.addSplit(effects, title);
         return effects;
+    }
+
+    /**
+     * 소울 잠재능력. 2026-09-17 업데이트로 무기 소울에 잠재 세 줄이 생겼다
+     * ({@code soul_potential_option_1~3}, 등급은 {@code soul_potential_grade}).
+     * 옛 문서에는 필드가 없어 빈 목록이다.
+     */
+    public List<String> getSoulPotentialOptions(JsonNode item) {
+        List<String> options = new ArrayList<>();
+        for (String field : List.of("soul_potential_option_1", "soul_potential_option_2", "soul_potential_option_3")) {
+            String option = Jsons.text(item, field);
+            if (!option.isEmpty()) {
+                options.add(option);
+            }
+        }
+        return options;
     }
 
     public List<String> getPotentialOptions(JsonNode item) {

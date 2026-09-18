@@ -293,7 +293,8 @@ public class AnalysisService {
                 item.name(), item.icon(), item.starForce(), item.scrollUpgrade(), item.requiredLevel(),
                 item.potentialGrade(), item.additionalPotentialGrade(), item.expired(),
                 item.stats(), item.descriptionLines(),
-                item.potentialLines(), item.additionalPotentialLines(), item.exceptionalLines());
+                item.potentialLines(), item.additionalPotentialLines(), item.exceptionalLines(),
+                item.soulPotentialGrade(), item.soulPotentialLines());
     }
 
     private StatDeltaGroupSummary toStatDeltaGroupSummary(DataSheetCompareService.StatDeltaGroup group) {

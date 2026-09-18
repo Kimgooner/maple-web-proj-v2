@@ -157,7 +157,7 @@ class FormulaInputDumpTest {
     }
 
     private double pctOf(String statName, StatSheet s) {
-        int base = switch (statName) {
+        double base = switch (statName) {
             case "STR" -> s.getSTR_PERCENT();
             case "DEX" -> s.getDEX_PERCENT();
             case "INT" -> s.getINT_PERCENT();
@@ -186,7 +186,7 @@ class FormulaInputDumpTest {
     private double statValue(String statName, StatSheet sheet, int level) {
         int base;
         int perLevel9;
-        int percent;
+        double percent;
         int noPercent;
         switch (statName) {
             case "STR" -> {

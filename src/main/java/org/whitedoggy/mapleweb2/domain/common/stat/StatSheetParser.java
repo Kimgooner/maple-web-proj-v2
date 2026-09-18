@@ -166,22 +166,28 @@ public class StatSheetParser {
     }
 
     private void applyAttackMagic(ParseContext context, Matcher matcher) {
-        int value = intValue(matcher, 2);
         boolean percent = isPercent(matcher, 3);
+        double value = valueOf(matcher, 2, percent);
         addAttack(context.sheet(), value, percent);
         addMagic(context.sheet(), value, percent);
     }
 
     private void applyCombinedStat(ParseContext context, Matcher matcher) {
-        int value = intValue(matcher, 2);
         boolean percent = isPercent(matcher, 3);
+        double value = valueOf(matcher, 2, percent);
         for (String statName : matcher.group(1).split(",")) {
             addNamedStat(context, statName.trim(), value, percent);
         }
     }
 
     private void applyNamedStat(ParseContext context, Matcher matcher) {
-        addNamedStat(context, matcher.group(1), intValue(matcher, 2), isPercent(matcher, 3));
+        boolean percent = isPercent(matcher, 3);
+        addNamedStat(context, matcher.group(1), valueOf(matcher, 2, percent), percent);
+    }
+
+    /** % 는 소수까지 그대로("공격력 +4.5%"), 고정값은 정수로 내린다. */
+    private double valueOf(Matcher matcher, int group, boolean percent) {
+        return percent ? doubleValue(matcher, group) : intValue(matcher, group);
     }
 
     private void applyKoreanStat(ParseContext context, Matcher matcher) {
@@ -195,27 +201,33 @@ public class StatSheetParser {
             case "운" -> "LUK";
             default -> "";
         };
-        addNamedStat(context, statName, intValue(matcher, 2), isPercent(matcher, 3));
+        boolean percent = isPercent(matcher, 3);
+        addNamedStat(context, statName, valueOf(matcher, 2, percent), percent);
     }
 
     private void applyHpMp(ParseContext context, Matcher matcher) {
-        addHp(context.sheet(), intValue(matcher, 1), isPercent(matcher, 2), context.flatStatAsNoPercent());
+        boolean percent = isPercent(matcher, 2);
+        addHp(context.sheet(), valueOf(matcher, 1, percent), percent, context.flatStatAsNoPercent());
     }
 
     private void applyHp(ParseContext context, Matcher matcher) {
-        addHp(context.sheet(), intValue(matcher, 2), isPercent(matcher, 3), context.flatStatAsNoPercent());
+        boolean percent = isPercent(matcher, 3);
+        addHp(context.sheet(), valueOf(matcher, 2, percent), percent, context.flatStatAsNoPercent());
     }
 
     private void applyAllStat(ParseContext context, Matcher matcher) {
-        addAllStat(context.sheet(), intValue(matcher, 2), isPercent(matcher, 3), context.flatStatAsNoPercent());
+        boolean percent = isPercent(matcher, 3);
+        addAllStat(context.sheet(), valueOf(matcher, 2, percent), percent, context.flatStatAsNoPercent());
     }
 
     private void applyAttack(ParseContext context, Matcher matcher) {
-        addAttack(context.sheet(), intValue(matcher, 1), isPercent(matcher, 2));
+        boolean percent = isPercent(matcher, 2);
+        addAttack(context.sheet(), valueOf(matcher, 1, percent), percent);
     }
 
     private void applyMagic(ParseContext context, Matcher matcher) {
-        addMagic(context.sheet(), intValue(matcher, 1), isPercent(matcher, 2));
+        boolean percent = isPercent(matcher, 2);
+        addMagic(context.sheet(), valueOf(matcher, 1, percent), percent);
     }
 
     private void applyBossDamage(ParseContext context, Matcher matcher) {
@@ -258,7 +270,7 @@ public class StatSheetParser {
         return matcher.group(group) != null;
     }
 
-    private void addNamedStat(ParseContext context, String statName, int value, boolean percent) {
+    private void addNamedStat(ParseContext context, String statName, double value, boolean percent) {
         if (percent) {
             switch (statName) {
                 case "STR" -> context.sheet().setSTR_PERCENT(context.sheet().getSTR_PERCENT() + value);
@@ -271,7 +283,7 @@ public class StatSheetParser {
             return;
         }
 
-        addFlatStat(context.sheet(), statName, value, context.flatStatAsNoPercent());
+        addFlatStat(context.sheet(), statName, (int) value, context.flatStatAsNoPercent());
     }
 
     private void addFlatStat(StatSheet sheet, String statName, int value, boolean flatStatAsNoPercent) {
@@ -297,44 +309,44 @@ public class StatSheetParser {
         }
     }
 
-    private void addAllStat(StatSheet sheet, int value, boolean percent, boolean flatStatAsNoPercent) {
+    private void addAllStat(StatSheet sheet, double value, boolean percent, boolean flatStatAsNoPercent) {
         if (percent) {
             sheet.setALL_STAT_PERCENT(sheet.getALL_STAT_PERCENT() + value);
             return;
         }
         if (flatStatAsNoPercent) {
-            sheet.setALL_STAT_NO_PERCENT(sheet.getALL_STAT_NO_PERCENT() + value);
+            sheet.setALL_STAT_NO_PERCENT(sheet.getALL_STAT_NO_PERCENT() + (int) value);
             return;
         }
-        sheet.setALL_STAT(sheet.getALL_STAT() + value);
+        sheet.setALL_STAT(sheet.getALL_STAT() + (int) value);
     }
 
-    private void addHp(StatSheet sheet, int value, boolean percent, boolean flatStatAsNoPercent) {
+    private void addHp(StatSheet sheet, double value, boolean percent, boolean flatStatAsNoPercent) {
         if (percent) {
             sheet.setHP_PERCENT(sheet.getHP_PERCENT() + value);
             return;
         }
         if (flatStatAsNoPercent) {
-            sheet.setHP_NO_PERCENT(sheet.getHP_NO_PERCENT() + value);
+            sheet.setHP_NO_PERCENT(sheet.getHP_NO_PERCENT() + (int) value);
             return;
         }
-        sheet.setHP(sheet.getHP() + value);
+        sheet.setHP(sheet.getHP() + (int) value);
     }
 
-    private void addAttack(StatSheet sheet, int value, boolean percent) {
+    private void addAttack(StatSheet sheet, double value, boolean percent) {
         if (percent) {
             sheet.setATTACK_POWER_PERCENT(sheet.getATTACK_POWER_PERCENT() + value);
             return;
         }
-        sheet.setATTACK_POWER(sheet.getATTACK_POWER() + value);
+        sheet.setATTACK_POWER(sheet.getATTACK_POWER() + (int) value);
     }
 
-    private void addMagic(StatSheet sheet, int value, boolean percent) {
+    private void addMagic(StatSheet sheet, double value, boolean percent) {
         if (percent) {
             sheet.setMAGIC_POWER_PERCENT(sheet.getMAGIC_POWER_PERCENT() + value);
             return;
         }
-        sheet.setMAGIC_POWER(sheet.getMAGIC_POWER() + value);
+        sheet.setMAGIC_POWER(sheet.getMAGIC_POWER() + (int) value);
     }
 
     private record ParseContext(StatSheet sheet, boolean flatStatAsNoPercent) {

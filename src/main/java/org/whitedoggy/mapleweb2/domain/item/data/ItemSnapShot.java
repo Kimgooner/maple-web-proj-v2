@@ -57,6 +57,10 @@ public class ItemSnapShot {
     List<String> potentialLines;
     List<String> additionalPotentialLines;
     List<String> exceptionalLines;
+    /** 무기 소울 잠재. 2026-09-17 업데이트로 생겼다. 무기가 아니거나 옛 문서면 비어 있다. */
+    List<String> soulPotentialLines;
+    /** 소울 잠재 등급. 없으면 null. */
+    String soulPotentialGrade;
 
     /** 게임 아이템 창처럼 보여줄 스탯 줄. 장비가 아니면 비어 있다. */
     List<ItemStatLine> statLines;

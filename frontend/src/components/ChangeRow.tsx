@@ -128,12 +128,13 @@ function ItemCard({ item, label, muted }: { item: ItemDetail | null; label: stri
       */}
       {!item.expired && item.stats.length === 0 && (item.descriptionLines ?? []).length === 0
         && item.potentialLines.length === 0 && item.additionalPotentialLines.length === 0
-        && item.exceptionalLines.length === 0 && (
+        && item.exceptionalLines.length === 0 && (item.soulPotentialLines ?? []).length === 0 && (
         <div className="item-line muted">붙어 있는 효과가 없습니다</div>
       )}
       <PotentialBlock title="잠재능력" grade={item.potentialGrade} lines={item.potentialLines} />
       <PotentialBlock title="에디셔널 잠재능력" grade={item.additionalPotentialGrade} lines={item.additionalPotentialLines} />
       <PotentialBlock title="익셉셔널" grade={null} lines={item.exceptionalLines} />
+      <PotentialBlock title="소울 잠재능력" grade={item.soulPotentialGrade} lines={item.soulPotentialLines ?? []} />
     </div>
   );
 }

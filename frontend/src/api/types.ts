@@ -191,6 +191,9 @@ export interface ItemDetail {
   potentialLines: string[];
   additionalPotentialLines: string[];
   exceptionalLines: string[];
+  /** 무기 소울 잠재(2026-09-17 업데이트). 무기가 아니면 비어 있고 등급은 null */
+  soulPotentialGrade: string | null;
+  soulPotentialLines: string[];
 }
 
 export interface SlotChange {

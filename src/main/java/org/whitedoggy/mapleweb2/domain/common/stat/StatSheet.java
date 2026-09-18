@@ -36,15 +36,16 @@ public class StatSheet {
     private int ATTACK_POWER = 0;
     private int MAGIC_POWER = 0;
 
-    private int STR_PERCENT = 0;
-    private int DEX_PERCENT = 0;
-    private int INT_PERCENT = 0;
-    private int LUK_PERCENT = 0;
-    private int HP_PERCENT = 0;
-    private int ALL_STAT_PERCENT = 0;
+    // % 는 소수가 온다 — 소울 잠재 "공격력 +4.5%", "LUK +0.5%" (2026-09-17). 정수로 두면 잘린다.
+    private double STR_PERCENT = 0.0;
+    private double DEX_PERCENT = 0.0;
+    private double INT_PERCENT = 0.0;
+    private double LUK_PERCENT = 0.0;
+    private double HP_PERCENT = 0.0;
+    private double ALL_STAT_PERCENT = 0.0;
 
-    private int ATTACK_POWER_PERCENT = 0;
-    private int MAGIC_POWER_PERCENT = 0;
+    private double ATTACK_POWER_PERCENT = 0.0;
+    private double MAGIC_POWER_PERCENT = 0.0;
 
     private double DAMAGE = 0.0;
     private double BOSS_DAMAGE = 0.0;
