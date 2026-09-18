@@ -23,8 +23,7 @@ import org.whitedoggy.mapleweb2.domain.calculator.parser.StatParser;
 import org.whitedoggy.mapleweb2.domain.hexa.HexaCoreParser;
 import org.whitedoggy.mapleweb2.external.nexon.config.NexonEndpoint;
 import org.whitedoggy.mapleweb2.global.Jsons;
-import org.whitedoggy.mapleweb2.global.cache.CalculationVersion;
-import org.whitedoggy.mapleweb2.global.cache.MapleCache;
+import org.whitedoggy.mapleweb2.global.cache.CalculatedCache;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import tools.jackson.databind.JsonNode;
@@ -73,8 +72,8 @@ public class CombatPowerHistoryService {
     private final StatParser statParser;
     private final HexaCoreParser hexaCoreParser;
     private final GameData gameData;
-    private final MapleCache cache;
-    private final CalculationVersion calculationVersion;
+    /** 계산 결과는 세대를 함께 적는 캐시에 둔다. 규칙이 바뀌면 꺼낼 때 걸러져 다시 계산된다. */
+    private final CalculatedCache calculated;
     private final HistoryTraffic traffic;
 
     /** 한 번에 다 받는 형태. 차트만 그릴 때 쓴다. */
@@ -206,10 +205,10 @@ public class CombatPowerHistoryService {
                     .map(snapshot -> forcedPoint(snapshot, date, itemPreset));
         }
         String cacheKey = historyPointCacheKey(ocid, date) + ":p" + itemPreset;
-        return cache.get(cacheKey, CombatPowerHistoryPoint.class)
+        return calculated.get(cacheKey, CombatPowerHistoryPoint.class)
                 .switchIfEmpty(Mono.defer(() -> snapshotService.getSnapshotByOcid(ocid, date)
                         .map(snapshot -> forcedPoint(snapshot, date, itemPreset))
-                        .flatMap(point -> cache.put(cacheKey, point,
+                        .flatMap(point -> calculated.put(cacheKey, point,
                                 CacheTtlPolicy.forHistoryPoint(date, LocalDateTime.now(KST), null, true)))));
     }
 
@@ -261,7 +260,7 @@ public class CombatPowerHistoryService {
         }
 
         String cacheKey = historyPointCacheKey(plan.ocid(), date);
-        return cache.get(cacheKey, CombatPowerHistoryPoint.class)
+        return calculated.get(cacheKey, CombatPowerHistoryPoint.class)
                 .map(point -> new Loaded(true, point))
                 .switchIfEmpty(Mono.defer(() -> snapshotService.getSnapshotByOcid(plan.ocid(), date)
                         .flatMap(snapshot -> loadAndCachePoint(cacheKey, date, snapshot))));
@@ -285,7 +284,7 @@ public class CombatPowerHistoryService {
         }
         Duration ttl = CacheTtlPolicy.forHistoryPoint(date, LocalDateTime.now(KST), dataSheet,
                 loaded.point().solErdaFragments() != null);
-        return cache.put(cacheKey, loaded.point(), ttl).thenReturn(loaded);
+        return calculated.put(cacheKey, loaded.point(), ttl).thenReturn(loaded);
     }
 
     private Loaded toPoint(
@@ -366,12 +365,12 @@ public class CombatPowerHistoryService {
     }
 
     /**
-     * 키에 계산 세대({@link CalculationVersion})가 들어간다. 계산 규칙이나 지점 모양이 바뀌면
-     * 세대가 바뀌어 옛 지점은 닿지 않는다 — 전에는 접두사 버전을 손으로 올렸는데, 한 번
-     * 잊자 고친 값이 30일 동안 안 보였다.
+     * 키는 세대와 무관하게 고정이다. 어느 세대로 만든 값인지는 {@link CalculatedCache} 가 값 안에
+     * 적어 두고, 계산 규칙이 바뀌면 꺼낼 때 걸러 같은 키에 새 값을 덮어쓴다 — 전에는 접두사
+     * 버전을 손으로 올렸는데, 한 번 잊자 고친 값이 30일 동안 안 보였다.
      */
-    private String historyPointCacheKey(String ocid, LocalDate date) {
-        return "maple:history:" + calculationVersion.tag() + ":" + (ocid == null ? "" : ocid.trim()) + ":" + date;
+    private static String historyPointCacheKey(String ocid, LocalDate date) {
+        return "maple:history:" + (ocid == null ? "" : ocid.trim()) + ":" + date;
     }
 
     private Long apiCombatPower(CharacterSnapshot snapshot) {
@@ -421,7 +420,7 @@ public class CombatPowerHistoryService {
      * 5분 안에는 260 미만 캐릭터가 그냥 통과한다.
      */
     private Mono<TodayHead> todayHead(String characterName, String ocid, LocalDate today) {
-        return cache.getOrLoad(todayHeadCacheKey(ocid), TodayHead.class, TODAY_HEAD_TTL,
+        return calculated.getOrLoad(todayHeadCacheKey(ocid), TodayHead.class, TODAY_HEAD_TTL,
                         () -> snapshotService.getCurrentSnapshotByOcid(ocid, today)
                                 .map(current -> buildHead(current, today)))
                 .doOnNext(head -> requireHighEnoughLevel(characterName, head));
@@ -464,8 +463,8 @@ public class CombatPowerHistoryService {
                 chosen.hyperStatPreset(), chosen.unionRaiderPreset());
     }
 
-    private String todayHeadCacheKey(String ocid) {
-        return "maple:todayhead:" + calculationVersion.tag() + ":" + (ocid == null ? "" : ocid.trim());
+    private static String todayHeadCacheKey(String ocid) {
+        return "maple:todayhead:" + (ocid == null ? "" : ocid.trim());
     }
 
     private Plan buildPlan(String ocid, HistoryRange range, LocalDate today, TodayHead head) {

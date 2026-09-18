@@ -36,8 +36,7 @@ import org.whitedoggy.mapleweb2.domain.union.champion.ChampionParser;
 import org.whitedoggy.mapleweb2.domain.union.raider.RaiderParser;
 import org.whitedoggy.mapleweb2.external.nexon.config.NexonEndpoint;
 import org.whitedoggy.mapleweb2.global.Jsons;
-import org.whitedoggy.mapleweb2.global.cache.CalculationVersion;
-import org.whitedoggy.mapleweb2.global.cache.MapleCache;
+import org.whitedoggy.mapleweb2.global.cache.CalculatedCache;
 import reactor.core.publisher.Mono;
 import tools.jackson.databind.JsonNode;
 
@@ -78,8 +77,8 @@ public class DataSheetService {
     private final PresetSelector presetSelector;
     private final SourceEntryExtractor sourceEntryExtractor;
     private final CombatCalculationService combatCalculationService;
-    private final MapleCache cache;
-    private final CalculationVersion calculationVersion;
+    /** 시트는 세대를 함께 적는 캐시에 둔다. 규칙이 바뀌면 꺼낼 때 걸러져 다시 만든다. */
+    private final CalculatedCache calculated;
     private final GameData gameData;
 
     public Mono<DataSheet> getOrLoadDataSheet(
@@ -102,10 +101,10 @@ public class DataSheetService {
     ) {
         String cacheKey = dataSheetCacheKey(ocid, date)
                 + (itemPreset == null ? "" : ":p" + itemPreset);
-        return cache.get(cacheKey, DataSheet.class)
+        return calculated.get(cacheKey, DataSheet.class)
                 .switchIfEmpty(Mono.defer(() -> snapshotLoader.get()
                         .map(snapshot -> forPreset(snapshot, itemPreset))
-                        .flatMap(dataSheet -> cache.put(
+                        .flatMap(dataSheet -> calculated.put(
                                 cacheKey,
                                 dataSheet,
                                 CacheTtlPolicy.forDataSheet(date, LocalDateTime.now(KST), dataSheet)))));
@@ -578,9 +577,9 @@ public class DataSheetService {
         return statSheetParser.parseNoPercentStat(raiderParser.getUnionRaiderStatByPreset(node, presetNo), "unionRaider");
     }
 
-    /** 키에 계산 세대가 들어간다. 시트 모양이나 계산 규칙이 바뀌면 옛 값은 닿지 않는다. */
+    /** 키는 고정. 어느 세대로 만든 시트인지는 {@link CalculatedCache} 가 값 안에 적고 꺼낼 때 거른다. */
     private String dataSheetCacheKey(String ocid, LocalDate date) {
-        return "maple:datasheet:" + calculationVersion.tag() + ":" + normalizeOcid(ocid) + ":" + date;
+        return "maple:datasheet:" + normalizeOcid(ocid) + ":" + date;
     }
 
     private String normalizeOcid(String ocid) {

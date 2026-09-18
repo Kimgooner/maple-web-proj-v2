@@ -21,15 +21,16 @@ import java.util.List;
  * 캐시 키의 버전을 안 올리면 고친 값이 한 달 동안 안 보인다 — 실제로 데몬어벤져 지원 배포에서
  * 그랬고(전투력 0 이 "계산 실패"로 굳음), 그 뒤로 접두사 버전을 손으로 올려 왔다.
  *
- * <p>손으로 올리는 것은 잊기 마련이라, 부팅 때 <b>계산에 관여하는 것들의 지문</b>을 재서 키에
- * 넣는다. 지문에 들어가는 것:
+ * <p>손으로 올리는 것은 잊기 마련이라, 부팅 때 <b>계산에 관여하는 것들의 지문</b>을 재 둔다.
+ * {@link CalculatedCache} 가 값마다 이 지문을 적고, 꺼낼 때 지금 지문과 다르면 다시 계산해
+ * 덮어쓴다. 지문에 들어가는 것:
  * <ul>
  * <li>{@code analysis}·{@code domain} 패키지의 컴파일된 클래스 전부 (계산·파서·시트·DTO 모양)</li>
  * <li>계산이 읽는 표: {@code game-data.yml}, {@code event-buffs.yml}, {@code challengers-buffs.yml},
  *     {@code hexa-core-cost.yml}, {@code set/*.json}</li>
  * </ul>
- * 둘 중 하나라도 바뀌면 지문이 달라져 옛 캐시는 닿지 않는 키가 되고(TTL 로 사라진다), 새 값이
- * 계산된다. 화면·컨트롤러·인프라만 고친 배포는 지문이 그대로라 캐시가 산다.
+ * 둘 중 하나라도 바뀌면 지문이 달라져 옛 값은 히트로 치지 않고 새 값으로 바뀐다.
+ * 화면·컨트롤러·인프라만 고친 배포는 지문이 그대로라 캐시가 산다.
  *
  * <p>javac 은 같은 소스에서 같은 바이트를 내므로 재빌드해도 지문이 흔들리지 않는다. 혹시
  * 흔들리더라도 배포 한 번에 캐시가 한 번 비는 것이 최악이다 — 옛 값을 30일 보여 주는 것보다 낫다.
@@ -50,10 +51,19 @@ public class CalculationVersion {
     private final String tag;
 
     public CalculationVersion() {
-        this.tag = fingerprint();
+        this(fingerprint());
     }
 
-    /** 캐시 키에 넣을 짧은 지문. 12자리 16진수. */
+    private CalculationVersion(String tag) {
+        this.tag = tag;
+    }
+
+    /** 테스트용. 지문을 재지 않고 주어진 값을 쓴다. */
+    static CalculationVersion fixed(String tag) {
+        return new CalculationVersion(tag);
+    }
+
+    /** 캐시 값에 적을 짧은 지문. 12자리 16진수. */
     public String tag() {
         return tag;
     }
