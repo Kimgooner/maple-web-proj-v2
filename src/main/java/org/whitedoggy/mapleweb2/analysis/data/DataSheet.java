@@ -228,22 +228,6 @@ public class DataSheet {
         return copy;
     }
 
-    /**
-     * 종합만 갈아 끼운 사본. 소스별 시트를 미리 합쳐 둔 쪽이 종합을 만들어 넣을 때 쓴다 —
-     * {@link #buildSum} 을 다시 도는 것보다 훨씬 싸다. 장비를 뺀 조합이면 장비 목록도 비워
-     * 설명문에만 있는 장비 효과(루인 포스실드)가 따라 빠지게 한다.
-     */
-    public DataSheet withSum(StatSheet sum, boolean itemsIncluded) {
-        DataSheet copy = new DataSheet();
-        copy.copy(this);
-        copy.pirateBlessApplied = this.pirateBlessApplied;
-        copy.sumSheet = sum;
-        if (!itemsIncluded) {
-            copy.itemEquip = Map.of();
-        }
-        return copy;
-    }
-
     private void blank(String source) {
         DataSheet copy = this;
         switch (source) {
