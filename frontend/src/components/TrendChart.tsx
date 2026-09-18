@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { LevelBandWeek } from '../api/levelBands';
 import type { HistoryPoint, HistoryRange } from '../api/types';
-import { compact, dateLabel, formatGameNumber, formatNumber, shortDate } from '../lib/format';
+import { compact, dateLabel, formatAxisDate, formatGameNumber, formatNumber } from '../lib/format';
 import { isPending } from '../lib/history';
 import { bandAt } from '../lib/levelBands';
 
@@ -356,7 +356,7 @@ export function TrendChart(
               {pending && loading && <circle cx={x(i)} cy={HEIGHT - BOTTOM} r="2.5" fill="#dfe3e9" />}
               {labelled.has(i) && (
                 <text x={x(i)} y={HEIGHT - 10} textAnchor="middle">
-                  {range === 'monthly' ? point.date.slice(0, 7).replace('-', '.') : shortDate(point.date)}
+                  {formatAxisDate(point.date, range)}
                 </text>
               )}
               <rect x={x(i) - half} y={TOP} width={half * 2} height={HEIGHT - TOP - BOTTOM} fill="transparent" />

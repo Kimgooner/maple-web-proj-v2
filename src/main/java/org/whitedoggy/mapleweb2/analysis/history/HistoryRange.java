@@ -20,12 +20,23 @@ public enum HistoryRange {
         }
     },
 
-    /** 오늘이 속한 달을 포함해 달마다 1개, 각 달 1일로 12개. 이번 달 1일 ~ 11개월 전 1일. */
+    /**
+     * 오른쪽 끝은 오늘, 그 앞은 지난달부터 달마다 1일. 오늘 포함 12개 (오늘 ~ 11개월 전 1일).
+     *
+     * <p>이번 달 1일로 끝내면 9/18 에 열어도 그래프가 9/1 에서 멈춰 이달 성장이 안 보인다.
+     * 오늘을 끝에 두면 일간과 같은 값으로 이어지고, 요약의 "최근 12개월 변화"도 오늘 기준이 된다.
+     * 오늘이 1일이면 종전과 같은 목록이다.
+     */
     MONTHLY(12) {
         @Override
         public List<LocalDate> dates(LocalDate today) {
             LocalDate firstOfThisMonth = today.withDayOfMonth(1);
-            return IntStream.range(0, count()).mapToObj(firstOfThisMonth::minusMonths).toList();
+            List<LocalDate> dates = new java.util.ArrayList<>();
+            dates.add(today);
+            for (int back = 1; dates.size() < count(); back++) {
+                dates.add(firstOfThisMonth.minusMonths(back));
+            }
+            return List.copyOf(dates);
         }
     };
 

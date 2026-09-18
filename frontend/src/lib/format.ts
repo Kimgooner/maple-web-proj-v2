@@ -87,10 +87,15 @@ export function shortDate(date: string): string {
 /** 차트 축용. formatCompact 의 별칭 — 원본 대시보드가 쓰던 이름이다. */
 export const compact = formatCompact;
 
-/** "2026-09-04" → "9/4", 월간이면 "2026.09" */
+/**
+ * "2026-09-04" → "9/4", 월간이면 "2026.09".
+ *
+ * <p>월간의 오른쪽 끝은 1일이 아니라 오늘이다. 그것까지 "2026.09" 로 적으면 9/1 지점처럼 읽히므로
+ * 1일이 아닌 날짜는 월간에서도 날짜로 적는다.
+ */
 export function formatAxisDate(date: string, range: 'daily' | 'monthly'): string {
   const [y, m, d] = date.split('-');
-  return range === 'monthly' ? `${y}.${m}` : `${Number(m)}/${Number(d)}`;
+  return range === 'monthly' && Number(d) === 1 ? `${y}.${m}` : `${Number(m)}/${Number(d)}`;
 }
 
 /** "2026-09-04" → "2026년 9월 4일" */
