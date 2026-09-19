@@ -5,6 +5,6 @@ FROM eclipse-temurin:21-jre
 WORKDIR /app
 COPY build/app.jar app.jar
 
-ENV JAVA_TOOL_OPTIONS="-Xms256m -Xmx2g -XX:+UseG1GC -Duser.timezone=Asia/Seoul"
+ENV JAVA_TOOL_OPTIONS="-Xms256m -Xmx6g -XX:+UseG1GC -Duser.timezone=Asia/Seoul"
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]
